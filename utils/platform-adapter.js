@@ -110,7 +110,7 @@ class AIPlatformAdapter {
       // 取最后一个AI消息（最新的）
       const lastAIMessage = aiMessages[aiMessages.length - 1];
 
-      // DeepSeek特殊处理：只提取 ds-markdown 下的内容（真正的AI回复）
+        // DeepSeek特殊处理：只提取 ds-markdown 下的内容（真正的AI回复）
       if (this.platform === 'deepseek') {
         // 克隆节点以避免修改原始DOM
         const messageClone = lastAIMessage.cloneNode(true);

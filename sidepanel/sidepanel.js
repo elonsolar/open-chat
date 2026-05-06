@@ -51,13 +51,8 @@ async function loadData() {
 }
 
 function loadSettingsToUI() {
-  const contextModeSelect = document.getElementById('contextModeSelect');
   const floatWindowCheck = document.getElementById('floatWindowCheck');
-  
-  if (contextModeSelect) {
-    contextModeSelect.value = state.settings.contextMode || 'self';
-  }
-  
+
   if (floatWindowCheck) {
     floatWindowCheck.checked = state.settings.floatWindow !== false;
   }
@@ -128,13 +123,6 @@ function bindEvents() {
   }
 
   // 消息设置
-  const contextModeSelect = document.getElementById('contextModeSelect');
-  if (contextModeSelect) {
-    contextModeSelect.addEventListener('change', (e) => {
-      updateSetting('contextMode', e.target.value);
-    });
-  }
-
   const floatWindowCheck = document.getElementById('floatWindowCheck');
   if (floatWindowCheck) {
     floatWindowCheck.addEventListener('change', (e) => {
@@ -175,10 +163,17 @@ function renderConversations() {
     const lastMessage = conv.messages[conv.messages.length - 1];
     const preview = lastMessage ? lastMessage.content.substring(0, 50) + '...' : '暂无消息';
 
+    // 上下文模式标签
+    const contextModeLabel = conv.contextMode === 'full'
+      ? '<span style="display: inline-block; padding: 2px 6px; background: #e3f2fd; color: #1976d2; border-radius: 4px; font-size: 10px; margin-left: 6px;">完整上下文</span>'
+      : conv.contextMode
+        ? '<span style="display: inline-block; padding: 2px 6px; background: #e8f5e9; color: #2e7d32; border-radius: 4px; font-size: 10px; margin-left: 6px;">AI自保持</span>'
+        : '';
+
     return `
       <div class="conversation-item" data-id="${conv.id}">
         <div class="conversation-header">
-          <h3>${escapeHtml(conv.name)}</h3>
+          <h3>${escapeHtml(conv.name)}${contextModeLabel}</h3>
           <button class="delete-btn" data-id="${conv.id}">&times;</button>
         </div>
         <div class="conversation-roles">角色: ${roles || '未选择'}</div>
@@ -266,6 +261,7 @@ async function createConversation() {
   const name = document.getElementById('conversationName').value.trim();
   const selectedRoles = Array.from(document.querySelectorAll('.role-selector input:checked'))
     .map(cb => cb.value);
+  const contextMode = document.getElementById('contextMode').value;
 
   if (!name) {
     alert('请输入会话名称');
@@ -280,7 +276,8 @@ async function createConversation() {
   const conversation = await sendMessage({
     action: 'createConversation',
     name,
-    roleIds: selectedRoles
+    roleIds: selectedRoles,
+    contextMode
   });
 
   if (conversation) {

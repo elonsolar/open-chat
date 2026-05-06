@@ -42,18 +42,6 @@
     <div class="tab-content" id="settings-tab">
       <div class="settings-info">
         <h3>消息设置</h3>
-        
-        <div class="setting-item">
-          <label class="setting-label">上下文模式</label>
-          <select class="setting-select" id="contextModeSelect">
-            <option value="self">AI自保持（推荐）</option>
-            <option value="full">完整上下文</option>
-          </select>
-          <p class="setting-desc">
-            AI自保持：每个AI维护自己的上下文<br>
-            完整上下文：每次发送全部历史消息
-          </p>
-        </div>
 
         <div class="setting-item">
           <div class="setting-toggle">
@@ -108,6 +96,17 @@
         <div class="form-group">
           <label>选择角色</label>
           <div class="role-selector" id="roleSelector"></div>
+        </div>
+        <div class="form-group">
+          <label for="contextMode">上下文模式</label>
+          <select id="contextMode">
+            <option value="self">AI自保持（推荐）</option>
+            <option value="full">完整上下文</option>
+          </select>
+          <small style="color: #666; font-size: 11px; display: block; margin-top: 4px;">
+            AI自保持：每个AI维护自己的上下文<br>
+            完整上下文：每次发送全部历史消息
+          </small>
         </div>
       </div>
       <div class="modal-footer">

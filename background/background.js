@@ -404,13 +404,14 @@ class ConversationManager {
     this.tabManager = tabManager;
   }
 
-  async createConversation(name, roleIds) {
+  async createConversation(name, roleIds, contextMode = null) {
     const conversations = await StorageManager.getConversations();
 
     const newConversation = {
       id: this.generateId(),
       name: name || `会话 ${conversations.length + 1}`,
       roleIds: roleIds || [],
+      contextMode: contextMode || null, // 会话级别的上下文模式
       messages: [],
       createdAt: Date.now(),
       updatedAt: Date.now()
@@ -537,10 +538,11 @@ class AIMessageManager {
 
     // 获取设置
     const settings = await StorageManager.getSettings();
-    const contextMode = settings.contextMode || 'self'; // 默认AI自保持模式
+    // 使用会话的上下文模式，如果没有则使用全局设置
+    const contextMode = conversation.contextMode || settings.contextMode || 'self';
     const useFloatWindow = settings.floatWindow !== false; // 默认使用浮动窗口
 
-    console.log(`[AIMessageManager] 上下文模式: ${contextMode}, 浮动窗口: ${useFloatWindow}`);
+    console.log(`[AIMessageManager] 上下文模式: ${contextMode} (来源: ${conversation.contextMode ? '会话' : '全局设置'}), 浮动窗口: ${useFloatWindow}`);
 
     // 如果使用浮动窗口，显示用户消息
     if (useFloatWindow) {
@@ -803,7 +805,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   switch (request.action) {
     case 'createConversation':
-      conversationManager.createConversation(request.name, request.roleIds)
+      conversationManager.createConversation(request.name, request.roleIds, request.contextMode)
         .then(sendResponse);
       return true;
 
