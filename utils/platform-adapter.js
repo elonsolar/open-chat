@@ -454,8 +454,13 @@ class AIPlatformAdapter {
           console.log(`[${this.platform}] 回复预览:`, lastContent.substring(0, 100) + '...');
           console.log(`[${this.platform}] 总耗时: ${Math.floor(elapsed / 1000)}秒`);
           console.log(`[${this.platform}] 稳定时长: ${Math.floor(stableElapsed / 1000)}秒`);
+          console.log(`[${this.platform}] 当前会话URL:`, window.location.href);
 
-          resolve(lastContent);
+          resolve({
+            success: true,
+            content: lastContent,
+            conversationUrl: window.location.href
+          });
           return; // 确保不再继续执行
         }
 
@@ -483,7 +488,12 @@ class AIPlatformAdapter {
           console.log(`[${this.platform}] ========== 超时但已有新内容 ==========`);
           console.log(`[${this.platform}] 内容长度: ${lastContent.length}`);
           console.log(`[${this.platform}] 总耗时: ${Math.floor((Date.now() - startTime) / 1000)}秒`);
-          resolve(lastContent);
+          console.log(`[${this.platform}] 当前会话URL:`, window.location.href);
+          resolve({
+            success: true,
+            content: lastContent,
+            conversationUrl: window.location.href
+          });
         } else {
           console.error(`[${this.platform}] ========== 等待超时 ==========`);
           console.error(`[${this.platform}] 总等待时间: ${Math.floor((Date.now() - startTime) / 1000)}秒`);
@@ -647,7 +657,8 @@ class AIPlatformAdapter {
       console.log(`[${this.platform}] 步骤4: 等待AI回复...`);
       const response = await this.waitForResponse(60000, initialAIMessageCount, initialAIContent);
       console.log(`[${this.platform}] ========== 收到回复 ==========`);
-      console.log(`[${this.platform}] 回复长度:`, response.length);
+      console.log(`[${this.platform}] 回复长度:`, response.content.length);
+      console.log(`[${this.platform}] 会话URL:`, response.conversationUrl);
 
       return response;
     } catch (error) {

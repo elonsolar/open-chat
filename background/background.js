@@ -44,10 +44,10 @@ class TabManager {
   }
 
   // 打开AI平台标签页
-  async openPlatformTab(platform, forceNew = false) {
+  async openPlatformTab(platform, forceNew = false, targetUrl = null) {
     console.log(`[TabManager] ========== openPlatformTab ==========`);
-    console.log(`[TabManager] platform: ${platform}, forceNew: ${forceNew}`);
-    
+    console.log(`[TabManager] platform: ${platform}, forceNew: ${forceNew}, targetUrl: ${targetUrl || 'none'}`);
+
     const urls = {
       deepseek: 'https://chat.deepseek.com/',
       doubao: 'https://www.doubao.com/chat/',
@@ -63,20 +63,36 @@ class TabManager {
     try {
       // 如果不强制新建，检查是否已有该平台的标签页
       if (!forceNew) {
-        console.log(`[TabManager] 查找已有的 ${platform} 标签页...`);
-        const existingTab = await this.findPlatformTab(platform);
-        if (existingTab) {
-          // 复用已有标签页，但不激活（保持焦点在浮动窗口）
-          await chrome.tabs.update(existingTab.id, { active: false });
-          console.log(`[TabManager] ⚠️ 复用已有 ${platform} 标签页: ${existingTab.id}, URL: ${existingTab.url}`);
-          
-          // 复用标签页时，等待更长时间确保页面稳定
-          console.log(`[TabManager] 复用标签页，等待页面稳定...`);
-          await this.sleep(2000);
-          
-          return existingTab;
+        // 如果指定了目标URL，只精准查找该URL的标签页
+        if (targetUrl) {
+          console.log(`[TabManager] 🔍 查找目标URL的标签页: ${targetUrl}`);
+          const exactTab = await this.findTabByUrl(targetUrl);
+          if (exactTab) {
+            await chrome.tabs.update(exactTab.id, { active: false });
+            console.log(`[TabManager] ✅ 找到目标URL标签页: ${exactTab.id}`);
+            await this.sleep(1000);
+            return exactTab;
+          } else {
+            console.log(`[TabManager] ⚠️ 未找到目标URL标签页，将创建新标签页并导航到该URL`);
+            // 未找到目标URL，直接创建新标签页（不继续查找其他标签页）
+          }
         } else {
-          console.log(`[TabManager] 未找到已有的 ${platform} 标签页`);
+          // 没有指定目标URL，查找该平台的任意标签页
+          console.log(`[TabManager] 查找已有的 ${platform} 标签页...`);
+          const existingTab = await this.findPlatformTab(platform);
+          if (existingTab) {
+            // 复用已有标签页，但不激活（保持焦点在浮动窗口）
+            await chrome.tabs.update(existingTab.id, { active: false });
+            console.log(`[TabManager] ⚠️ 复用已有 ${platform} 标签页: ${existingTab.id}, URL: ${existingTab.url}`);
+
+            // 复用标签页时，等待更长时间确保页面稳定
+            console.log(`[TabManager] 复用标签页，等待页面稳定...`);
+            await this.sleep(2000);
+
+            return existingTab;
+          } else {
+            console.log(`[TabManager] 未找到已有的 ${platform} 标签页`);
+          }
         }
       } else {
         console.log(`[TabManager] forceNew=true，跳过查找已有标签页`);
@@ -84,8 +100,10 @@ class TabManager {
 
       // 创建新标签页
       console.log(`[TabManager] 创建新的 ${platform} 标签页...`);
+      // 如果有目标URL，直接打开该URL；否则打开平台首页
+      const openUrl = targetUrl || url;
       const tab = await chrome.tabs.create({
-        url: url,
+        url: openUrl,
         active: false // 在后台打开
       });
 
@@ -151,6 +169,26 @@ class TabManager {
       return null;
     } catch (error) {
       console.error(`[TabManager] 查找标签页失败:`, error);
+      return null;
+    }
+  }
+
+  // 通过URL精准查找标签页
+  async findTabByUrl(targetUrl) {
+    try {
+      console.log(`[TabManager] 查找URL: ${targetUrl}`);
+      const allTabs = await chrome.tabs.query({});
+      const exactTab = allTabs.find(tab => tab.url === targetUrl && !tab.pendingUrl);
+
+      if (exactTab) {
+        console.log(`[TabManager] ✅ 找到精准匹配的标签页: ${exactTab.id}`);
+        return exactTab;
+      }
+
+      console.log(`[TabManager] 未找到精准匹配的标签页`);
+      return null;
+    } catch (error) {
+      console.error(`[TabManager] 查找URL失败:`, error);
       return null;
     }
   }
@@ -235,11 +273,11 @@ class TabManager {
   }
 
   // 发送消息到指定平台
-  async sendToPlatform(platform, messageType, data = {}, forceNewTab = false) {
+  async sendToPlatform(platform, messageType, data = {}, forceNewTab = false, targetUrl = null) {
     try {
       // 确保标签页已打开
-      console.log(`[TabManager] 正在打开 ${platform} 标签页... (forceNew: ${forceNewTab})`);
-      const tab = await this.openPlatformTab(platform, forceNewTab);
+      console.log(`[TabManager] 正在打开 ${platform} 标签页... (forceNew: ${forceNewTab}, targetUrl: ${targetUrl || 'none'})`);
+      const tab = await this.openPlatformTab(platform, forceNewTab, targetUrl);
       console.log(`[TabManager] ${platform} 标签页已打开:`, tab.id);
 
       // 等待content script初始化和页面加载
@@ -317,7 +355,9 @@ class TabManager {
 
         // 等待content-script异步返回
         const response = await responsePromise;
-        console.log(`[TabManager] ✅ 收到AI响应:`, response.content?.substring(0, 50));
+        console.log(`[TabManager] ✅ 收到AI响应:`, response.content?.substring(0, 50) || '(no content)');
+        console.log(`[TabManager] response.success:`, response?.success);
+        console.log(`[TabManager] response.conversationUrl:`, response?.conversationUrl || 'none');
 
         return response;
       } else {
@@ -337,13 +377,14 @@ class TabManager {
   }
 
   // 在指定平台发送消息
-  async sendMessage(platform, content, forceNewTab = false) {
+  async sendMessage(platform, content, forceNewTab = false, targetUrl = null) {
     console.log(`[TabManager] ========== sendMessage ==========`);
     console.log(`[TabManager] platform: ${platform}`);
     console.log(`[TabManager] content 长度: ${content.length}`);
     console.log(`[TabManager] forceNewTab: ${forceNewTab}`);
-    
-    return await this.sendToPlatform(platform, 'sendMessage', { content }, forceNewTab);
+    console.log(`[TabManager] targetUrl: ${targetUrl || 'none'}`);
+
+    return await this.sendToPlatform(platform, 'sendMessage', { content }, forceNewTab, targetUrl);
   }
 
   // 获取指定平台的聊天历史
@@ -429,6 +470,19 @@ class ConversationManager {
     await StorageManager.saveConversations(conversations);
   }
 
+  async updateConversation(conversationId, updates) {
+    const conversations = await StorageManager.getConversations();
+    const conversation = conversations.find(c => c.id === conversationId);
+
+    if (conversation) {
+      Object.assign(conversation, updates, { updatedAt: Date.now() });
+      await StorageManager.saveConversations(conversations);
+      return conversation;
+    }
+
+    return null;
+  }
+
   async addMessage(conversationId, roleId, content, isUser = false) {
     const conversations = await StorageManager.getConversations();
     const conversation = conversations.find(c => c.id === conversationId);
@@ -484,6 +538,7 @@ class RoleManager {
       provider,
       model,
       systemPrompt,
+      conversationUrl: null,
       createdAt: Date.now()
     };
 
@@ -571,16 +626,25 @@ class AIMessageManager {
       try {
         console.log(`[AIMessageManager] ========== 发送到 ${role.provider} (${role.name}) ==========`);
         console.log(`[AIMessageManager] roleId: ${roleId}, provider: ${role.provider}`);
+        console.log(`[AIMessageManager] role.conversationUrl: ${role.conversationUrl || 'none'}`);
 
         let messageToSend = userMessage;
         let forceNewTab = false;
+        let targetUrl = null;
 
+        // AI自保持模式：使用保存的会话URL
+        if (contextMode === 'self' && role.conversationUrl) {
+          targetUrl = role.conversationUrl;
+          console.log(`[AIMessageManager] 使用保存的会话URL: ${targetUrl}`);
+        }
+
+        // 完整上下文模式：强制新建标签页
         if (contextMode === 'full') {
           messageToSend = this.formatConversationWithHistory(conversation, role.id);
           forceNewTab = true;
         }
 
-        console.log(`[AIMessageManager] forceNewTab: ${forceNewTab}`);
+        console.log(`[AIMessageManager] forceNewTab: ${forceNewTab}, targetUrl: ${targetUrl || 'none'}`);
         console.log(`[AIMessageManager] messageToSend 长度: ${messageToSend.length}`);
 
         const hasRoleMessages = conversation.messages.some(m => m.roleId === role.id && !m.isUser);
@@ -592,13 +656,20 @@ class AIMessageManager {
         console.log(`[AIMessageManager] ⏳ 调用 tabManager.sendMessage...`);
 
         // 调用sendMessage，内部已经有30秒超时控制
-        const response = await this.tabManager.sendMessage(role.provider, messageToSend, forceNewTab);
+        const response = await this.tabManager.sendMessage(role.provider, messageToSend, forceNewTab, targetUrl);
 
         console.log(`[AIMessageManager] ✅ 收到 ${role.name} 响应`);
         console.log(`[AIMessageManager] response.success:`, response?.success);
         console.log(`[AIMessageManager] response.content 长度:`, response?.content?.length || 0);
+        console.log(`[AIMessageManager] response.conversationUrl:`, response?.conversationUrl || 'none');
 
         if (response && response.success) {
+          // 如果返回了会话URL且角色没有保存过，保存到角色数据
+          if (response.conversationUrl && !role.conversationUrl) {
+            console.log(`[AIMessageManager] 💾 保存会话URL到角色 ${role.name}: ${response.conversationUrl}`);
+            role.conversationUrl = response.conversationUrl;
+            await StorageManager.saveRoles(roles);
+          }
           console.log(`[AIMessageManager] 💾 保存 ${role.name} 的消息到conversation...`);
           await this.conversationManager.addMessage(conversationId, roleId, response.content, false);
           console.log(`[AIMessageManager] ✅ ${role.name} 消息已保存`);
@@ -789,8 +860,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         console.log('[Background] ❌ AI返回错误，reject promise');
         pending.reject(new Error(request.error));
       } else {
-        console.log('[Background] ✅ AI返回成功，resolve promise, content长度:', request.content?.length || 0);
-        pending.resolve({ success: true, content: request.content });
+        console.log('[Background] ✅ AI返回成功，resolve promise');
+        console.log('[Background] response:', request.content);
+        // request.content 现在是 { success: true, content: "...", conversationUrl: "..." }
+        pending.resolve(request.content);
       }
 
       sendResponse({ status: 'received' });
@@ -812,6 +885,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     case 'deleteConversation':
       conversationManager.deleteConversation(request.conversationId)
         .then(() => sendResponse({ success: true }));
+      return true;
+
+    case 'updateConversation':
+      conversationManager.updateConversation(request.conversationId, request.updates)
+        .then(conversation => sendResponse(conversation));
       return true;
 
     case 'addMessage':

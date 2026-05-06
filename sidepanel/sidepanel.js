@@ -174,20 +174,30 @@ function renderConversations() {
       <div class="conversation-item" data-id="${conv.id}">
         <div class="conversation-header">
           <h3>${escapeHtml(conv.name)}${contextModeLabel}</h3>
-          <button class="delete-btn" data-id="${conv.id}">&times;</button>
+          <div class="conversation-actions">
+            <button class="edit-btn" data-id="${conv.id}">编辑</button>
+            <button class="delete-btn" data-id="${conv.id}">&times;</button>
+          </div>
         </div>
         <div class="conversation-roles">角色: ${roles || '未选择'}</div>
         <div class="conversation-preview">${escapeHtml(preview)}</div>
-        <div class="conversation-time">${formatTime(conv.updatedAt)}</div>
       </div>
     `;
   }).join('');
 
   // 绑定删除事件
-  document.querySelectorAll('.delete-btn').forEach(btn => {
+  document.querySelectorAll('.conversation-item .delete-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       deleteConversation(btn.dataset.id);
+    });
+  });
+
+  // 绑定编辑事件
+  document.querySelectorAll('.conversation-item .edit-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      editConversation(btn.dataset.id);
     });
   });
 
@@ -213,6 +223,16 @@ function renderRoles() {
       openai: 'ChatGPT'
     };
 
+    // 会话URL显示
+    let conversationUrlHtml = '';
+    if (role.conversationUrl) {
+      conversationUrlHtml = `<div class="conversation-url" title="${escapeHtml(role.conversationUrl)}">
+        <span style="display: inline-block; padding: 2px 6px; background: #f3e5f5; color: #7b1fa2; border-radius: 4px; font-size: 10px; margin-top: 6px;">
+          🔗 已绑定会话
+        </span>
+      </div>`;
+    }
+
     return `
       <div class="role-item" data-id="${role.id}">
         <div class="role-header">
@@ -226,6 +246,7 @@ function renderRoles() {
         <div class="role-info">
           <div>提供商: ${providerNames[role.provider] || role.provider}</div>
           <div>模型: ${escapeHtml(role.model)}</div>
+          ${conversationUrlHtml}
         </div>
       </div>
     `;
@@ -273,20 +294,38 @@ async function createConversation() {
     return;
   }
 
-  const conversation = await sendMessage({
-    action: 'createConversation',
-    name,
-    roleIds: selectedRoles,
-    contextMode
-  });
+  if (state.editingConversationId) {
+    // 编辑模式
+    const updates = { name, roleIds: selectedRoles, contextMode };
+    await sendMessage({
+      action: 'updateConversation',
+      conversationId: state.editingConversationId,
+      updates
+    });
 
-  if (conversation) {
-    state.conversations.push(conversation);
+    const convIndex = state.conversations.findIndex(c => c.id === state.editingConversationId);
+    if (convIndex !== -1) {
+      Object.assign(state.conversations[convIndex], updates);
+    }
     renderConversations();
     hideNewConversationModal();
+  } else {
+    // 新建模式
+    const conversation = await sendMessage({
+      action: 'createConversation',
+      name,
+      roleIds: selectedRoles,
+      contextMode
+    });
 
-    // 打开新会话的聊天页面
-    openConversation(conversation.id);
+    if (conversation) {
+      state.conversations.push(conversation);
+      renderConversations();
+      hideNewConversationModal();
+
+      // 打开新会话的聊天页面
+      openConversation(conversation.id);
+    }
   }
 }
 
@@ -299,6 +338,13 @@ async function deleteConversation(conversationId) {
 
     state.conversations = state.conversations.filter(c => c.id !== conversationId);
     renderConversations();
+  }
+}
+
+function editConversation(conversationId) {
+  const conversation = state.conversations.find(c => c.id === conversationId);
+  if (conversation) {
+    showEditConversationModal(conversation);
   }
 }
 
@@ -434,6 +480,10 @@ async function updateSetting(key, value) {
 
 // 模态框操作
 function showNewConversationModal() {
+  state.editingConversationId = null;
+  document.getElementById('conversationModalTitle').textContent = '新建会话';
+  document.getElementById('confirmConversationBtn').textContent = '创建';
+
   // 渲染角色选择器
   const roleSelector = document.getElementById('roleSelector');
   if (state.roles.length === 0) {
@@ -451,9 +501,40 @@ function showNewConversationModal() {
   elements.newConversationModal.classList.add('active');
 }
 
+function showEditConversationModal(conversation) {
+  state.editingConversationId = conversation.id;
+  document.getElementById('conversationModalTitle').textContent = '编辑会话';
+  document.getElementById('confirmConversationBtn').textContent = '保存';
+
+  document.getElementById('conversationName').value = conversation.name;
+  document.getElementById('contextMode').value = conversation.contextMode || 'self';
+
+  // 渲染角色选择器并选中当前角色
+  const roleSelector = document.getElementById('roleSelector');
+  if (state.roles.length === 0) {
+    roleSelector.innerHTML = '<div class="empty-state">请先创建角色</div>';
+  } else {
+    roleSelector.innerHTML = state.roles.map(role => {
+      const isChecked = conversation.roleIds.includes(role.id) ? 'checked' : '';
+      return `
+        <label class="role-checkbox">
+          <input type="checkbox" value="${role.id}" ${isChecked}>
+          <span>${escapeHtml(role.name)}</span>
+          <small>(${role.provider})</small>
+        </label>
+      `;
+    }).join('');
+  }
+
+  elements.newConversationModal.classList.add('active');
+}
+
 function hideNewConversationModal() {
   elements.newConversationModal.classList.remove('active');
+  state.editingConversationId = null;
   document.getElementById('conversationName').value = '';
+  document.getElementById('conversationModalTitle').textContent = '新建会话';
+  document.getElementById('confirmConversationBtn').textContent = '创建';
 }
 
 function showNewRoleModal() {
