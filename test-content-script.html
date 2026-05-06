@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Content Script测试工具</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      padding: 30px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .test-item {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 15px;
+      border-left: 4px solid #667eea;
+    }
+
+    .test-item h3 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .result {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 13px;
+    }
+
+    .result.success {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .result.error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .result.info {
+      background: #e3f2fd;
+      color: #0d47a1;
+    }
+
+    .code {
+      background: #2d3748;
+      color: #e2e8f0;
+      padding: 10px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 12px;
+      margin: 10px 0;
+      overflow-x: auto;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+
+    .status.ok {
+      background: #28a745;
+      color: white;
+    }
+
+    .status.fail {
+      background: #dc3545;
+      color: white;
+    }
+
+    .status.unknown {
+      background: #ffc107;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🔧 Content Script测试工具</h1>
+      <p>在豆包Console中运行这些测试</p>
+    </div>
+
+    <div class="test-item">
+      <h3>测试1: 检查扩展是否注入 <span class="status unknown" id="status1">未测试</span></h3>
+      <div class="code">
+// 在豆包Console运行：
+console.log('[AI Plugin] 是否存在:', typeof window.platformAdapter);
+console.log('[AI Plugin] 平台适配器:', window.platformAdapter);
+      </div>
+      <div class="result info">
+        预期结果: 应该显示一个对象，不是undefined
+      </div>
+    </div>
+
+    <div class="test-item">
+      <h3>测试2: 检查AIPlatformAdapter类 <span class="status unknown" id="status2">未测试</span></h3>
+      <div class="code">
+// 在豆包Console运行：
+console.log('AIPlatformAdapter类:', typeof AIPlatformAdapter);
+console.log('选择器:', window.platformAdapter?.selectors);
+      </div>
+      <div class="result info">
+        预期结果: 应该显示"function"和选择器对象
+      </div>
+    </div>
+
+    <div class="test-item">
+      <h3>测试3: 检查输入框 <span class="status unknown" id="status3">未测试</span></h3>
+      <div class="code">
+// 在豆包Console运行：
+const textarea = document.querySelector('textarea');
+console.log('输入框数量:', document.querySelectorAll('textarea').length);
+console.log('输入框:', textarea);
+console.log('输入框placeholder:', textarea?.placeholder);
+console.log('输入框value:', textarea?.value);
+      </div>
+      <div class="result info">
+        预期结果: 应该找到1个或多个textarea
+      </div>
+    </div>
+
+    <div class="test-item">
+      <h3>测试4: 检查按钮 <span class="status unknown" id="status4">未测试</span></h3>
+      <div class="code">
+// 在豆包Console运行：
+const buttons = document.querySelectorAll('button');
+console.log('按钮数量:', buttons.length);
+buttons.forEach((btn, i) => {
+  if (i < 5) {
+    console.log(`按钮${i}:`, btn.textContent?.trim(), btn.className);
+  }
+});
+      </div>
+      <div class="result info">
+        预期结果: 应该找到多个按钮
+      </div>
+    </div>
+
+    <div class="test-item">
+      <h3>测试5: 检查消息列表 <span class="status unknown" id="status5">未测试</span></h3>
+      <div class="code">
+// 在豆包Console运行：
+const messages = document.querySelectorAll('[class*="message"], [class*="chat"]');
+console.log('消息容器数量:', messages.length);
+console.log('页面总元素:', document.querySelectorAll('*').length);
+      </div>
+      <div class="result info">
+        预期结果: 应该找到消息容器
+      </div>
+    </div>
+
+    <div class="test-item">
+      <h3>测试6: 手动发送消息 <span class="status unknown" id="status6">未测试</span></h3>
+      <div class="code">
+// 在豆包Console运行：
+async function testSend() {
+  const textarea = document.querySelector('textarea');
+  if (!textarea) {
+    console.log('❌ 未找到输入框');
+    return;
+  }
+
+  // 输入消息
+  textarea.value = '你好';
+  textarea.dispatchEvent(new Event('input', { bubbles: true }));
+  console.log('✓ 已填入消息');
+
+  // 等待1秒
+  await new Promise(r => setTimeout(r, 1000));
+
+  // 按Enter
+  textarea.dispatchEvent(new KeyboardEvent('keydown', {
+    key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true
+  }));
+  console.log('✓ 已按Enter键');
+
+  console.log('✓ 测试完成！观察豆包是否发送消息');
+}
+testSend();
+      </div>
+      <div class="result info">
+        预期结果: 豆包应该自动发送消息
+      </div>
+    </div>
+
+    <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; border-radius: 8px; margin-top: 20px;">
+      <h3 style="color: #856404; margin-bottom: 10px;">📋 把这些结果告诉我</h3>
+      <p style="color: #856404; margin: 0;">
+        运行上面所有测试后，告诉我：
+        <br>1. 哪些测试通过（✓）
+        <br>2. 哪些测试失败（✗）
+        <br>3. Console中有什么错误信息
+      </p>
+    </div>
+
+  </div>
+
+  <script>
+    // 注意：这个页面只是显示测试代码
+    // 实际测试需要在豆包网站的Console中运行
+    console.log('请在豆包网站的Console中运行上面显示的测试代码');
+  </script>
+</body>
+</html>

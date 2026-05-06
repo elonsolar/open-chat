@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI对话</title>
+  <link rel="stylesheet" href="../styles/chat.css">
+</head>
+<body>
+  <div class="chat-container">
+    <!-- 顶部信息栏 -->
+    <div class="chat-header">
+      <h1 id="chatTitle">会话</h1>
+      <div class="chat-info">
+        <div class="roles-tags" id="rolesTags"></div>
+      </div>
+    </div>
+
+    <!-- 消息列表 -->
+    <div class="messages-container" id="messagesContainer"></div>
+
+    <!-- 输入区域 -->
+    <div class="input-container">
+      <textarea id="messageInput" placeholder="输入消息..." rows="3"></textarea>
+      <div class="input-actions">
+        <button class="btn btn-primary" id="sendBtn">发送</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../utils/storage.js"></script>
+  <script src="../chat/chat.js"></script>
+</body>
+</html>

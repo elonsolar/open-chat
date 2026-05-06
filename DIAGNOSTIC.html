@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>插件诊断工具</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    .content {
+      padding: 30px;
+    }
+
+    .check-item {
+      margin-bottom: 20px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 10px;
+      border-left: 5px solid #dee2e6;
+    }
+
+    .check-item.success {
+      border-left-color: #28a745;
+      background: #d4edda;
+    }
+
+    .check-item.error {
+      border-left-color: #dc3545;
+      background: #f8d7da;
+    }
+
+    .check-item.warning {
+      border-left-color: #ffc107;
+      background: #fff3cd;
+    }
+
+    .check-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .check-desc {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 15px;
+    }
+
+    .check-action {
+      padding: 10px 20px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .check-action:hover {
+      background: #5568d3;
+    }
+
+    .status-icon {
+      font-size: 24px;
+    }
+
+    .result {
+      margin-top: 10px;
+      padding: 10px;
+      background: white;
+      border-radius: 5px;
+      font-size: 13px;
+      display: none;
+    }
+
+    .result.show {
+      display: block;
+    }
+
+    .overall-status {
+      padding: 30px;
+      background: #f8f9fa;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    .overall-status h2 {
+      margin-bottom: 15px;
+    }
+
+    .next-steps {
+      margin-top: 30px;
+      padding: 20px;
+      background: #e3f2fd;
+      border-radius: 10px;
+    }
+
+    .next-steps h3 {
+      color: #1976d2;
+      margin-bottom: 15px;
+    }
+
+    .next-steps ol {
+      margin-left: 20px;
+    }
+
+    .next-steps li {
+      margin-bottom: 10px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🔍 插件诊断工具</h1>
+      <p>检查插件状态，快速定位问题</p>
+    </div>
+
+    <div class="content">
+      <div class="check-item" id="check1">
+        <div class="check-title">
+          <span class="status-icon">❓</span>
+          检查1: 浏览器支持
+        </div>
+        <div class="check-desc">检查是否使用Edge浏览器及版本</div>
+        <button class="check-action" onclick="checkBrowser()">检查浏览器</button>
+        <div class="result" id="result1"></div>
+      </div>
+
+      <div class="check-item" id="check2">
+        <div class="check-title">
+          <span class="status-icon">❓</span>
+          检查2: 插件加载
+        </div>
+        <div class="check-desc">检查插件是否正确加载</div>
+        <button class="check-action" onclick="checkExtension()">检查插件</button>
+        <div class="result" id="result2"></div>
+      </div>
+
+      <div class="check-item" id="check3">
+        <div class="check-title">
+          <span class="status-icon">❓</span>
+          检查3: 侧边栏API
+        </div>
+        <div class="check-desc">检查侧边栏功能是否可用</div>
+        <button class="check-action" onclick="checkSidePanel()">检查侧边栏</button>
+        <div class="result" id="result3"></div>
+      </div>
+
+      <div class="check-item" id="check4">
+        <div class="check-title">
+          <span class="status-icon">❓</span>
+          检查4: 权限配置
+        </div>
+        <div class="check-desc">检查必要的权限是否已授予</div>
+        <button class="check-action" onclick="checkPermissions()">检查权限</button>
+        <div class="result" id="result4"></div>
+      </div>
+
+      <div class="check-item" id="check5">
+        <div class="check-title">
+          <span class="status-icon">❓</span>
+          检查5: 存储功能
+        </div>
+        <div class="check-desc">检查本地存储是否正常工作</div>
+        <button class="check-action" onclick="checkStorage()">检查存储</button>
+        <div class="result" id="result5"></div>
+      </div>
+
+      <div class="overall-status">
+        <h2 id="overallTitle">诊断进行中...</h2>
+        <p id="overallDesc">请完成所有检查项</p>
+      </div>
+
+      <div class="next-steps">
+        <h3>📋 下一步操作</h3>
+        <ol>
+          <li>根据检查结果修复发现的问题</li>
+          <li>按 <strong>Ctrl+Shift+S</strong> 打开侧边栏</li>
+          <li>登录AI网站（如 https://chat.deepseek.com）</li>
+          <li>创建角色并测试连接</li>
+          <li>开始使用！</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let checksPassed = 0;
+    let totalChecks = 5;
+
+    function updateCheckItem(checkId, status, message) {
+      const item = document.getElementById(checkId);
+      const result = document.getElementById('result' + checkId.replace('check', ''));
+
+      item.classList.remove('success', 'error', 'warning');
+      item.classList.add(status);
+
+      const icon = item.querySelector('.status-icon');
+      if (status === 'success') {
+        icon.textContent = '✅';
+        checksPassed++;
+      } else if (status === 'error') {
+        icon.textContent = '❌';
+      } else {
+        icon.textContent = '⚠️';
+      }
+
+      result.textContent = message;
+      result.classList.add('show');
+
+      updateOverall();
+    }
+
+    function updateOverall() {
+      const title = document.getElementById('overallTitle');
+      const desc = document.getElementById('overallDesc');
+
+      if (checksPassed === totalChecks) {
+        title.textContent = '✅ 所有检查通过！';
+        desc.textContent = '插件工作正常，可以开始使用了';
+      } else if (checksPassed > 0) {
+        title.textContent = `⚠️ ${checksPassed}/${totalChecks} 检查通过`;
+        desc.textContent = '请修复失败的检查项';
+      } else {
+        title.textContent = '❌ 需要修复问题';
+        desc.textContent = '请按照建议修复发现的问题';
+      }
+    }
+
+    function checkBrowser() {
+      const userAgent = navigator.userAgent;
+      const isEdge = userAgent.includes('Edg');
+      const version = userAgent.match(/Edg\/(\d+\.\d+\.\d+\.\d+)/);
+
+      let message = '';
+      let status = 'success';
+
+      if (!isEdge) {
+        message = '❌ 错误：检测到您不是使用Edge浏览器\n\n';
+        message += '当前浏览器：' + navigator.userAgent + '\n\n';
+        message += '建议：请使用Microsoft Edge浏览器\n';
+        message += '下载地址：https://www.microsoft.com/edge';
+        status = 'error';
+      } else {
+        message = '✅ 浏览器检查通过\n\n';
+        message += '浏览器：Microsoft Edge\n';
+        if (version) {
+          message += '版本：' + version[1] + '\n';
+        }
+        message += '状态：正常';
+      }
+
+      updateCheckItem('check1', status, message);
+    }
+
+    async function checkExtension() {
+      try {
+        // 尝试访问扩展API
+        if (typeof chrome !== 'undefined' && chrome.runtime) {
+          const manifest = chrome.runtime.getManifest();
+          let message = '';
+          let status = 'success';
+
+          message = '✅ 插件加载正常\n\n';
+          message += '插件名称：' + manifest.name + '\n';
+          message += '版本：' + manifest.version + '\n';
+          message += '状态：已加载';
+
+          updateCheckItem('check2', status, message);
+        } else {
+          throw new Error('Chrome API不可用');
+        }
+      } catch (error) {
+        updateCheckItem('check2', 'error',
+          '❌ 插件加载失败\n\n' +
+          '错误：' + error.message + '\n\n' +
+          '建议：\n' +
+          '1. 打开 edge://extensions/\n' +
+          '2. 找到"多模型AI对话助手"\n' +
+          '3. 点击刷新按钮\n' +
+          '4. 重新加载此页面'
+        );
+      }
+    }
+
+    async function checkSidePanel() {
+      try {
+        if (typeof chrome !== 'undefined' && chrome.sidePanel) {
+          let message = '';
+          let status = 'success';
+
+          message = '✅ 侧边栏API可用\n\n';
+          message += '状态：已启用\n\n';
+          message += '使用方法：\n';
+          message += '1. 快捷键：Ctrl+Shift+S\n';
+          message += '2. 工具栏 → 扩展 → 选择插件\n';
+          message += '3. 地址栏：edge://sidebar';
+
+          updateCheckItem('check3', status, message);
+        } else {
+          throw new Error('SidePanel API不可用');
+        }
+      } catch (error) {
+        updateCheckItem('check3', 'error',
+          '❌ 侧边栏API不可用\n\n' +
+          '错误：' + error.message + '\n\n' +
+          '可能原因：\n' +
+          '1. 浏览器版本过旧\n' +
+          '2. manifest.json配置错误\n\n' +
+          '建议：\n' +
+          '1. 更新Edge到最新版本\n' +
+          '2. 重新加载插件'
+        );
+      }
+    }
+
+    async function checkPermissions() {
+      try {
+        const permissions = ['storage', 'sidePanel', 'tabs', 'scripting'];
+        let message = '';
+        let status = 'success';
+
+        message = '✅ 权限检查通过\n\n';
+        message += '已授予的权限：\n';
+        for (const perm of permissions) {
+          message += '✓ ' + perm + '\n';
+        }
+
+        updateCheckItem('check4', status, message);
+      } catch (error) {
+        updateCheckItem('check4', 'error',
+          '❌ 权限检查失败\n\n' +
+          '错误：' + error.message + '\n\n' +
+          '建议：\n' +
+          '1. 打开 edge://extensions/\n' +
+          '2. 找到插件，点击"详细信息"\n' +
+          '3. 检查权限是否已授予'
+        );
+      }
+    }
+
+    async function checkStorage() {
+      try {
+        // 测试写入
+        const testData = { test: 'data', timestamp: Date.now() };
+        await chrome.storage.local.set({ test: testData });
+
+        // 测试读取
+        const result = await chrome.storage.local.get('test');
+
+        if (result && result.test && result.test.test === 'data') {
+          let message = '';
+          message = '✅ 存储功能正常\n\n';
+          message += '类型：Chrome Storage Local\n';
+          message += '状态：可读写\n';
+          message += '测试：成功';
+
+          updateCheckItem('check5', 'success', message);
+        } else {
+          throw new Error('存储读取失败');
+        }
+      } catch (error) {
+        updateCheckItem('check5', 'error',
+          '❌ 存储功能异常\n\n' +
+          '错误：' + error.message + '\n\n' +
+          '建议：\n' +
+          '1. 清除浏览器缓存\n' +
+          '2. 重新加载插件\n' +
+          '3. 检查浏览器是否禁用了存储'
+        );
+      }
+    }
+
+    // 页面加载时自动检查
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        checkBrowser();
+        checkExtension();
+        checkSidePanel();
+        checkPermissions();
+        checkStorage();
+      }, 500);
+    });
+  </script>
+</body>
+</html>
