@@ -28,7 +28,12 @@
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       console.log('[FloatingContent] 收到消息:', request);
 
-      if (request.action === 'showFloatingWindow') {
+      if (request.action === 'ping') {
+        // 响应ping，用于检测浮动窗口是否存在
+        console.log('[FloatingContent] 收到ping，返回pong');
+        sendResponse({ status: 'ok', type: 'floatingWindow' });
+        return true;
+      } else if (request.action === 'showFloatingWindow') {
         floatingWindow.show();
         sendResponse({ success: true });
       } else if (request.action === 'hideFloatingWindow') {
@@ -36,6 +41,14 @@
         sendResponse({ success: true });
       } else if (request.action === 'addMessage') {
         const { role, content, isUser, isError, provider } = request;
+        console.log('[FloatingContent] 添加消息:', { role, content, isUser, isError, provider });
+        
+        // 确保浮动窗口可见
+        if (!floatingWindow.visible) {
+          console.log('[FloatingContent] 浮动窗口不可见，自动显示');
+          floatingWindow.show();
+        }
+        
         floatingWindow.addMessage(role, content, isUser, isError, provider);
         sendResponse({ success: true });
       } else if (request.action === 'clearMessages') {

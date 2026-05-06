@@ -76,6 +76,25 @@ function bindEvents() {
   });
 }
 
+function bindRoleClickEvents() {
+  const clickableElements = elements.messagesContainer.querySelectorAll('.clickable');
+  clickableElements.forEach(el => {
+    el.addEventListener('click', async (e) => {
+      const provider = e.currentTarget.getAttribute('data-provider');
+      if (provider) {
+        try {
+          await chrome.runtime.sendMessage({
+            action: 'activatePlatformTab',
+            provider
+          });
+        } catch (error) {
+          console.error('激活标签页失败:', error);
+        }
+      }
+    });
+  });
+}
+
 function render() {
   if (!state.conversation) return;
 
@@ -111,6 +130,7 @@ function renderMessages() {
     const role = state.roles.find(r => r.id === msg.roleId);
     const roleName = role ? role.name : '未知角色';
     const providerName = role ? getProviderDisplayName(role.provider) : '';
+    const provider = role ? role.provider : null;
 
     if (msg.isUser) {
       return `
@@ -123,11 +143,14 @@ function renderMessages() {
         </div>
       `;
     } else {
+      const clickableClass = provider ? 'clickable' : '';
+      const providerAttr = provider ? `data-provider="${provider}"` : '';
+
       return `
         <div class="message ai-message">
-          <div class="message-avatar ai-avatar">${escapeHtml(roleName.charAt(0))}</div>
+          <div class="message-avatar ai-avatar ${clickableClass}" ${providerAttr}>${escapeHtml(roleName.charAt(0))}</div>
           <div class="message-content">
-            <div class="message-role">
+            <div class="message-role ${clickableClass}" ${providerAttr}>
               ${escapeHtml(roleName)}
               ${providerName ? `<span class="provider-badge">${escapeHtml(providerName)}</span>` : ''}
             </div>
@@ -138,6 +161,8 @@ function renderMessages() {
       `;
     }
   }).join('');
+
+  bindRoleClickEvents();
 
   // 滚动到底部
   scrollToBottom();
@@ -222,13 +247,24 @@ async function getRoles() {
 }
 
 async function sendMessageToBackend(conversationId, content) {
+  console.log('[Chat] ========== 发送消息到Background ==========');
+  console.log('[Chat] conversationId:', conversationId);
+  console.log('[Chat] content:', content);
+  
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error('发送消息超时（60秒）')), 60000);
+    const timeout = setTimeout(() => {
+      console.error('[Chat] ❌ 发送消息超时（60秒）');
+      reject(new Error('发送消息超时（60秒）'));
+    }, 60000);
+    
+    console.log('[Chat] 发送chrome.runtime.sendMessage...');
     chrome.runtime.sendMessage({
       action: 'addMessage',
       conversationId,
       content
     }, (response) => {
+      console.log('[Chat] 收到Background响应:', response);
+      clearTimeout(timeout);
       clearTimeout(timeout);
       if (chrome.runtime.lastError) {
         reject(new Error(chrome.runtime.lastError.message));

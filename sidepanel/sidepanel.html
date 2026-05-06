@@ -41,18 +41,29 @@
     <!-- 设置 -->
     <div class="tab-content" id="settings-tab">
       <div class="settings-info">
-        <h3>关于插件</h3>
-        <p>🤖 多模型AI对话助手 v1.0.0</p>
-        <p>✨ 通过操作AI网页版实现免费对话</p>
-        <p>📌 支持平台：DeepSeek、豆包、千问、ChatGPT</p>
+        <h3>消息设置</h3>
+        
+        <div class="setting-item">
+          <label class="setting-label">上下文模式</label>
+          <select class="setting-select" id="contextModeSelect">
+            <option value="self">AI自保持（推荐）</option>
+            <option value="full">完整上下文</option>
+          </select>
+          <p class="setting-desc">
+            AI自保持：每个AI维护自己的上下文<br>
+            完整上下文：每次发送全部历史消息
+          </p>
+        </div>
 
-        <h3>使用说明</h3>
-        <ol>
-          <li>在"角色"标签创建角色（选择AI平台）</li>
-          <li>点击"测试"按钮验证连接（需要先登录对应网站）</li>
-          <li>在"会话"标签创建新会话并选择角色</li>
-          <li>开始对话，享受多AI同时回答！</li>
-        </ol>
+        <div class="setting-item">
+          <div class="setting-toggle">
+            <input type="checkbox" id="floatWindowCheck" checked>
+            <label for="floatWindowCheck">使用浮动窗口显示回复</label>
+          </div>
+          <p class="setting-desc">
+            在当前页面显示AI回复，不切换标签页
+          </p>
+        </div>
 
         <div class="warning-box">
           ⚠️ <strong>重要提示：</strong>
@@ -60,30 +71,23 @@
             <li>使用前请先在浏览器中登录对应的AI网站</li>
             <li>插件会在后台打开AI网站标签页进行操作</li>
             <li>请勿关闭AI网站标签页，否则无法发送消息</li>
+            <li>插件仅限体验模型，更多功能请去官方网站体验</li>
           </ul>
-        </div>
 
-        <h3>技术原理</h3>
-        <p>本插件通过Content Script注入到AI网站，模拟用户操作（输入、点击等）来实现对话功能。不使用官方API，完全免费！</p>
-
-        <h3>支持的AI平台</h3>
         <div class="platform-list">
           <div class="platform-item">
             <strong>DeepSeek</strong>
             <a href="https://chat.deepseek.com" target="_blank">访问网站 →</a>
           </div>
           <div class="platform-item">
-            <strong>豆包 (Coze)</strong>
-            <a href="https://www.coze.com" target="_blank">访问网站 →</a>
+            <strong>豆包</strong>
+            <a href="https://www.doubao.com/chat/' target="_blank">访问网站 →</a>
           </div>
           <div class="platform-item">
             <strong>千问 (通义千问)</strong>
             <a href="https://tongyi.aliyun.com" target="_blank">访问网站 →</a>
           </div>
-          <div class="platform-item">
-            <strong>ChatGPT</strong>
-            <a href="https://chatgpt.com" target="_blank">访问网站 →</a>
-          </div>
+        </div>
         </div>
       </div>
     </div>

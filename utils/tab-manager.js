@@ -9,8 +9,8 @@ class TabManager {
   async openPlatformTab(platform) {
     const urls = {
       deepseek: 'https://chat.deepseek.com/',
-      doubao: 'https://www.coze.com/',
-      qianwen: 'https://tongyi.aliyun.com/',
+      doubao: 'https://www.doubao.com/chat/',
+      qianwen: 'https://www.qianwen.com/',
       openai: 'https://chatgpt.com/'
     };
 
@@ -52,8 +52,8 @@ class TabManager {
   findPlatformTab(platform) {
     const urls = {
       deepseek: 'deepseek.com',
-      doubao: 'coze.com',
-      qianwen: 'tongyi.aliyun.com',
+      doubao: 'doubao.com',
+      qianwen: 'qianwen.com',
       openai: 'chatgpt.com'
     };
 

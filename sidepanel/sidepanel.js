@@ -1,8 +1,8 @@
-// 状态管理
 const state = {
   conversations: [],
   roles: [],
-  settings: { wsUrl: 'ws://localhost:8080', wsEnabled: false }
+  settings: { wsUrl: 'ws://localhost:8080', wsEnabled: false },
+  editingRoleId: null
 };
 
 // DOM元素
@@ -44,7 +44,23 @@ async function loadData() {
 
   state.conversations = conversations || [];
   state.roles = roles || [];
-  state.settings = settings || { wsUrl: 'ws://localhost:8080', wsEnabled: false };
+  state.settings = settings || { wsUrl: 'ws://localhost:8080', wsEnabled: false, contextMode: 'self', floatWindow: true };
+  
+  // 加载设置到UI
+  loadSettingsToUI();
+}
+
+function loadSettingsToUI() {
+  const contextModeSelect = document.getElementById('contextModeSelect');
+  const floatWindowCheck = document.getElementById('floatWindowCheck');
+  
+  if (contextModeSelect) {
+    contextModeSelect.value = state.settings.contextMode || 'self';
+  }
+  
+  if (floatWindowCheck) {
+    floatWindowCheck.checked = state.settings.floatWindow !== false;
+  }
 }
 
 function bindEvents() {
@@ -109,6 +125,21 @@ function bindEvents() {
   const saveSettingsBtn = document.getElementById('saveSettingsBtn');
   if (saveSettingsBtn) {
     saveSettingsBtn.addEventListener('click', saveSettings);
+  }
+
+  // 消息设置
+  const contextModeSelect = document.getElementById('contextModeSelect');
+  if (contextModeSelect) {
+    contextModeSelect.addEventListener('change', (e) => {
+      updateSetting('contextMode', e.target.value);
+    });
+  }
+
+  const floatWindowCheck = document.getElementById('floatWindowCheck');
+  if (floatWindowCheck) {
+    floatWindowCheck.addEventListener('change', (e) => {
+      updateSetting('floatWindow', e.target.checked);
+    });
   }
 
   // 模态框关闭
@@ -192,6 +223,7 @@ function renderRoles() {
         <div class="role-header">
           <h3>${escapeHtml(role.name)}</h3>
           <div class="role-actions">
+            <button class="edit-btn" data-id="${role.id}">编辑</button>
             <button class="test-btn" data-id="${role.id}" data-provider="${role.provider}">测试</button>
             <button class="delete-btn" data-id="${role.id}">&times;</button>
           </div>
@@ -209,6 +241,14 @@ function renderRoles() {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       deleteRole(btn.dataset.id);
+    });
+  });
+
+  // 绑定编辑事件
+  document.querySelectorAll('.role-item .edit-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      editRole(btn.dataset.id);
     });
   });
 
@@ -283,29 +323,44 @@ async function createRole() {
     return;
   }
 
-  // 如果模型为空，使用默认值
-  if (!model) {
-    const defaultModels = {
-      deepseek: 'deepseek-chat',
-      doubao: 'doubao-pro',
-      qianwen: 'qwen-plus',
-      openai: 'gpt-4'
-    };
-    model = defaultModels[provider] || 'default';
-  }
+  if (state.editingRoleId) {
+    const updates = { name, provider, model, systemPrompt };
+    await sendMessage({
+      action: 'updateRole',
+      roleId: state.editingRoleId,
+      updates
+    });
 
-  const role = await sendMessage({
-    action: 'createRole',
-    name,
-    provider,
-    model,
-    systemPrompt
-  });
-
-  if (role) {
-    state.roles.push(role);
+    const roleIndex = state.roles.findIndex(r => r.id === state.editingRoleId);
+    if (roleIndex !== -1) {
+      Object.assign(state.roles[roleIndex], { id: state.editingRoleId, ...updates });
+    }
     renderRoles();
     hideNewRoleModal();
+  } else {
+    if (!model) {
+      const defaultModels = {
+        deepseek: 'deepseek-chat',
+        doubao: 'doubao-pro',
+        qianwen: 'qwen-plus',
+        openai: 'gpt-4'
+      };
+      model = defaultModels[provider] || 'default';
+    }
+
+    const role = await sendMessage({
+      action: 'createRole',
+      name,
+      provider,
+      model,
+      systemPrompt
+    });
+
+    if (role) {
+      state.roles.push(role);
+      renderRoles();
+      hideNewRoleModal();
+    }
   }
 }
 
@@ -318,6 +373,13 @@ async function deleteRole(roleId) {
 
     state.roles = state.roles.filter(r => r.id !== roleId);
     renderRoles();
+  }
+}
+
+function editRole(roleId) {
+  const role = state.roles.find(r => r.id === roleId);
+  if (role) {
+    showEditRoleModal(role);
   }
 }
 
@@ -362,6 +424,17 @@ async function saveSettings() {
   alert('设置已保存');
 }
 
+async function updateSetting(key, value) {
+  state.settings[key] = value;
+  
+  await sendMessage({
+    action: 'updateSettings',
+    settings: state.settings
+  });
+
+  console.log(`设置已更新: ${key} = ${value}`);
+}
+
 // 模态框操作
 function showNewConversationModal() {
   // 渲染角色选择器
@@ -387,14 +460,33 @@ function hideNewConversationModal() {
 }
 
 function showNewRoleModal() {
+  state.editingRoleId = null;
+  document.querySelector('#newRoleModal h2').textContent = '新建角色';
+  document.getElementById('confirmRoleBtn').textContent = '创建';
+  elements.newRoleModal.classList.add('active');
+}
+
+function showEditRoleModal(role) {
+  state.editingRoleId = role.id;
+  document.querySelector('#newRoleModal h2').textContent = '编辑角色';
+  document.getElementById('confirmRoleBtn').textContent = '保存';
+
+  document.getElementById('roleName').value = role.name;
+  document.getElementById('provider').value = role.provider;
+  document.getElementById('model').value = role.model;
+  document.getElementById('systemPrompt').value = role.systemPrompt || '';
+
   elements.newRoleModal.classList.add('active');
 }
 
 function hideNewRoleModal() {
   elements.newRoleModal.classList.remove('active');
+  state.editingRoleId = null;
   document.getElementById('roleName').value = '';
   document.getElementById('model').value = '';
   document.getElementById('systemPrompt').value = '';
+  document.querySelector('#newRoleModal h2').textContent = '新建角色';
+  document.getElementById('confirmRoleBtn').textContent = '创建';
 }
 
 function closeAllModals() {

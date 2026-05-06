@@ -14,6 +14,7 @@ class AIPlatformAdapter {
         inputBox: 'textarea',
         sendButton: 'button',
         messageList: '.ds-message',
+        messageSelector: '.ds-message',  // 新增
         userInput: '*',
         aiResponse: '*',
         newChatButton: '[class*="new"]'
@@ -22,6 +23,7 @@ class AIPlatformAdapter {
         inputBox: 'textarea',
         sendButton: 'button',
         messageList: 'body',
+        messageSelector: '[data-message-id], [class*="message"], [class*="chat-message"]',  // 新增：多种可能的选择器
         userInput: '*',
         aiResponse: '*',
         newChatButton: '[class*="new"]'
@@ -30,6 +32,7 @@ class AIPlatformAdapter {
         inputBox: 'textarea',
         sendButton: 'button',
         messageList: '[class*="message"]',
+        messageSelector: '[class*="message"]',  // 新增
         userInput: '[class*="user"]',
         aiResponse: '[class*="assistant"]',
         newChatButton: '[class*="new"]'
@@ -38,6 +41,7 @@ class AIPlatformAdapter {
         inputBox: 'textarea',
         sendButton: 'button',
         messageList: '[class*="message"]',
+        messageSelector: '[class*="message"]',  // 新增
         userInput: '[class*="user"]',
         aiResponse: '[class*="assistant"]',
         newChatButton: '[class*="new"]'
@@ -71,6 +75,14 @@ class AIPlatformAdapter {
       if (this.platform === 'deepseek') {
         // DeepSeek使用 .ds-message 类
         messageElements = document.querySelectorAll('.ds-message');
+      } else if (this.platform === 'doubao') {
+        // 豆包优先使用 data-message-id
+        messageElements = document.querySelectorAll('[data-message-id]');
+        
+        // 如果没有找到，输出调试信息
+        if (messageElements.length === 0) {
+          console.log(`[${this.platform}] 未找到 [data-message-id] 元素`);
+        }
       } else {
         // 其他平台使用 data-message-id 属性
         messageElements = document.querySelectorAll('[data-message-id]');
@@ -111,18 +123,33 @@ class AIPlatformAdapter {
           console.log(`[${this.platform}] 移除了 ${thinkContents.length} 个思考内容块`);
         }
 
-        // 查找 ds-markdown 元素
-        const markdownElement = messageClone.querySelector('.ds-markdown');
+        // 查找 ds-markdown 元素 - 尝试多种方式
+        let markdownElement = messageClone.querySelector('.ds-markdown');
 
         if (!markdownElement) {
-          console.log(`[${this.platform}] 未找到 .ds-markdown，可能还在思考中`);
-          return { found: false, content: '' };
+          // 尝试在原始节点查找
+          const originalMarkdown = lastAIMessage.querySelector('.ds-markdown');
+          if (originalMarkdown) {
+            console.log(`[${this.platform}] 在原始节点找到 ds-markdown`);
+            markdownElement = originalMarkdown;
+          } else {
+            console.log(`[${this.platform}] 未找到 .ds-markdown，调试信息:`);
+            console.log(`[${this.platform}] 节点HTML:`, messageClone.innerHTML.substring(0, 300));
+            return { found: false, content: '' };
+          }
         }
 
         // 提取所有 ds-markdown-paragraph 的内容
-        const paragraphs = markdownElement.querySelectorAll('.ds-markdown-paragraph');
+        const paragraphs = markdownElement.querySelectorAll('p');
+        console.log(`[${this.platform}] 找到段落数: ${paragraphs.length}`);
+
         if (paragraphs.length === 0) {
-          console.log(`[${this.platform}] 未找到 .ds-markdown-paragraph`);
+          // 尝试获取 markdown 内的全部文本
+          const allText = markdownElement.innerText || markdownElement.textContent;
+          if (allText && allText.trim().length > 10) {
+            console.log(`[${this.platform}] 使用innerText备用方案`);
+            return { found: true, content: allText.trim() };
+          }
           return { found: false, content: '' };
         }
 
@@ -133,13 +160,10 @@ class AIPlatformAdapter {
           .join('\n\n');
 
         if (!text) {
-          console.log(`[${this.platform}] 提取的文本为空`);
           return { found: false, content: '' };
         }
 
-        console.log(`[${this.platform}] 提取了 ${paragraphs.length} 个段落的AI回复`);
-        console.log(`[${this.platform}] 提取的文本长度:`, text.length);
-
+        console.log(`[${this.platform}] 提取了 ${paragraphs.length} 个段落，长度: ${text.length}`);
         return { found: true, content: text };
       }
 
@@ -199,28 +223,27 @@ class AIPlatformAdapter {
   }
 
   // 等待AI回复（检测AI消息数量变化）
-  async waitForResponse(timeout = 60000) {
+  async waitForResponse(timeout = 30000, initialAIMessageCount = 0, initialContent = '') {
     const startTime = Date.now();
-    let lastAIMessageCount = 0;
+    let lastAIMessageCount = initialAIMessageCount;  // 使用传入的初始值
     let lastContent = '';
+    let lastContentLength = 0;  // 记录上次内容长度，用于判断是否真的在增长
     let lastStableTime = Date.now();
+    let lastHash = '';  // 新增：内容的哈希值，用于检测内容变化
+    let hasNewMessage = false;  // 新增：标记是否检测到新的AI消息
+    let isResolved = false;  // 新增：确保Promise只被resolve一次
 
     // DeepSeek需要更长的稳定时间（因为可能有思考过程）
-    const STABLE_DURATION = this.platform === 'deepseek' ? 8000 : 3000;
+    const STABLE_DURATION = this.platform === 'deepseek' ? 5000 : 3000;
 
     let observer = null;
     let checkInterval = null;
+    let timeoutHandle = null;  // 保存setTimeout的ID，用于清除
 
     console.log(`[${this.platform}] ========== 开始等待AI回复 ==========`);
     console.log(`[${this.platform}] 超时设置: ${timeout}ms`);
     console.log(`[${this.platform}] 稳定要求: 内容${STABLE_DURATION/1000}秒不再增长`);
-
-    // 初始检查AI消息数量
-    const initialCheck = this.checkForNewContent();
-    if (initialCheck.found && initialCheck.content.length > 0) {
-      lastContent = initialCheck.content;
-      console.log(`[${this.platform}] 初始检测到AI消息:`, lastContent.substring(0, 50));
-    }
+    console.log(`[${this.platform}] 发送前AI消息数量: ${lastAIMessageCount}`);
 
     // 统计当前AI消息数量（奇数位）
     const countAIMessages = () => {
@@ -229,16 +252,47 @@ class AIPlatformAdapter {
       if (this.platform === 'deepseek') {
         // DeepSeek使用 .ds-message 类
         messages = document.querySelectorAll('.ds-message');
+      } else if (this.platform === 'doubao') {
+        // 豆包使用 data-message-id
+        messages = document.querySelectorAll('[data-message-id]');
       } else {
         // 其他平台使用 data-message-id 属性
         messages = document.querySelectorAll('[data-message-id]');
       }
 
-      return Array.from(messages).filter((_, index) => index % 2 === 1).length;
+      const allMessages = Array.from(messages);
+      const aiMessages = allMessages.filter((_, index) => index % 2 === 1);
+      
+      // 调试输出
+      console.log(`[${this.platform}] 消息统计: 总数=${allMessages.length}, AI=${aiMessages.length}`);
+      
+      return aiMessages.length;
     };
 
-    lastAIMessageCount = countAIMessages();
-    console.log(`[${this.platform}] 初始AI消息数量: ${lastAIMessageCount}`);
+    // 检查发送后立即是否有新消息（AI回复很快的情况）
+    const currentCount = countAIMessages();
+    const initialHash = this.simpleHash(initialContent);
+    if (currentCount > lastAIMessageCount) {
+      console.log(`[${this.platform}] ⚡️ 发送后立即检测到新AI消息: ${lastAIMessageCount} → ${currentCount}`);
+      lastAIMessageCount = currentCount;
+
+      // 立即检查内容
+      const result = this.checkForNewContent();
+      if (result.found && result.content.length > 0) {
+        const newHash = this.simpleHash(result.content);
+        // 只有当内容与初始内容不同时，才认为是新消息
+        if (newHash !== lastHash && newHash !== initialHash) {
+          console.log(`[${this.platform}] ⚡️ 立即获取到新内容: ${result.content.length} 字符`);
+          hasNewMessage = true;
+          lastContent = result.content;
+          lastContentLength = result.content.length;
+          lastHash = newHash;
+          lastStableTime = Date.now();
+        } else if (newHash === initialHash) {
+          console.log(`[${this.platform}] ⚠️ 立即检测到内容与初始消息相同，忽略`);
+        }
+      }
+    }
 
     // 创建或重新创建MutationObserver
     const createObserver = () => {
@@ -251,28 +305,74 @@ class AIPlatformAdapter {
 
         // 如果AI消息数量增加了
         if (currentCount > lastAIMessageCount) {
-          console.log(`[${this.platform}] 检测到新AI消息: ${lastAIMessageCount} → ${currentCount}`);
+          console.log(`[${this.platform}] 🎉 检测到新AI消息: ${lastAIMessageCount} → ${currentCount}`);
 
           // 获取最新内容
           const result = this.checkForNewContent();
 
-          // DeepSeek特殊处理：只有找到markdown才算有效内容
-          if (this.platform === 'deepseek') {
-            if (result.found && result.content.length > 0) {
-              console.log(`[${this.platform}] DeepSeek找到有效内容: ${result.content.length} 字符`);
+          // 只有找到有效内容才算真正的新消息
+          if (result.found && result.content.length > 0) {
+            const newHash = this.simpleHash(result.content);
+
+            // 检查内容是否真的不同（避免重复的旧内容）
+            if (newHash !== lastHash && newHash !== initialHash) {
+              console.log(`[${this.platform}] ✅ 检测到新AI回复: ${result.content.length} 字符`);
+              hasNewMessage = true;  // 标记已收到新消息
               lastContent = result.content;
+              lastContentLength = result.content.length;
+              lastHash = newHash;
               lastAIMessageCount = currentCount;
               lastStableTime = Date.now(); // 重置稳定时间
-            } else {
-              console.log(`[${this.platform}] DeepSeek未找到有效内容（可能还在思考），不重置稳定时间`);
+            } else if (newHash === initialHash) {
+              console.log(`[${this.platform}] ⚠️ 内容与初始消息相同，忽略`);
             }
           } else {
-            // 其他平台：只要有内容就重置
-            if (result.found && result.content.length > 0) {
-              console.log(`[${this.platform}] 新消息长度: ${result.content.length}`);
+            console.log(`[${this.platform}] 检测到消息但无有效内容`);
+          }
+        } else if (currentCount === lastAIMessageCount && currentCount > 0 && hasNewMessage) {
+          // 消息数量没变，但内容可能更新了（流式输出或编辑）
+          // 只有在已经检测到新消息后才检查内容更新
+          const result = this.checkForNewContent();
+          if (result.found && result.content.length > 0) {
+            const newHash = this.simpleHash(result.content);
+            if (newHash !== lastHash) {
+              console.log(`[${this.platform}] 检测到内容变化（消息数量不变）`);
+              console.log(`[${this.platform}] 旧内容长度: ${lastContentLength} → 新内容长度: ${result.content.length}`);
+
+              // 只有当内容长度显著增长时（> 10字符）才重置稳定时间
+              // 这样可以避免因DOM微小变化（如光标闪烁、格式调整）导致无法完成等待
+              if (result.content.length > lastContentLength + 10) {
+                console.log(`[${this.platform}] ✅ 内容显著增长，重置稳定时间`);
+                lastContent = result.content;
+                lastHash = newHash;
+                lastContentLength = result.content.length;
+                lastStableTime = Date.now(); // 重置稳定时间
+              } else {
+                console.log(`[${this.platform}] ℹ️ 内容变化微小（< 10字符），忽略，不重置稳定时间`);
+                // 只更新内容和哈希，不重置稳定时间
+                lastContent = result.content;
+                lastHash = newHash;
+              }
+            }
+          }
+        } else if (currentCount === lastAIMessageCount && !hasNewMessage) {
+          // 还没检测到新消息，但是消息数量没变，输出调试信息
+          const result = this.checkForNewContent();
+          if (result.found && result.content.length > 0) {
+            console.log(`[${this.platform}] 🔍 检测到内容但数量未变 (${currentCount}), 长度: ${result.content.length}`);
+            // 尝试检查最后一个消息是否是新的
+            const newHash = this.simpleHash(result.content);
+            const initialHash = this.simpleHash(initialContent);
+            // 只有当内容与初始内容不同时，才认为是新消息
+            if (newHash !== lastHash && newHash !== initialHash) {
+              console.log(`[${this.platform}] 🎯 可能是新消息（首次内容）`);
+              hasNewMessage = true;
               lastContent = result.content;
-              lastAIMessageCount = currentCount;
-              lastStableTime = Date.now(); // 重置稳定时间
+              lastContentLength = result.content.length;
+              lastHash = newHash;
+              lastStableTime = Date.now();
+            } else if (newHash === initialHash) {
+              console.log(`[${this.platform}] ⚠️ 内容与初始消息相同，忽略`);
             }
           }
         }
@@ -300,15 +400,23 @@ class AIPlatformAdapter {
         const elapsed = Date.now() - startTime;
         const stableElapsed = Date.now() - lastStableTime;
 
-        // 检查URL是否变化，如果变化则重新创建observer
+// 检查URL是否变化，如果变化则重新创建observer
         if (window.location.href !== this.lastUrl) {
-          console.log(`[${this.platform}] 检测到URL变化，重新创建MutationObserver`);
-          this.lastUrl = window.location.href;
+          const newUrl = window.location.href;
+          console.log(`[${this.platform}] 检测到URL变化: ${this.lastUrl} → ${newUrl}`);
+          this.lastUrl = newUrl;
           createObserver();
 
           // 重新统计消息数量
           lastAIMessageCount = countAIMessages();
-          lastStableTime = Date.now(); // 重置稳定时间
+
+          // DeepSeek: 如果URL还是/chat/，不重置稳定时间（同一会话内的导航）
+          if (this.platform === 'deepseek' && newUrl.includes('/chat/')) {
+            console.log(`[${this.platform}] DeepSeek聊天页面导航，不重置稳定时间`);
+          } else {
+            lastStableTime = Date.now(); // 重置稳定时间
+          }
+
           console.log(`[${this.platform}] URL变化后，AI消息数量: ${lastAIMessageCount}`);
         }
 
@@ -324,9 +432,22 @@ class AIPlatformAdapter {
         }
 
         // 检查内容是否已经稳定足够长时间
-        if (lastContent.length > 0 && stableElapsed >= STABLE_DURATION) {
+        // 必须已经检测到新消息才能完成
+        if (hasNewMessage && lastContent.length > 0 && stableElapsed >= STABLE_DURATION) {
+          // 确保只resolve一次
+          if (isResolved) {
+            console.log(`[${this.platform}] ⚠️ Promise已resolve，跳过重复检查`);
+            return;
+          }
+          isResolved = true;
+
+          // 清理资源
           clearInterval(checkInterval);
+          checkInterval = null;
           if (observer) observer.disconnect();
+          observer = null;
+          if (timeoutHandle) clearTimeout(timeoutHandle);
+          timeoutHandle = null;
 
           console.log(`[${this.platform}] ========== AI回复完成 ==========`);
           console.log(`[${this.platform}] 回复长度: ${lastContent.length} 字符`);
@@ -335,7 +456,7 @@ class AIPlatformAdapter {
           console.log(`[${this.platform}] 稳定时长: ${Math.floor(stableElapsed / 1000)}秒`);
 
           resolve(lastContent);
-          return;
+          return; // 确保不再继续执行
         }
 
         // 每5秒输出一次进度
@@ -345,20 +466,31 @@ class AIPlatformAdapter {
       }, 500);
 
       // 超时处理
-      setTimeout(() => {
+      timeoutHandle = setTimeout(() => {
+        // 清理资源
         clearInterval(checkInterval);
         if (observer) observer.disconnect();
 
-        if (lastContent.length > 0) {
-          console.log(`[${this.platform}] ========== 超时但已有内容 ==========`);
+        // 检查是否已经resolve
+        if (isResolved) {
+          console.log(`[${this.platform}] ⚠️ 超时检查时Promise已resolve，跳过`);
+          return;
+        }
+
+        isResolved = true;
+
+        if (hasNewMessage && lastContent.length > 0) {
+          console.log(`[${this.platform}] ========== 超时但已有新内容 ==========`);
           console.log(`[${this.platform}] 内容长度: ${lastContent.length}`);
+          console.log(`[${this.platform}] 总耗时: ${Math.floor((Date.now() - startTime) / 1000)}秒`);
           resolve(lastContent);
         } else {
           console.error(`[${this.platform}] ========== 等待超时 ==========`);
           console.error(`[${this.platform}] 总等待时间: ${Math.floor((Date.now() - startTime) / 1000)}秒`);
-          console.error(`[${this.platform}] AI消息数量: ${countAIMessages()}`);
+          console.error(`[${this.platform}] AI消息数量: ${countAIMessages()} (初始: ${lastAIMessageCount})`);
+          console.error(`[${this.platform}] 检测到新消息: ${hasNewMessage}`);
           console.error(`[${this.platform}] 最后内容长度: ${lastContent.length}`);
-          reject(new Error(`等待AI回复超时 (${timeout / 1000}秒)`));
+          reject(new Error(`等待AI回复超时 (${timeout / 1000}秒)，未收到新的AI回复`));
         }
       }, timeout);
     });
@@ -376,6 +508,47 @@ class AIPlatformAdapter {
       console.log(`[${this.platform}] 消息内容:`, content);
       console.log(`[${this.platform}] 平台URL:`, window.location.href);
       console.log(`[${this.platform}] 页面标题:`, document.title);
+
+      // 📍 步骤0：在发送前先记录当前AI消息数量和内容
+      console.log(`[${this.platform}] 步骤0: 记录发送前的AI消息数量和内容...`);
+      const { count: initialAIMessageCount, content: initialAIContent } = (() => {
+        let messages;
+        if (this.platform === 'deepseek') {
+          messages = document.querySelectorAll('.ds-message');
+        } else {
+          messages = document.querySelectorAll('[data-message-id]');
+        }
+        const aiMessages = Array.from(messages).filter((_, index) => index % 2 === 1);
+        
+        // 获取最后一个AI消息的内容
+        let lastContent = '';
+        if (aiMessages.length > 0) {
+          const lastAIMessage = aiMessages[aiMessages.length - 1];
+          lastContent = lastAIMessage.textContent?.trim() || '';
+        }
+        
+        return { count: aiMessages.length, content: lastContent };
+      })();
+      console.log(`[${this.platform}] 发送前AI消息数量: ${initialAIMessageCount}`);
+      if (initialAIContent) {
+        console.log(`[${this.platform}] 发送前最后AI消息内容: ${initialAIContent.substring(0, 50)}...`);
+      }
+
+      // ⚠️ 检查是否在旧会话中，如果在，清空输入框并创建新会话
+      const isInOldConversation = initialAIMessageCount > 0;
+      if (isInOldConversation) {
+        console.log(`[${this.platform}] ⚠️ 检测到旧会话（${initialAIMessageCount}条AI消息），尝试创建新会话...`);
+        
+        // 尝试清空输入框
+        const inputBox = document.querySelector('textarea');
+        if (inputBox) {
+          inputBox.value = '';
+          inputBox.focus();
+        }
+        
+        // 等待一下让页面稳定
+        await this.sleep(1000);
+      }
 
       // 等待输入框
       console.log(`[${this.platform}] 步骤1: 等待输入框...`);
@@ -472,7 +645,7 @@ class AIPlatformAdapter {
 
       // 等待AI回复
       console.log(`[${this.platform}] 步骤4: 等待AI回复...`);
-      const response = await this.waitForResponse();
+      const response = await this.waitForResponse(60000, initialAIMessageCount, initialAIContent);
       console.log(`[${this.platform}] ========== 收到回复 ==========`);
       console.log(`[${this.platform}] 回复长度:`, response.length);
 
@@ -529,6 +702,18 @@ class AIPlatformAdapter {
   // 辅助方法：延迟
   sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // 辅助方法：简单哈希函数（用于检测内容变化）
+  simpleHash(str) {
+    if (!str) return '';
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return hash.toString(36);
   }
 }
 

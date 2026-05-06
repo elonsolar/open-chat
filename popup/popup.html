@@ -102,56 +102,6 @@
       margin-bottom: 4px;
       line-height: 1.4;
     }
-
-    .settings-section {
-      margin-top: 16px;
-      padding: 12px;
-      background-color: #fafafa;
-      border-radius: 8px;
-    }
-
-    .settings-section h3 {
-      font-size: 14px;
-      color: #333;
-      margin-bottom: 12px;
-    }
-
-    .setting-item {
-      margin-bottom: 12px;
-    }
-
-    .setting-label {
-      font-size: 12px;
-      color: #666;
-      margin-bottom: 6px;
-      display: block;
-    }
-
-    .setting-select {
-      width: 100%;
-      padding: 8px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      font-size: 13px;
-      background-color: white;
-    }
-
-    .setting-toggle {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .setting-toggle input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
-    }
-
-    .setting-toggle label {
-      font-size: 12px;
-      color: #666;
-      cursor: pointer;
-    }
   </style>
 </head>
 <body>
@@ -173,32 +123,6 @@
       <li>创建会话并选择角色</li>
       <li>开始对话</li>
     </ol>
-  </div>
-
-  <div class="settings-section">
-    <h3>⚙️ 消息设置</h3>
-    
-    <div class="setting-item">
-      <label class="setting-label">上下文模式</label>
-      <select class="setting-select" id="contextModeSelect">
-        <option value="self">AI自保持（推荐）</option>
-        <option value="full">完整上下文</option>
-      </select>
-      <p style="font-size: 11px; color: #999; margin-top: 4px;">
-        AI自保持：每个AI维护自己的上下文<br>
-        完整上下文：每次发送全部历史消息
-      </p>
-    </div>
-
-    <div class="setting-item">
-      <div class="setting-toggle">
-        <input type="checkbox" id="floatWindowCheck" checked>
-        <label for="floatWindowCheck">使用浮动窗口显示回复</label>
-      </div>
-      <p style="font-size: 11px; color: #999; margin-top: 4px;">
-        在当前页面显示AI回复，不切换标签页
-      </p>
-    </div>
   </div>
 
   <div class="status" id="status">检查中...</div>

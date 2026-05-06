@@ -95,7 +95,8 @@ async function handleMessage(request, sender, sendResponse) {
         (async () => {
           try {
             const response = await adapter.sendMessage(request.content);
-            console.log('[AI Plugin] 消息发送成功，通知background');
+            console.log('[AI Plugin] ✅ 消息发送成功，通知background');
+            console.log('[AI Plugin] 发送aiResponse, messageId:', messageId);
 
             // 通过chrome.runtime通知background
             chrome.runtime.sendMessage({
@@ -103,9 +104,15 @@ async function handleMessage(request, sender, sendResponse) {
               platform: currentPlatform,
               messageId: messageId,
               content: response
+            }, (response) => {
+              if (chrome.runtime.lastError) {
+                console.error('[AI Plugin] ❌ 发送aiResponse失败:', chrome.runtime.lastError);
+              } else {
+                console.log('[AI Plugin] ✅ aiResponse已发送，background确认收到');
+              }
             });
           } catch (error) {
-            console.error('[AI Plugin] 消息发送失败:', error);
+            console.error('[AI Plugin] ❌ 消息发送失败:', error);
 
             // 通知background错误
             chrome.runtime.sendMessage({
@@ -113,6 +120,10 @@ async function handleMessage(request, sender, sendResponse) {
               platform: currentPlatform,
               messageId: messageId,
               error: error.message
+            }, (response) => {
+              if (chrome.runtime.lastError) {
+                console.error('[AI Plugin] ❌ 发送错误响应失败:', chrome.runtime.lastError);
+              }
             });
           }
         })();

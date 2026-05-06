@@ -8,10 +8,8 @@
 
 - **多AI平台支持**
   - DeepSeek (https://chat.deepseek.com)
-  - 豆包/Coze (https://www.coze.com)
-  - 千问 (https://tongyi.aliyun.com)
-  - ChatGPT (https://chatgpt.com)
-
+  - 豆包 (https://www.doubao.com/chat)
+  - 千问 (https://www.qianwen.com/)
 - **角色管理系统**
   - 创建自定义角色
   - 配置AI平台和模型

@@ -52,31 +52,6 @@ document.getElementById('newChatBtn').addEventListener('click', async () => {
 // 检查连接状态
 chrome.runtime.sendMessage({ action: 'getSettings' }, (settings) => {
   const statusEl = document.getElementById('status');
-  statusEl.textContent = `WebSocket: ${settings.wsUrl || '未设置'}`;
-  statusEl.className = 'status';
-
-  // 加载设置
-  document.getElementById('contextModeSelect').value = settings.contextMode || 'self';
-  document.getElementById('floatWindowCheck').checked = settings.floatWindow !== false;
-});
-
-// 监听设置变化
-document.getElementById('contextModeSelect').addEventListener('change', (e) => {
-  const value = e.target.value;
-  chrome.runtime.sendMessage({
-    action: 'updateSettings',
-    settings: { contextMode: value }
-  }, () => {
-    console.log('上下文模式已更新:', value);
-  });
-});
-
-document.getElementById('floatWindowCheck').addEventListener('change', (e) => {
-  const checked = e.target.checked;
-  chrome.runtime.sendMessage({
-    action: 'updateSettings',
-    settings: { floatWindow: checked }
-  }, () => {
-    console.log('浮动窗口设置已更新:', checked);
-  });
+  statusEl.textContent = '设置已移至侧边栏';
+  statusEl.className = 'status connected';
 });

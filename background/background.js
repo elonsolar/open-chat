@@ -45,6 +45,9 @@ class TabManager {
 
   // 打开AI平台标签页
   async openPlatformTab(platform, forceNew = false) {
+    console.log(`[TabManager] ========== openPlatformTab ==========`);
+    console.log(`[TabManager] platform: ${platform}, forceNew: ${forceNew}`);
+    
     const urls = {
       deepseek: 'https://chat.deepseek.com/',
       doubao: 'https://www.doubao.com/chat/',
@@ -60,30 +63,41 @@ class TabManager {
     try {
       // 如果不强制新建，检查是否已有该平台的标签页
       if (!forceNew) {
+        console.log(`[TabManager] 查找已有的 ${platform} 标签页...`);
         const existingTab = await this.findPlatformTab(platform);
         if (existingTab) {
           // 复用已有标签页，但不激活（保持焦点在浮动窗口）
           await chrome.tabs.update(existingTab.id, { active: false });
-          console.log(`[TabManager] 使用已有 ${platform} 标签页`);
+          console.log(`[TabManager] ⚠️ 复用已有 ${platform} 标签页: ${existingTab.id}, URL: ${existingTab.url}`);
+          
+          // 复用标签页时，等待更长时间确保页面稳定
+          console.log(`[TabManager] 复用标签页，等待页面稳定...`);
+          await this.sleep(2000);
+          
           return existingTab;
+        } else {
+          console.log(`[TabManager] 未找到已有的 ${platform} 标签页`);
         }
+      } else {
+        console.log(`[TabManager] forceNew=true，跳过查找已有标签页`);
       }
 
       // 创建新标签页
+      console.log(`[TabManager] 创建新的 ${platform} 标签页...`);
       const tab = await chrome.tabs.create({
         url: url,
         active: false // 在后台打开
       });
 
       this.tabs.set(platform, tab.id);
-      console.log(`[TabManager] 打开 ${platform} 标签页:`, tab.id);
+      console.log(`[TabManager] ✅ 打开 ${platform} 标签页:`, tab.id);
 
       // 等待页面加载
       await this.waitForTabReady(tab.id);
 
       return tab;
     } catch (error) {
-      console.error(`[TabManager] 打开 ${platform} 标签页失败:`, error);
+      console.error(`[TabManager] ❌ 打开 ${platform} 标签页失败:`, error);
       throw error;
     }
   }
@@ -175,7 +189,10 @@ class TabManager {
   // 向标签页发送消息
   async sendMessageToTab(tabId, message, timeout = 90000) {
     try {
-      console.log(`[TabManager] 尝试向标签页 ${tabId} 发送消息:`, message.type);
+      console.log(`[TabManager] ========== sendMessageToTab ==========`);
+      console.log(`[TabManager] tabId: ${tabId}`);
+      console.log(`[TabManager] message.type: ${message.type}`);
+      console.log(`[TabManager] timeout: ${timeout}ms`);
 
       // 检查标签页是否存在
       const tab = await chrome.tabs.get(tabId);
@@ -183,19 +200,20 @@ class TabManager {
         throw new Error(`标签页 ${tabId} 不存在`);
       }
 
-      console.log(`[TabManager] 标签页状态:`, tab.status);
+      console.log(`[TabManager] 标签页状态: ${tab.status}, URL: ${tab.url}`);
 
       // 先发送ping消息检测content script是否已加载
       try {
+        console.log(`[TabManager] 📡 发送 Ping...`);
         const pingResponse = await Promise.race([
           chrome.tabs.sendMessage(tabId, { type: 'ping' }),
           new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Ping超时')), 10000)
           )
         ]);
-        console.log(`[TabManager] Ping成功:`, pingResponse);
+        console.log(`[TabManager] ✅ Ping成功:`, pingResponse);
       } catch (pingError) {
-        console.error(`[TabManager] Ping失败，Content Script可能未注入:`, pingError);
+        console.error(`[TabManager] ❌ Ping失败，Content Script可能未注入:`, pingError);
         throw new Error('Content Script未注入，请刷新AI网站页面或重新加载插件');
       }
 
@@ -230,9 +248,9 @@ class TabManager {
 
       // 尝试ping几次，确保content script已就绪
       let pingSuccess = false;
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < 5; i++) {
         try {
-          console.log(`[TabManager] Ping尝试 ${i + 1}/3...`);
+          console.log(`[TabManager] Ping尝试 ${i + 1}/5...`);
           const pingResponse = await chrome.tabs.sendMessage(tab.id, { type: 'ping' });
           if (pingResponse && pingResponse.status === 'ok') {
             console.log(`[TabManager] Ping成功!`);
@@ -241,7 +259,7 @@ class TabManager {
           }
         } catch (pingError) {
           console.warn(`[TabManager] Ping ${i + 1} 失败，等待后重试...`);
-          if (i < 2) {
+          if (i < 4) {
             await this.sleep(2000); // 等待2秒后重试
           }
         }
@@ -249,6 +267,12 @@ class TabManager {
 
       if (!pingSuccess) {
         throw new Error('Content Script未就绪，请刷新AI网站页面');
+      }
+
+      // 如果是复用的标签页（不是新建的），再等待一段时间确保页面稳定
+      if (!forceNewTab) {
+        console.log(`[TabManager] 复用标签页，额外等待页面稳定...`);
+        await this.sleep(2000);
       }
 
       // 发送消息
@@ -261,15 +285,21 @@ class TabManager {
 
       // 如果是sendMessage，使用异步等待模式
       if (messageType === 'sendMessage') {
-        const messageId = Date.now();
+        // 使用时间戳+随机数+平台名称生成唯一ID
+        const messageId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${platform}`;
+        console.log(`[TabManager] ========== 创建异步等待Promise ==========`);
+        console.log(`[TabManager] messageId: ${messageId}`);
+        console.log(`[TabManager] 当前pendingResponses数量: ${pendingResponses.size}`);
 
         // 创建等待Promise
         const responsePromise = new Promise((resolve, reject) => {
           pendingResponses.set(messageId, { resolve, reject });
+          console.log(`[TabManager] ✅ 已将messageId存入pendingResponses`);
 
           // 90秒超时
           setTimeout(() => {
             if (pendingResponses.has(messageId)) {
+              console.log(`[TabManager] ❌ messageId ${messageId} 超时（90秒）`);
               pendingResponses.delete(messageId);
               reject(new Error('等待AI回复超时（90秒）'));
             }
@@ -279,14 +309,15 @@ class TabManager {
         // 在消息中包含messageId
         message.messageId = messageId;
 
+        console.log(`[TabManager] 发送消息到content-script, messageId: ${messageId}`);
         // 发送消息到content-script（会立刻返回）
         await chrome.tabs.sendMessage(tab.id, message);
 
-        console.log(`[TabManager] 等待AI响应（messageId: ${messageId}）`);
+        console.log(`[TabManager] ⏳ 等待AI响应（messageId: ${messageId}）`);
 
         // 等待content-script异步返回
         const response = await responsePromise;
-        console.log(`[TabManager] 收到AI响应:`, response.content?.substring(0, 50));
+        console.log(`[TabManager] ✅ 收到AI响应:`, response.content?.substring(0, 50));
 
         return response;
       } else {
@@ -307,6 +338,11 @@ class TabManager {
 
   // 在指定平台发送消息
   async sendMessage(platform, content, forceNewTab = false) {
+    console.log(`[TabManager] ========== sendMessage ==========`);
+    console.log(`[TabManager] platform: ${platform}`);
+    console.log(`[TabManager] content 长度: ${content.length}`);
+    console.log(`[TabManager] forceNewTab: ${forceNewTab}`);
+    
     return await this.sendToPlatform(platform, 'sendMessage', { content }, forceNewTab);
   }
 
@@ -415,7 +451,14 @@ class ConversationManager {
 
   async getConversation(conversationId) {
     const conversations = await StorageManager.getConversations();
-    return conversations.find(c => c.id === conversationId);
+    const conversation = conversations.find(c => c.id === conversationId);
+    
+    if (!conversation) {
+      console.error(`[ConversationManager] 未找到会话: ${conversationId}`);
+      console.error(`[ConversationManager] 当前会话列表:`, conversations.map(c => ({ id: c.id, name: c.name })));
+    }
+    
+    return conversation;
   }
 
   generateId() {
@@ -481,10 +524,16 @@ class AIMessageManager {
 
   // 处理用户消息，发送到AI平台
   async processUserMessage(conversationId, userMessage) {
+    console.log('[AIMessageManager] ========== processUserMessage 开始 ==========');
+    console.log('[AIMessageManager] conversationId:', conversationId);
+    console.log('[AIMessageManager] userMessage:', userMessage);
+    
     let conversation = await this.conversationManager.getConversation(conversationId);
     if (!conversation || !conversation.roleIds || conversation.roleIds.length === 0) {
       throw new Error('会话没有关联的角色');
     }
+
+    console.log('[AIMessageManager] roleIds:', conversation.roleIds);
 
     // 获取设置
     const settings = await StorageManager.getSettings();
@@ -512,120 +561,136 @@ class AIMessageManager {
     // 重新获取conversation（包含刚保存的用户消息）
     conversation = await this.conversationManager.getConversation(conversationId);
 
-    // 为每个角色发送消息到对应的AI平台
-    for (const roleId of conversation.roleIds) {
+    // 为每个角色发送消息到对应的AI平台（并行）
+    const sendPromises = conversation.roleIds.map(async (roleId) => {
       const role = roles.find(r => r.id === roleId);
-      if (!role) continue;
+      if (!role) return null;
 
       try {
-        console.log(`[AIMessageManager] 发送消息到 ${role.provider} (${role.name})`);
+        console.log(`[AIMessageManager] ========== 发送到 ${role.provider} (${role.name}) ==========`);
+        console.log(`[AIMessageManager] roleId: ${roleId}, provider: ${role.provider}`);
 
-        // 根据上下文模式准备消息
         let messageToSend = userMessage;
-        let forceNewTab = false; // 是否强制新建标签页
+        let forceNewTab = false;
 
         if (contextMode === 'full') {
-          // 完整上下文模式：合并所有历史，并强制新建标签页
           messageToSend = this.formatConversationWithHistory(conversation, role.id);
           forceNewTab = true;
-          console.log(`[AIMessageManager] 完整上下文模式，消息长度: ${messageToSend.length}，将创建新标签页`);
-        } else {
-          console.log(`[AIMessageManager] AI自保持模式，复用已有标签页`);
         }
 
-        // 发送到AI平台（根据模式决定是否强制新建标签页）
+        console.log(`[AIMessageManager] forceNewTab: ${forceNewTab}`);
+        console.log(`[AIMessageManager] messageToSend 长度: ${messageToSend.length}`);
+
+        const hasRoleMessages = conversation.messages.some(m => m.roleId === role.id && !m.isUser);
+        if (!hasRoleMessages && role.systemPrompt) {
+          messageToSend = `${role.systemPrompt}\n\n${messageToSend}`;
+          console.log(`[AIMessageManager] 添加了systemPrompt，新长度: ${messageToSend.length}`);
+        }
+
+        console.log(`[AIMessageManager] ⏳ 调用 tabManager.sendMessage...`);
+
+        // 调用sendMessage，内部已经有30秒超时控制
         const response = await this.tabManager.sendMessage(role.provider, messageToSend, forceNewTab);
 
-        console.log(`[AIMessageManager] 收到响应:`, response);
+        console.log(`[AIMessageManager] ✅ 收到 ${role.name} 响应`);
+        console.log(`[AIMessageManager] response.success:`, response?.success);
+        console.log(`[AIMessageManager] response.content 长度:`, response?.content?.length || 0);
 
         if (response && response.success) {
-          // 保存AI回复
-          await this.conversationManager.addMessage(
-            conversationId,
-            roleId,
-            response.content,
-            false
-          );
+          console.log(`[AIMessageManager] 💾 保存 ${role.name} 的消息到conversation...`);
+          await this.conversationManager.addMessage(conversationId, roleId, response.content, false);
+          console.log(`[AIMessageManager] ✅ ${role.name} 消息已保存`);
 
-          console.log(`[AIMessageManager] 收到 ${role.name} 的回复`);
-
-          // 如果使用浮动窗口，显示AI回复
           if (useFloatWindow) {
             await this.sendToFloatWindow('addMessage', {
-              role: role.name,
-              content: response.content,
-              isUser: false,
-              isError: false,
-              provider: role.provider  // 添加provider参数
+              role: role.name, content: response.content, isUser: false, isError: false, provider: role.provider
             });
           }
         } else {
-          // response是undefined或者success为false
-          const errorMsg = response ? (response.error || '发送失败') : '未收到响应（可能URL变化导致连接中断）';
-          console.error(`[AIMessageManager] 响应无效:`, response);
-          
-          const errorContent = `❌ ${role.name} 错误: ${errorMsg}`;
-          
-          throw new Error(errorMsg);
+          console.warn(`[AIMessageManager] ⚠️ ${role.name} 响应失败或无内容`);
         }
       } catch (error) {
-        console.error(`[AIMessageManager] ${role.provider} 响应失败:`, error);
-
-        const errorContent = `❌ ${role.name} 错误: ${error.message}\n\n请确保：\n1. 已在浏览器中登录 ${role.provider} 网站\n2. ${role.provider} 网站标签页未关闭\n3. 网站标签页已完全加载\n4. Content Script已正确注入`;
-
-        // 保存错误消息
-        await this.conversationManager.addMessage(
-          conversationId,
-          roleId,
-          errorContent,
-          false
-        );
-
-        // 如果使用浮动窗口，显示错误
-        if (useFloatWindow) {
-          await this.sendToFloatWindow('addMessage', {
-            role: role.name,
-            content: errorContent,
-            isUser: false,
-            isError: true,
-            provider: role.provider  // 添加provider参数
-          });
-        }
+        console.error(`[AIMessageManager] ❌ ${role.provider} 失败:`, error);
+        console.error(`[AIMessageManager] 错误堆栈:`, error.stack);
+        // 显示错误但不中断其他角色
       }
-    }
+    });
 
+    console.log('[AIMessageManager] 等待所有角色完成...');
+    // 等待所有角色完成（不管成功失败）
+    await Promise.allSettled(sendPromises);
+
+    console.log('[AIMessageManager] ========== 所有角色处理完成 ==========');
+    
+    // 延迟一下，确保所有消息都已保存到storage
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
     // 返回更新后的会话
-    return await this.conversationManager.getConversation(conversationId);
+    const updatedConversation = await this.conversationManager.getConversation(conversationId);
+    console.log('[AIMessageManager] 返回的会话消息数:', updatedConversation?.messages?.length || 0);
+    return updatedConversation;
   }
 
   // 发送消息到浮动窗口
   async sendToFloatWindow(action, data) {
     try {
+      console.log(`[AIMessageManager] ========== 发送到浮动窗口 ==========`);
+      console.log(`[AIMessageManager] action: ${action}`);
+      console.log(`[AIMessageManager] data:`, data);
+      
       // 查找所有标签页，找到有浮动窗口的
       const tabs = await chrome.tabs.query({});
+      console.log(`[AIMessageManager] 查找到 ${tabs.length} 个标签页`);
+      
+      let success = false;
+      let triedCount = 0;
       
       for (const tab of tabs) {
-        try {
-          // 排除AI平台网站（它们有自己的content script）
-          const isAIPlatform = tab.url && (
-            tab.url.includes('deepseek.com') ||
-            tab.url.includes('doubao.com') ||
-            tab.url.includes('qianwen.com') ||
-            tab.url.includes('chatgpt.com')
-          );
+        // 排除AI平台网站（它们有自己的content script）
+        const isAIPlatform = tab.url && (
+          tab.url.includes('deepseek.com') ||
+          tab.url.includes('doubao.com') ||
+          tab.url.includes('qianwen.com') ||
+          tab.url.includes('chatgpt.com')
+        );
 
-          if (!isAIPlatform && tab.url && tab.url.startsWith('http')) {
+        // 排除特殊页面
+        const isSpecialPage = tab.url && (
+          tab.url.startsWith('chrome://') ||
+          tab.url.startsWith('chrome-extension://') ||
+          tab.url.startsWith('edge://') ||
+          tab.url.startsWith('about:')
+        );
+
+        if (!isAIPlatform && !isSpecialPage && tab.url && tab.url.startsWith('http')) {
+          triedCount++;
+          console.log(`[AIMessageManager] 尝试发送到标签页 ${tab.id}: ${tab.url}`);
+          
+          try {
             await chrome.tabs.sendMessage(tab.id, {
               action,
               ...data
             });
-            console.log(`[AIMessageManager] 发送到浮动窗口成功:`, tab.url);
+            
+            console.log(`[AIMessageManager] ✅ 发送到浮动窗口成功:`, tab.url);
+            success = true;
             return; // 找到一个就返回
+          } catch (e) {
+            // 该标签页没有浮动窗口，继续查找
+            console.log(`[AIMessageManager] ⚠️ 标签页 ${tab.id} 发送失败:`, e.message);
+            continue;
           }
-        } catch (e) {
-          // 该标签页没有浮动窗口，继续查找
-          continue;
         }
+      }
+      
+      if (!success) {
+        console.warn(`[AIMessageManager] ⚠️ 未找到浮动窗口，消息未显示`);
+        console.warn(`[AIMessageManager] 尝试了 ${triedCount} 个标签页，都失败了`);
+        console.warn(`[AIMessageManager] 当前打开的标签页:`);
+        tabs.forEach(tab => {
+          console.warn(`[AIMessageManager]   - ${tab.url}`);
+        });
+        console.warn(`[AIMessageManager] 提示：请在一个非AI平台的普通网页上（如百度、谷歌等）打开插件，浮动窗口会自动显示`);
       }
     } catch (error) {
       console.error(`[AIMessageManager] 发送到浮动窗口失败:`, error);
@@ -695,22 +760,43 @@ async function init() {
 const pendingResponses = new Map();
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log('[Background] 收到消息:', request.action || request.type);
+  console.log('[Background] ========== 收到消息 ==========');
+  console.log('[Background] action:', request.action || request.type);
+  console.log('[Background] sender:', sender.tab?.url || 'background/popup');
 
   // 处理来自content-script的异步响应
   if (request.type === 'aiResponse') {
-    console.log('[Background] 收到AI响应:', request.platform, request.content?.substring(0, 50));
+    console.log('[Background] ========== 收到 aiResponse ==========');
+    console.log('[Background] platform:', request.platform);
+    console.log('[Background] messageId:', request.messageId);
+    console.log('[Background] content长度:', request.content?.length || 0);
+    console.log('[Background] error:', request.error);
 
     // 查找对应的pending Promise
     const pending = pendingResponses.get(request.messageId);
+    console.log('[Background] pendingResponses Map 大小:', pendingResponses.size);
+    console.log('[Background] 找到pending:', !!pending);
+    console.log('[Background] 当前的pending messageIds:', Array.from(pendingResponses.keys()));
+
     if (pending) {
+      console.log('[Background] ✅ 找到对应的pending Promise，准备resolve');
       pendingResponses.delete(request.messageId);
+      console.log('[Background] 已从pendingResponses删除 messageId');
 
       if (request.error) {
+        console.log('[Background] ❌ AI返回错误，reject promise');
         pending.reject(new Error(request.error));
       } else {
+        console.log('[Background] ✅ AI返回成功，resolve promise, content长度:', request.content?.length || 0);
         pending.resolve({ success: true, content: request.content });
       }
+
+      sendResponse({ status: 'received' });
+      console.log('[Background] ✅ 已发送received确认给content script');
+    } else {
+      console.error('[Background] ❌ 未找到对应的pending Promise, messageId:', request.messageId);
+      console.error('[Background] 当前的pending messageIds:', Array.from(pendingResponses.keys()));
+      sendResponse({ status: 'no_matching_promise' });
     }
     return;
   }
@@ -727,14 +813,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return true;
 
     case 'addMessage':
-      console.log('[Background] 处理addMessage请求');
+      console.log('[Background] ========== 处理 addMessage ==========');
+      console.log('[Background] conversationId:', request.conversationId);
+      console.log('[Background] content:', request.content);
+      
       aiMessageManager.processUserMessage(request.conversationId, request.content)
         .then(result => {
-          console.log('[Background] addMessage成功:', result);
+          console.log('[Background] ✅ addMessage成功');
           sendResponse(result);
         })
         .catch(error => {
-          console.error('[Background] addMessage失败:', error);
+          console.error('[Background] ❌ addMessage失败:', error);
           // 即使失败也返回更新后的会话（包含错误消息）
           aiMessageManager.conversationManager.getConversation(request.conversationId)
             .then(conversation => {
@@ -781,6 +870,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     case 'updateSettings':
       StorageManager.saveSettings(request.settings)
         .then(() => sendResponse({ success: true }));
+      return true;
+
+    case 'activatePlatformTab':
+      tabManager.activatePlatformTab(request.provider)
+        .then(() => sendResponse({ success: true }))
+        .catch(error => sendResponse({ error: error.message }));
       return true;
 
     case 'getSettings':
@@ -882,5 +977,94 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   }
 });
 
+// 点击插件图标打开侧边栏
+if (typeof chrome !== 'undefined' && chrome.action && chrome.action.onClicked) {
+  chrome.action.onClicked.addListener(async (tab) => {
+    if (tab.windowId) {
+      await chrome.sidePanel.open({ windowId: tab.windowId });
+    }
+  });
+} else {
+  console.warn('[Extension] chrome.action.onClicked is not available');
+}
+
 // 启动
 init();
+
+// 向所有已打开的页面注入浮动窗口content script
+async function injectFloatingWindowToAllTabs() {
+  try {
+    console.log('[Background] ========== 注入浮动窗口到所有页面 ==========');
+    const tabs = await chrome.tabs.query({});
+    console.log(`[Background] 找到 ${tabs.length} 个标签页`);
+    
+    let injectedCount = 0;
+    
+    for (const tab of tabs) {
+      // 排除特殊页面和AI平台
+      const isAIPlatform = tab.url && (
+        tab.url.includes('deepseek.com') ||
+        tab.url.includes('doubao.com') ||
+        tab.url.includes('qianwen.com') ||
+        tab.url.includes('chatgpt.com')
+      );
+      
+      const isSpecialPage = tab.url && (
+        tab.url.startsWith('chrome://') ||
+        tab.url.startsWith('chrome-extension://') ||
+        tab.url.startsWith('edge://') ||
+        tab.url.startsWith('about:')
+      );
+      
+      if (!isAIPlatform && !isSpecialPage && tab.url && tab.url.startsWith('http')) {
+        console.log(`[Background] 检查标签页 ${tab.id}: ${tab.url}`);
+        
+        try {
+          // 先尝试ping，看浮动窗口是否已经注入
+          const pingResponse = await chrome.tabs.sendMessage(tab.id, { action: 'ping' });
+          
+          if (pingResponse && pingResponse.status === 'ok') {
+            console.log(`[Background] 标签页 ${tab.id} 已有浮动窗口，跳过`);
+          } else {
+            console.log(`[Background] 标签页 ${tab.id} ping响应异常，尝试注入`);
+          }
+        } catch (pingError) {
+          // ping失败，说明浮动窗口content script未注入，尝试注入
+          console.log(`[Background] 标签页 ${tab.id} 未注入浮动窗口，开始注入...`);
+          
+          try {
+            await chrome.scripting.executeScript({
+              target: { tabId: tab.id },
+              files: ['utils/floating-window.js', 'utils/floating-content.js']
+            });
+            console.log(`[Background] ✅ 标签页 ${tab.id} 注入成功`);
+            injectedCount++;
+          } catch (injectError) {
+            console.log(`[Background] ❌ 标签页 ${tab.id} 注入失败:`, injectError.message);
+          }
+        }
+      }
+    }
+    
+    console.log(`[Background] ========== 注入完成，成功注入 ${injectedCount} 个标签页 ==========`);
+  } catch (error) {
+    console.error('[Background] 注入浮动窗口失败:', error);
+  }
+}
+
+// 插件安装或启动时，向所有已打开的页面注入浮动窗口content script
+chrome.runtime.onStartup.addListener(async () => {
+  console.log('[Background] 插件启动');
+  // 等待一段时间确保background初始化完成
+  setTimeout(async () => {
+    await injectFloatingWindowToAllTabs();
+  }, 1000);
+});
+
+chrome.runtime.onInstalled.addListener(async () => {
+  console.log('[Background] 插件安装');
+  // 等待一段时间确保background初始化完成
+  setTimeout(async () => {
+    await injectFloatingWindowToAllTabs();
+  }, 1000);
+});
