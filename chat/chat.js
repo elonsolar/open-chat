@@ -232,7 +232,8 @@ function renderMessages() {
 
   elements.messagesContainer.innerHTML = state.conversation.messages.map(msg => {
     const role = state.roles.find(r => r.id === msg.roleId);
-    const roleName = role ? role.name : '未知角色';
+    const roleSetting = state.conversation.roleSettings?.[msg.roleId] || {};
+    const displayName = roleSetting.nickname || role?.name || '未知角色';
     const providerName = role ? getProviderDisplayName(role.provider) : '';
     const provider = role ? role.provider : null;
 
@@ -252,10 +253,10 @@ function renderMessages() {
 
       return `
         <div class="message ai-message">
-          <div class="message-avatar ai-avatar ${clickableClass}" ${providerAttr}>${escapeHtml(roleName.charAt(0))}</div>
+          <div class="message-avatar ai-avatar ${clickableClass}" ${providerAttr}>${escapeHtml(displayName.charAt(0))}</div>
           <div class="message-content">
             <div class="message-role ${clickableClass}" ${providerAttr}>
-              ${escapeHtml(roleName)}
+              ${escapeHtml(displayName)}
               ${providerName ? `<span class="provider-badge">${escapeHtml(providerName)}</span>` : ''}
             </div>
             <div class="message-text">${formatMessage(msg.content)}</div>
@@ -363,12 +364,12 @@ function showModeSelector(focusOrder) {
   const currentContextMode = state.conversation.contextMode || 'self';
   const currentSendMode = state.conversation.sendMode || 'parallel';
   const currentOrder = state.conversation.roleOrder || state.conversation.roleIds || [];
-  
+
   const contextModeNames = {
     self: '独享模式',
     full: '共享模式'
   };
-  
+
   const sendModeNames = {
     parallel: '并行模式',
     sequential: '顺序模式',
@@ -381,27 +382,22 @@ function showModeSelector(focusOrder) {
     <div class="modal-overlay">
       <div class="modal-content">
         <h2>会话模式设置</h2>
-        
+
+        ${currentContextMode === 'self' ? `
         <div class="mode-section">
-          <h3>上下文模式</h3>
-          <div class="mode-options">
-            <label class="mode-option">
-              <input type="radio" name="contextMode" value="self" ${currentContextMode === 'self' ? 'checked' : ''}>
-              <div class="mode-info">
-                <div class="mode-name">独享模式</div>
-                <div class="mode-desc">每个AI独立对话，互不干扰，使用各自的会话URL</div>
-              </div>
-            </label>
-            <label class="mode-option">
-              <input type="radio" name="contextMode" value="full" ${currentContextMode === 'full' ? 'checked' : ''}>
-              <div class="mode-info">
-                <div class="mode-name">共享模式</div>
-                <div class="mode-desc">所有对话历史都发送给每个AI，每次打开新会话</div>
-              </div>
-            </label>
+          <div class="mode-info-readonly">
+            <div class="mode-name">${contextModeNames[currentContextMode]}</div>
+            <div class="mode-desc">每个AI独立对话，互不干扰，使用各自的会话URL</div>
           </div>
         </div>
-        
+        ` : `
+        <div class="mode-section">
+          <div class="mode-info-readonly">
+            <div class="mode-name">${contextModeNames[currentContextMode]}</div>
+            <div class="mode-desc">所有对话历史都发送给每个AI，每次打开新会话</div>
+          </div>
+        </div>
+
         <div class="mode-section" id="sendModeSection">
           <h3>发送模式</h3>
           <div class="mode-options">
@@ -428,6 +424,7 @@ function showModeSelector(focusOrder) {
             </label>
           </div>
         </div>
+        `}
         
         <div class="mode-order-section" id="modeOrderSection">
           <h3>角色顺序</h3>
@@ -461,36 +458,28 @@ function showModeSelector(focusOrder) {
 
   document.body.appendChild(modal);
 
-  const contextModeRadios = modal.querySelectorAll('input[name="contextMode"]');
   const sendModeRadios = modal.querySelectorAll('input[name="sendMode"]');
   const sendModeSection = modal.querySelector('#sendModeSection');
   const orderSection = modal.querySelector('#modeOrderSection');
   const orderList = modal.querySelector('#modeRoleOrderList');
 
   function updateSectionVisibility() {
-    const selectedContextMode = modal.querySelector('input[name="contextMode"]:checked').value;
+    if (!sendModeSection) return;
+
     const selectedSendMode = modal.querySelector('input[name="sendMode"]:checked').value;
-    
-    if (selectedContextMode === 'self') {
-      sendModeSection.style.display = 'none';
-      orderSection.style.display = 'none';
+
+    if (selectedSendMode === 'sequential') {
+      orderSection.style.display = 'block';
     } else {
-      sendModeSection.style.display = 'block';
-      if (selectedSendMode === 'sequential') {
-        orderSection.style.display = 'block';
-      } else {
-        orderSection.style.display = 'none';
-      }
+      orderSection.style.display = 'none';
     }
   }
 
-  contextModeRadios.forEach(radio => {
-    radio.addEventListener('change', updateSectionVisibility);
-  });
-
-  sendModeRadios.forEach(radio => {
-    radio.addEventListener('change', updateSectionVisibility);
-  });
+  if (sendModeRadios) {
+    sendModeRadios.forEach(radio => {
+      radio.addEventListener('change', updateSectionVisibility);
+    });
+  }
 
   let draggedItem = null;
   orderList.addEventListener('dragstart', (e) => {
@@ -524,7 +513,7 @@ function showModeSelector(focusOrder) {
 
   if (focusOrder && currentContextMode === 'full') {
     setTimeout(() => {
-      if (orderSection.style.display !== 'none') {
+      if (orderSection && orderSection.style.display !== 'none') {
         orderSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }, 100);
@@ -535,16 +524,13 @@ function showModeSelector(focusOrder) {
   });
 
   document.getElementById('saveModeBtn').addEventListener('click', async () => {
-    const selectedContextMode = modal.querySelector('input[name="contextMode"]:checked').value;
-    const selectedSendMode = modal.querySelector('input[name="sendMode"]:checked').value;
     const items = orderList.querySelectorAll('.role-order-item');
     const newOrder = Array.from(items).map(item => item.getAttribute('data-role-id'));
 
-    const updates = {
-      contextMode: selectedContextMode
-    };
+    const updates = {};
 
-    if (selectedContextMode === 'full') {
+    if (currentContextMode === 'full') {
+      const selectedSendMode = modal.querySelector('input[name="sendMode"]:checked').value;
       updates.sendMode = selectedSendMode;
       if (selectedSendMode === 'sequential') {
         updates.roleOrder = newOrder;
@@ -565,9 +551,8 @@ function showModeSelector(focusOrder) {
       if (updatedConversation) {
         state.conversation = updatedConversation;
         render();
-        console.log('[Chat] 上下文模式已更新为:', contextModeNames[selectedContextMode]);
-        if (selectedContextMode === 'full') {
-          console.log('[Chat] 发送模式已更新为:', sendModeNames[selectedSendMode]);
+        if (currentContextMode === 'full') {
+          console.log('[Chat] 发送模式已更新');
           console.log('[Chat] 角色顺序已更新:', newOrder);
         }
       }
@@ -685,10 +670,44 @@ function escapeHtml(text) {
 }
 
 function formatMessage(content) {
-  return escapeHtml(content)
-    .replace(/\n/g, '<br>')
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>');
+  if (!content) return '';
+
+  // 处理markdown格式的代码块
+  const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/g;
+  let result = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = codeBlockRegex.exec(content)) !== null) {
+    // 添加代码块之前的文本
+    const beforeText = content.substring(lastIndex, match.index);
+    if (beforeText.trim()) {
+      const processedBefore = escapeHtml(beforeText)
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/\n/g, '<br>');
+      result.push(processedBefore);
+    }
+
+    // 添加代码块
+    const lang = match[1] || '';
+    const code = match[2];
+    result.push(`<pre><code class="language-${lang}">${escapeHtml(code)}</code></pre>`);
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // 添加剩余的文本
+  const remainingText = content.substring(lastIndex);
+  if (remainingText.trim()) {
+    const processedRemaining = escapeHtml(remainingText)
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/\n/g, '<br>');
+    result.push(processedRemaining);
+  }
+
+  return result.join('');
 }
 
 function formatTime(timestamp) {

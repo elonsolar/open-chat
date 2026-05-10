@@ -88,27 +88,31 @@
         <h2 id="conversationModalTitle">新建会话</h2>
         <button class="close-btn">&times;</button>
       </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label for="conversationName">会话名称</label>
-          <input type="text" id="conversationName" placeholder="输入会话名称">
-        </div>
-        <div class="form-group">
-          <label>选择角色</label>
-          <div class="role-selector" id="roleSelector"></div>
-        </div>
-        <div class="form-group">
-          <label for="contextMode">上下文模式</label>
-          <select id="contextMode">
-            <option value="self">独享（推荐）</option>
-            <option value="full">共享</option>
-          </select>
-          <small style="color: #666; font-size: 11px; display: block; margin-top: 4px;">
-            独享：每个AI独立对话，互不干扰，使用各自的会话URL<br>
-            共享：所有对话历史都发送给每个AI，每次打开新会话
-          </small>
-        </div>
-      </div>
+       <div class="modal-body">
+         <div class="form-group">
+           <label for="conversationName">会话名称</label>
+           <input type="text" id="conversationName" placeholder="输入会话名称">
+         </div>
+         <div class="form-group">
+           <label>选择角色</label>
+           <div class="role-selector" id="roleSelector"></div>
+         </div>
+         <div class="form-group" id="roleSettingsGroup" style="display: none;">
+           <label>角色设置</label>
+           <div id="roleSettingsContainer"></div>
+         </div>
+         <div class="form-group">
+           <label for="contextMode">上下文模式</label>
+           <select id="contextMode">
+             <option value="self">独享（推荐）</option>
+             <option value="full">共享</option>
+           </select>
+           <small style="color: #666; font-size: 11px; display: block; margin-top: 4px;">
+             独享：每个AI独立对话，互不干扰，使用各自的会话URL<br>
+             共享：所有对话历史都发送给每个AI，每次打开新会话
+           </small>
+         </div>
+       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" id="cancelConversationBtn">取消</button>
         <button class="btn btn-primary" id="confirmConversationBtn">创建</button>

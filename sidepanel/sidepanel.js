@@ -283,9 +283,20 @@ async function createConversation() {
     return;
   }
 
+  const roleSettings = {};
+  selectedRoles.forEach(roleId => {
+    const nicknameInput = document.querySelector(`.role-nickname-input[data-role-id="${roleId}"]`);
+    const promptInput = document.querySelector(`.role-prompt-input[data-role-id="${roleId}"]`);
+
+    roleSettings[roleId] = {
+      nickname: nicknameInput?.value?.trim() || '',
+      additionalPrompt: promptInput?.value?.trim() || ''
+    };
+  });
+
   if (state.editingConversationId) {
-    // 编辑模式
-    const updates = { name, roleIds: selectedRoles, contextMode };
+    // 编辑模式 - 不允许修改contextMode和roleSettings
+    const updates = { name, roleIds: selectedRoles };
     await sendMessage({
       action: 'updateConversation',
       conversationId: state.editingConversationId,
@@ -304,7 +315,8 @@ async function createConversation() {
       action: 'createConversation',
       name,
       roleIds: selectedRoles,
-      contextMode
+      contextMode,
+      roleSettings
     });
 
     if (conversation) {
@@ -472,6 +484,7 @@ function showNewConversationModal() {
   state.editingConversationId = null;
   document.getElementById('conversationModalTitle').textContent = '新建会话';
   document.getElementById('confirmConversationBtn').textContent = '创建';
+  document.getElementById('contextMode').disabled = false;
 
   // 渲染角色选择器
   const roleSelector = document.getElementById('roleSelector');
@@ -480,14 +493,54 @@ function showNewConversationModal() {
   } else {
     roleSelector.innerHTML = state.roles.map(role => `
       <label class="role-checkbox">
-        <input type="checkbox" value="${role.id}">
+        <input type="checkbox" value="${role.id}" data-role-change>
         <span>${escapeHtml(role.name)}</span>
         <small>(${role.provider})</small>
       </label>
     `).join('');
+
+    roleSelector.querySelectorAll('input[data-role-change]').forEach(checkbox => {
+      checkbox.addEventListener('change', () => updateRoleSettings());
+    });
   }
 
+  document.getElementById('roleSettingsContainer').innerHTML = '';
+  document.getElementById('roleSettingsGroup').style.display = 'none';
+
   elements.newConversationModal.classList.add('active');
+}
+
+function updateRoleSettings() {
+  const selectedRoleIds = Array.from(document.querySelectorAll('.role-selector input:checked'))
+    .map(cb => cb.value);
+
+  const container = document.getElementById('roleSettingsContainer');
+  const group = document.getElementById('roleSettingsGroup');
+
+  if (selectedRoleIds.length === 0) {
+    container.innerHTML = '';
+    group.style.display = 'none';
+    return;
+  }
+
+  group.style.display = 'block';
+  container.innerHTML = selectedRoleIds.map(roleId => {
+    const role = state.roles.find(r => r.id === roleId);
+    if (!role) return '';
+    return `
+      <div class="role-setting-item" style="margin-bottom: 12px; padding: 10px; background: #f5f5f5; border-radius: 6px;">
+        <div style="font-weight: 600; margin-bottom: 8px;">${escapeHtml(role.name)}</div>
+        <div style="margin-bottom: 8px;">
+          <label style="font-size: 12px; color: #666; display: block; margin-bottom: 4px;">昵称（可选）</label>
+          <input type="text" class="role-nickname-input" data-role-id="${roleId}" placeholder="默认：${escapeHtml(role.name)}" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+        </div>
+        <div>
+          <label style="font-size: 12px; color: #666; display: block; margin-bottom: 4px;">追加提示词（可选）</label>
+          <textarea class="role-prompt-input" data-role-id="${roleId}" rows="2" placeholder="为该角色在此会话中追加特殊的提示词" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; resize: vertical;"></textarea>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 function showEditConversationModal(conversation) {
@@ -496,7 +549,9 @@ function showEditConversationModal(conversation) {
   document.getElementById('confirmConversationBtn').textContent = '保存';
 
   document.getElementById('conversationName').value = conversation.name;
-  document.getElementById('contextMode').value = conversation.contextMode || 'self';
+  const contextModeSelect = document.getElementById('contextMode');
+  contextModeSelect.value = conversation.contextMode || 'self';
+  contextModeSelect.disabled = true;
 
   // 渲染角色选择器并选中当前角色
   const roleSelector = document.getElementById('roleSelector');

@@ -649,3 +649,31 @@ body {
   min-width: 24px;
   text-align: center;
 }
+
+/* 代码块样式 */
+.message-text pre {
+  background-color: #f6f8fa;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  padding: 16px;
+  margin: 12px 0;
+  overflow-x: auto;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.message-text code {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  background-color: #f6f8fa;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+.message-text pre code {
+  background-color: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: 1em;
+}

@@ -144,18 +144,41 @@ class AIPlatformAdapter {
       }
 
       if (messageElements.length === 0) {
-        return { found: false, content: '' };
+        // 尝试备用选择器
+        messageElements = document.querySelectorAll('.ds-message');
+        
+        if (messageElements.length === 0) {
+          console.log(`[${this.platform}] 未找到消息元素`);
+          return { found: false, content: '' };
+        }
       }
 
       console.log(`[${this.platform}] 找到 ${messageElements.length} 个消息元素`);
 
       // 转换为数组，索引从0开始
       const messages = Array.from(messageElements);
+      
+      // 尝试区分用户消息和AI消息
+      let aiMessages = [];
+      
+      // 方法1: 通过data-message-id区分（奇数位是AI）
+      if (messages[0]?.hasAttribute('data-message-id')) {
+        aiMessages = messages.filter((_, index) => index % 2 === 1);
+      } else {
+        // 方法2: 通过内容判断（包含"User:"开头的通常是用户消息）
+        // 但更可靠的方法是查找包含.ds-markdown的元素
+        aiMessages = messages.filter(msg => {
+          const markdown = msg.querySelector('.ds-markdown');
+          // 如果有markdown但没有User:前缀，可能是AI消息
+          if (markdown) {
+            const text = markdown.textContent || '';
+            return !text.trim().startsWith('User:') && !text.trim().startsWith('用户:');
+          }
+          return false;
+        });
+      }
 
-      // 用户消息在偶数位（0, 2, 4...），AI消息在奇数位（1, 3, 5...）
-      const aiMessages = messages.filter((_, index) => index % 2 === 1);
-
-      console.log(`[${this.platform}] 找到 ${aiMessages.length} 个AI消息（奇数位）`);
+      console.log(`[${this.platform}] 找到 ${aiMessages.length} 个AI消息`);
 
       if (aiMessages.length === 0) {
         console.log(`[${this.platform}] 没有找到AI消息`);
@@ -167,17 +190,8 @@ class AIPlatformAdapter {
 
       // DeepSeek特殊处理：只提取 ds-markdown 下的内容（真正的AI回复）
       if (this.platform === 'deepseek') {
-        // 获取所有AI消息（不只是最后一个）
-        const allMessages = Array.from(document.querySelectorAll('.ds-message'));
-        const aiMessages = allMessages.filter((_, index) => index % 2 === 1);
-
-        if (aiMessages.length === 0) {
-          return { found: false, content: '' };
-        }
-
-        // 使用最新的AI消息
-        const latestAIMessage = aiMessages[aiMessages.length - 1];
-        const messageClone = latestAIMessage.cloneNode(true);
+        // 直接使用已经筛选好的AI消息
+        const latestAIMessage = lastAIMessage.cloneNode(true);
 
         // 移除所有思考相关的元素（更全面的移除）
         const thinkSelectors = [
@@ -190,7 +204,7 @@ class AIPlatformAdapter {
 
         let removedCount = 0;
         thinkSelectors.forEach(selector => {
-          const elements = messageClone.querySelectorAll(selector);
+          const elements = latestAIMessage.querySelectorAll(selector);
           elements.forEach(el => {
             el.remove();
             removedCount++;
@@ -201,20 +215,12 @@ class AIPlatformAdapter {
           console.log(`[${this.platform}] 移除了 ${removedCount} 个思考相关元素`);
         }
 
-        // 查找 ds-markdown 元素 - 尝试多种方式
-        let markdownElement = messageClone.querySelector('.ds-markdown');
+        // 查找 ds-markdown 元素
+        const markdownElement = latestAIMessage.querySelector('.ds-markdown');
 
         if (!markdownElement) {
-          // 尝试在原始节点查找
-          const originalMarkdown = latestAIMessage.querySelector('.ds-markdown');
-          if (originalMarkdown) {
-            console.log(`[${this.platform}] 在原始节点找到 ds-markdown`);
-            markdownElement = originalMarkdown;
-          } else {
-            console.log(`[${this.platform}] 未找到 .ds-markdown，调试信息:`);
-            console.log(`[${this.platform}] 节点HTML:`, messageClone.innerHTML.substring(0, 500));
-            return { found: false, content: '' };
-          }
+          console.log(`[${this.platform}] 未找到 .ds-markdown 元素`);
+          return { found: false, content: '' };
         }
 
         // 验证是否真的有内容（而不是空的思考容器）
@@ -247,58 +253,11 @@ class AIPlatformAdapter {
         }
 
         console.log(`[${this.platform}] ✓ 成功提取真实回复内容，长度: ${allText.trim().length}`);
+        console.log(`[${this.platform}] 内容末尾: "${allText.trim().slice(-50)}"`);
+        console.log(`[${this.platform}] 是否包含结束标记: ${allText.includes('[[<<>>]]')}`);
         return { found: true, content: allText.trim() };
       }
 
-      // DeepSeek特殊处理：只提取 ds-markdown 下的内容（真正的AI回复）
-      let messageClone = lastAIMessage;
-
-      // 尝试多种方式提取文本
-      let text = '';
-
-      // 方法1: 直接textContent（使用处理过的clone）
-      text = messageClone.textContent?.trim() || '';
-
-      // 方法2: 查找段落元素
-      if (!text || text.length < 5) {
-        const paragraphs = messageClone.querySelectorAll('div[class*="paragraph"], p, div[class*="content"]');
-        for (const p of paragraphs) {
-          const pText = p.textContent?.trim();
-          if (pText && pText.length > 1) {
-            text = pText;
-            break;
-          }
-        }
-      }
-
-      // 方法3: 递归查找所有文本节点
-      if (!text || text.length < 5) {
-        const getTextNodes = (el) => {
-          let text = '';
-          for (const node of el.childNodes) {
-            if (node.nodeType === Node.TEXT_NODE) {
-              text += node.textContent || '';
-            } else if (node.nodeType === Node.ELEMENT_NODE) {
-              text += getTextNodes(node);
-            }
-          }
-          return text;
-        };
-        text = getTextNodes(messageClone).trim();
-      }
-
-      console.log(`[${this.platform}] 最新AI消息（索引 ${messages.indexOf(lastAIMessage)}）`);
-      console.log(`[${this.platform}] 提取的文本长度:`, text.length);
-      console.log(`[${this.platform}] 提取的文本:`, text);
-
-      // 只过滤掉完全空的
-      if (!text) {
-        return { found: false, content: '' };
-      }
-
-      console.log(`[${this.platform}] 回复预览:`, text.substring(0, 80));
-
-      return { found: true, content: text };
     } catch (e) {
       console.warn(`[${this.platform}] 检查新内容时出错:`, e);
       return { found: false, content: '' };
@@ -327,6 +286,7 @@ class AIPlatformAdapter {
     let observer = null;
     let checkInterval = null;
     let timeoutHandle = null;  // 保存setTimeout的ID，用于清除
+    let hasEndMarker = false;  // 是否检测到结束标记
 
     console.log(`[${this.platform}] ========== 开始等待AI回复 ==========`);
     console.log(`[${this.platform}] 超时设置: ${timeout}ms`);
@@ -544,9 +504,18 @@ class AIPlatformAdapter {
               console.log(`[${this.platform}] 初始hash: ${initialHash.substring(0, 8)}...`);
               console.log(`[${this.platform}] 当前hash: ${currentHash.substring(0, 8)}...`);
               console.log(`[${this.platform}] 内容长度: ${recheck.content.length}`);
+              console.log(`[${this.platform}] 内容末尾: "${recheck.content.slice(-50)}"`);
               hasStartedResponse = true;
               hasNewMessage = true;
-              lastStableTime = Date.now();
+
+              // 检查是否有结束标记（更宽松的检查）
+              if (recheck.content.includes('[[<<>>]]')) {
+                console.log(`[${this.platform}] ✅ 检测到结束标记，立即完成等待`);
+                hasEndMarker = true;
+                lastStableTime = Date.now() - STABLE_DURATION;
+              } else {
+                lastStableTime = Date.now();
+              }
             }
 
             // 内容有变化，重置稳定时间
@@ -554,8 +523,23 @@ class AIPlatformAdapter {
               lastContent = recheck.content;
               lastHash = currentHash;
               lastContentLength = recheck.content.length;
-              lastStableTime = Date.now();
-              console.log(`[${this.platform}] 📝 DeepSeek内容更新，长度: ${recheck.content.length}, 稳定时间重置`);
+
+              // 检查是否有结束标记（更宽松的检查）
+              if (lastContent.includes('[[<<>>]]')) {
+                console.log(`[${this.platform}] ✅ 检测到结束标记，立即完成等待`);
+                hasEndMarker = true;
+                // 立即设置可以完成的时间点
+                lastStableTime = Date.now() - STABLE_DURATION;
+                console.log(`[${this.platform}] 📝 内容更新，长度: ${recheck.content.length}`);
+                console.log(`[${this.platform}] 内容末尾: "${lastContent.slice(-50)}"`);
+              } else {
+                // 只有在没有结束标记时才重置稳定时间
+                if (!hasEndMarker) {
+                  lastStableTime = Date.now();
+                  console.log(`[${this.platform}] 📝 DeepSeek内容更新，长度: ${recheck.content.length}, 稳定时间重置`);
+                  console.log(`[${this.platform}] 内容末尾: "${lastContent.slice(-50)}"`);
+                }
+              }
             }
           } else {
             // 还在思考
@@ -588,7 +572,10 @@ class AIPlatformAdapter {
 
         // 检查内容是否已经稳定足够长时间
         // 必须已经检测到新消息或开始响应才能完成
-        if ((hasNewMessage || hasStartedResponse) && lastContent.length > 0 && stableElapsed >= STABLE_DURATION) {
+        // 如果检测到结束标记，立即完成（不需要等待STABLE_DURATION）
+        const shouldComplete = hasEndMarker || stableElapsed >= STABLE_DURATION;
+
+        if ((hasNewMessage || hasStartedResponse) && lastContent.length > 0 && shouldComplete) {
           // DeepSeek额外验证：确保不是思考内容
           if (this.platform === 'deepseek') {
             const finalCheck = this.checkForNewContent();
@@ -622,6 +609,16 @@ class AIPlatformAdapter {
           }
           isResolved = true;
 
+          // 最终检查结束标记
+          let finalContent = lastContent;
+          console.log(`[${this.platform}] 最终内容末尾: "${finalContent.slice(-50)}"`);
+          console.log(`[${this.platform}] 是否包含结束标记: ${finalContent.includes('[[<<>>]]')}`);
+
+          if (finalContent.includes('[[<<>>]]')) {
+            console.log(`[${this.platform}] ✅ 最终检查发现结束标记`);
+            finalContent = finalContent.replace(/\[\[<<>>\]\]/g, '').trim();
+          }
+
           // 清理资源
           clearInterval(checkInterval);
           checkInterval = null;
@@ -631,15 +628,15 @@ class AIPlatformAdapter {
           timeoutHandle = null;
 
           console.log(`[${this.platform}] ========== AI回复完成 ==========`);
-          console.log(`[${this.platform}] 回复长度: ${lastContent.length} 字符`);
-          console.log(`[${this.platform}] 回复预览:`, lastContent.substring(0, 100) + '...');
+          console.log(`[${this.platform}] 回复长度: ${finalContent.length} 字符`);
+          console.log(`[${this.platform}] 回复预览:`, finalContent.substring(0, 100) + '...');
           console.log(`[${this.platform}] 总耗时: ${Math.floor(elapsed / 1000)}秒`);
           console.log(`[${this.platform}] 稳定时长: ${Math.floor(stableElapsed / 1000)}秒`);
           console.log(`[${this.platform}] 当前会话URL:`, window.location.href);
 
           resolve({
             success: true,
-            content: lastContent,
+            content: finalContent,
             conversationUrl: window.location.href
           });
           return; // 确保不再继续执行
@@ -673,9 +670,17 @@ class AIPlatformAdapter {
           console.log(`[${this.platform}] 总耗时: ${Math.floor((Date.now() - startTime) / 1000)}秒`);
           console.log(`[${this.platform}] 当前会话URL:`, window.location.href);
           console.log(`[${this.platform}] 内容预览: ${lastContent.substring(0, 50)}...`);
+
+          // 移除结束标记
+          let cleanedContent = lastContent;
+          if (cleanedContent.includes('[[<<>>]]')) {
+            cleanedContent = cleanedContent.replace(/\[\[<<>>\]\]/g, '').trim();
+            console.log(`[${this.platform}] 移除结束标记`);
+          }
+
           resolve({
             success: true,
-            content: lastContent,
+            content: cleanedContent,
             conversationUrl: window.location.href
           });
         } else if (lastContent.length > 0) {
@@ -695,9 +700,13 @@ class AIPlatformAdapter {
             const initialHash = this.simpleHash(initialContent);
             if (finalHash !== initialHash) {
               console.log(`[${this.platform}] ✅ 额外等待后获得有效内容`);
+              let cleanedContent = finalCheck.content;
+              if (cleanedContent.includes('[[<<>>]]')) {
+                cleanedContent = cleanedContent.replace(/\[\[<<>>\]\]/g, '').trim();
+              }
               resolve({
                 success: true,
-                content: finalCheck.content,
+                content: cleanedContent,
                 conversationUrl: window.location.href
               });
               return;
@@ -706,9 +715,13 @@ class AIPlatformAdapter {
 
           // 如果还是没有，用已有内容返回
           console.warn(`[${this.platform}] ⚠️ 额外等待后仍无更好内容，使用现有内容`);
+          let cleanedContent = lastContent;
+          if (cleanedContent.includes('[[<<>>]]')) {
+            cleanedContent = cleanedContent.replace(/\[\[<<>>\]\]/g, '').trim();
+          }
           resolve({
             success: true,
-            content: lastContent,
+            content: cleanedContent,
             conversationUrl: window.location.href
           });
         } else {
@@ -1211,43 +1224,41 @@ class AIPlatformAdapter {
       let text = '';
       const codeBlocks = [];
 
-      // 尝试提取 .qk-md-paragraph
-      const paragraphs = markdownElement.querySelectorAll('.qk-md-paragraph');
-      if (paragraphs.length > 0) {
-        paragraphs.forEach(p => {
-          // 检查是否包含代码块
-          const codeBlock = p.querySelector('pre, code');
-          if (codeBlock) {
-            // 提取代码块内容
-            const code = codeBlock.textContent || codeBlock.innerText || '';
-            if (code.trim()) {
-              // 获取语言标识（如果有）
-              const language = codeBlock.className.match(/language-(\w+)/)?.[1] || '';
-              codeBlocks.push(`\`\`\`${language}\n${code.trim()}\n\`\`\``);
-            }
-          } else {
-            // 普通段落文本
-            const pText = p.textContent?.trim();
-            if (pText) {
-              text += (text ? '\n\n' : '') + pText;
-            }
-          }
-        });
-      } else {
-        // 直接提取所有内容，包括代码块
-        const allCodeBlocks = markdownElement.querySelectorAll('pre, code');
-        allCodeBlocks.forEach(block => {
-          const code = block.textContent || block.innerText || '';
-          if (code.trim() && code.length > 10) {
-            const language = block.className.match(/language-(\w+)/)?.[1] || '';
-            codeBlocks.push(`\`\`\`${language}\n${code.trim()}\n\`\`\``);
-          }
-        });
+      // 直接查找所有 pre 元素（代码块）
+      const allPreElements = markdownElement.querySelectorAll('pre');
+      console.log(`[${this.platform}] 找到 ${allPreElements.length} 个 pre 元素`);
 
-        // 提取非代码的文本
-        const clone = markdownElement.cloneNode(true);
-        const codes = clone.querySelectorAll('pre, code');
-        codes.forEach(c => c.remove());
+      allPreElements.forEach(pre => {
+        const code = pre.textContent || pre.innerText || '';
+        if (code.trim() && code.trim().length > 10) {
+          // 尝试从第一个 code 元素获取语言
+          const codeElement = pre.querySelector('code');
+          let language = '';
+          if (codeElement) {
+            const className = codeElement.className || '';
+            const langMatch = className.match(/language-(\w+)/);
+            language = langMatch ? langMatch[1] : '';
+          }
+          codeBlocks.push(`\`\`\`${language}\n${code.trim()}\n\`\`\``);
+        }
+      });
+
+      // 移除 pre 元素后提取文本
+      const clone = markdownElement.cloneNode(true);
+      const pres = clone.querySelectorAll('pre');
+      pres.forEach(p => p.remove());
+      
+      // 提取非代码的文本，使用 .qk-md-paragraph
+      const paragraphs = clone.querySelectorAll('.qk-md-paragraph');
+      paragraphs.forEach(p => {
+        const pText = p.textContent?.trim();
+        if (pText) {
+          text += (text ? '\n\n' : '') + pText;
+        }
+      });
+
+      // 如果没有找到段落，直接使用全部文本
+      if (paragraphs.length === 0) {
         text = clone.textContent?.trim() || clone.innerText?.trim() || '';
       }
 
