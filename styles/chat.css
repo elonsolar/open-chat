@@ -7,9 +7,8 @@
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   font-size: 14px;
-  color: #1a1a1a;
-  background: linear-gradient(135deg, #e8f4f8 0%, #e3f2fd 100%);
-  background-attachment: fixed;
+  color: #1d1d1f;
+  background: #f5f5f7;
 }
 
 .chat-container {
@@ -19,28 +18,41 @@ body {
   max-width: 1200px;
   margin: 0 auto;
   background-color: #fff;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
 .chat-header {
-  padding: 24px 28px;
-  background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
-  border-bottom: none;
-  box-shadow: 0 2px 12px rgba(33, 150, 243, 0.2);
+  padding: 24px 32px;
+  background: #fff;
+  border-bottom: 1px solid #e8e8ed;
 }
 
 .chat-header-top {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 12px;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  position: relative;
 }
 
 .chat-header h1 {
-  font-size: 24px;
-  color: #fff;
+  font-size: 22px;
+  color: #1d1d1f;
   font-weight: 700;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.3px;
+}
+
+.mode-badge {
+  position: absolute;
+  right: 0;
+}
+
+.chat-header h1 {
+  font-size: 22px;
+  color: #1d1d1f;
+  font-weight: 700;
+  letter-spacing: -0.3px;
 }
 
 .chat-container {
@@ -78,9 +90,9 @@ body {
   display: inline-flex;
   align-items: center;
   padding: 6px 14px;
-  border-radius: 16px;
+  border-radius: 20px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
   user-select: none;
@@ -88,32 +100,32 @@ body {
 }
 
 .mode-badge:hover {
-  transform: translateY(-1px);
+  opacity: 0.85;
 }
 
 .mode-badge.mode-context-self {
-  background: linear-gradient(135deg, #42a5f5 0%, #2196f3 100%);
+  background: #007aff;
   color: #fff;
 }
 
 .mode-badge.mode-context-full {
-  background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 100%);
+  background: #5856d6;
   color: #fff;
 }
 
 .mode-badge.mode-parallel {
-  background: linear-gradient(135deg, #90caf9 0%, #64b5f6 100%);
+  background: #34c759;
   color: #fff;
 }
 
 .mode-badge.mode-sequential {
-  background: linear-gradient(135deg, #bbdefb 0%, #90caf9 100%);
-  color: #1976d2;
+  background: #ff9500;
+  color: #fff;
 }
 
 .mode-badge.mode-random {
-  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-  color: #1976d2;
+  background: #ff3b30;
+  color: #fff;
 }
 
 .chat-info {
@@ -130,20 +142,17 @@ body {
 
 .role-tag {
   display: inline-block;
-  padding: 6px 14px;
-  background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
-  color: #fff;
-  border-radius: 16px;
+  padding: 4px 12px;
+  background: #f5f5f7;
+  color: #1d1d1f;
+  border-radius: 20px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: default;
-  box-shadow: 0 2px 6px rgba(33, 150, 243, 0.25);
-  transition: all 0.2s ease;
 }
 
 .role-tag:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(33, 150, 243, 0.3);
+  background: #e8e8ed;
 }
 
 .role-tag.draggable {
@@ -169,21 +178,21 @@ body {
 .messages-container {
   flex: 1;
   overflow-y: auto;
-  padding: 20px 24px;
-  background: #f5f7fa;
+  padding: 24px 32px;
+  background: #fafafa;
 }
 
 .empty-messages {
   text-align: center;
   padding: 60px 20px;
-  color: #7a8a9a;
+  color: #86868b;
   font-size: 14px;
 }
 
 .error-message {
   text-align: center;
   padding: 60px 20px;
-  color: #e53935;
+  color: #ff3b30;
   font-size: 14px;
 }
 
@@ -216,22 +225,15 @@ body {
   font-size: 16px;
   font-weight: 700;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.message:hover .message-avatar {
-  transform: scale(1.05);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
 
 .user-avatar {
-  background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+  background: #007aff;
   color: #fff;
 }
 
 .ai-avatar {
-  background: linear-gradient(135deg, #42a5f5 0%, #2196f3 100%);
+  background: #5856d6;
   color: #fff;
 }
 
@@ -242,7 +244,7 @@ body {
 
 .message-role {
   font-size: 12px;
-  color: #5a6a7a;
+  color: #86868b;
   margin-bottom: 4px;
   font-weight: 500;
   display: flex;
@@ -262,21 +264,27 @@ body {
 .provider-badge {
   display: inline-block;
   padding: 2px 6px;
-  background-color: #e0e0e0;
-  color: #666;
-  border-radius: 3px;
+  background-color: #f5f5f7;
+  color: #86868b;
+  border-radius: 4px;
   font-size: 10px;
   font-weight: 400;
 }
 
+.message-time {
+  font-size: 11px;
+  color: #c8c8cc;
+  margin-top: 4px;
+  padding: 0 4px;
+}
+
 .message-text {
-  padding: 12px 16px;
+  padding: 14px 18px;
   background-color: #fff;
-  border-radius: 12px;
-  line-height: 1.6;
+  border-radius: 10px;
+  line-height: 1.55;
   word-wrap: break-word;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  color: #1a1a1a;
+  color: #1d1d1f;
 }
 
 .user-message .message-content {
@@ -284,14 +292,13 @@ body {
 }
 
 .user-message .message-text {
-  background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+  background: #007aff;
   color: #fff;
-  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.25);
 }
 
 .ai-message .message-text {
   background-color: #fff;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #e8e8ed;
 }
 
 .message:hover .message-text {
@@ -307,30 +314,29 @@ body {
 
 /* 输入区域 */
 .input-container {
-  padding: 16px 24px;
-  border-top: 1px solid #e0e0e0;
+  padding: 20px 32px;
+  border-top: 1px solid #e8e8ed;
   background: #fff;
 }
 
 .input-container textarea {
   width: 100%;
-  padding: 12px 14px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  padding: 14px 16px;
+  border: 1px solid #e8e8ed;
+  border-radius: 10px;
   font-size: 14px;
   font-family: inherit;
   resize: none;
   min-height: 70px;
   max-height: 140px;
-  background-color: #fafafa;
+  background-color: #f5f5f7;
   transition: all 0.2s ease;
 }
 
 .input-container textarea:focus {
   outline: none;
-  border-color: #2196f3;
+  border-color: #007aff;
   background-color: #fff;
-  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
 }
 
 .input-actions {
@@ -340,25 +346,40 @@ body {
 }
 
 .btn {
-  padding: 10px 24px;
+  padding: 8px 20px;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  letter-spacing: 0.3px;
+  transition: all 0.2s ease;
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+  background: #007aff;
   color: #fff;
-  box-shadow: 0 2px 6px rgba(33, 150, 243, 0.25);
 }
 
 .btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(33, 150, 243, 0.3);
+  background: #0066d6;
+}
+
+.btn-primary:active {
+  transform: scale(0.97);
+}
+
+.btn-primary:disabled {
+  background: #c8c8cc;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: #0f0f0f;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: #65676b;
 }
 
 .btn-primary:active {
@@ -382,16 +403,16 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background-color: #f1f1f1;
+  background-color: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: #bdbdbd;
+  background-color: #c8c8cc;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: #9e9e9e;
+  background-color: #a8a8ab;
 }
 
 /* 响应式 */
@@ -429,25 +450,27 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
+  backdrop-filter: blur(8px);
 }
 
 .modal-content {
   background-color: #fff;
-  border-radius: 20px;
+  border-radius: 14px;
   padding: 28px;
   max-width: 520px;
   width: 90%;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
 }
 
 .modal-content h2 {
   font-size: 18px;
   margin-bottom: 20px;
-  color: #333;
+  color: #1d1d1f;
+  font-weight: 600;
 }
 
 .mode-section {
@@ -457,14 +480,14 @@ body {
 .mode-section h3 {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: #1d1d1f;
   margin-bottom: 12px;
 }
 
 .mode-options {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   margin-bottom: 20px;
 }
 
@@ -472,22 +495,23 @@ body {
   display: flex;
   align-items: flex-start;
   padding: 14px 16px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
+  border: 1px solid #e8e8ed;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
   background-color: #fff;
 }
 
 .mode-option:hover {
-  border-color: #2196f3;
-  background: #f5f7fa;
+  border-color: #007aff;
+  background: #f5f5f7;
 }
 
 .mode-option input[type="radio"] {
   margin-top: 2px;
   margin-right: 12px;
   cursor: pointer;
+  accent-color: #007aff;
 }
 
 .mode-info {
@@ -497,31 +521,31 @@ body {
 .mode-name {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: #1d1d1f;
   margin-bottom: 4px;
 }
 
 .mode-desc {
   font-size: 12px;
-  color: #666;
+  color: #86868b;
   line-height: 1.4;
 }
 
 .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 8px;
+  margin-top: 20px;
 }
 
 .btn-secondary {
-  background-color: #f5f5f5;
-  color: #666;
-  font-weight: 600;
+  background: #f5f5f7;
+  color: #1d1d1f;
+  font-weight: 500;
 }
 
 .btn-secondary:hover {
-  background-color: #e0e0e0;
-  transform: translateY(-1px);
+  background: #e8e8ed;
 }
 
 /* 命令提示 */
@@ -531,9 +555,9 @@ body {
   left: 0;
   right: 0;
   background-color: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e8e8ed;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   margin-bottom: 8px;
   max-height: 200px;
   overflow-y: auto;
@@ -541,10 +565,10 @@ body {
 }
 
 .command-suggestion-item {
-  padding: 10px 12px;
+  padding: 10px 14px;
   cursor: pointer;
-  border-bottom: 1px solid #f0f0f0;
-  transition: background-color 0.2s;
+  border-bottom: 1px solid #f5f5f7;
+  transition: background-color 0.15s ease;
 }
 
 .command-suggestion-item:last-child {
@@ -552,19 +576,19 @@ body {
 }
 
 .command-suggestion-item:hover {
-  background-color: #f5f7fa;
+  background-color: #f5f5f7;
 }
 
 .command-name {
   font-size: 13px;
   font-weight: 600;
-  color: #2196f3;
+  color: #1d1d1f;
   margin-bottom: 2px;
 }
 
 .command-desc {
   font-size: 11px;
-  color: #666;
+  color: #86868b;
   line-height: 1.3;
 }
 
@@ -572,7 +596,105 @@ body {
 .mode-order-section {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid #e8e8ed;
+}
+
+.mode-order-section h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1d1d1f;
+  margin-bottom: 8px;
+}
+
+.mode-order-hint {
+  font-size: 12px;
+  color: #86868b;
+  margin-bottom: 12px;
+}
+
+/* 角色顺序选择器 */
+.order-hint {
+  font-size: 12px;
+  color: #86868b;
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  background-color: #f5f5f7;
+  border-radius: 8px;
+}
+
+.role-order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+  min-height: 100px;
+}
+
+.role-order-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background-color: #fff;
+  border: 1px solid #e8e8ed;
+  border-radius: 10px;
+  cursor: move;
+  transition: all 0.2s ease;
+}
+
+.role-order-item:hover {
+  border-color: #c8c8cc;
+  background-color: #fafafa;
+}
+
+.role-order-item.dragging {
+  opacity: 0.5;
+}
+
+.role-order-handle {
+  color: #c8c8cc;
+  font-size: 16px;
+  cursor: grab;
+  user-select: none;
+  line-height: 1;
+}
+
+.role-order-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #5856d6;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.role-order-info {
+  flex: 1;
+}
+
+.role-order-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1d1d1f;
+  margin-bottom: 2px;
+}
+
+.role-order-provider {
+  font-size: 11px;
+  color: #86868b;
+}
+
+.role-order-index {
+  font-size: 14px;
+  font-weight: 600;
+  color: #86868b;
+  min-width: 24px;
+  text-align: center;
 }
 
 .mode-order-section h3 {
@@ -705,22 +827,22 @@ body {
 
 /* 代码块样式 */
 .message-text pre {
-  background-color: #f6f8fa;
-  border: 1px solid #e1e4e8;
-  border-radius: 6px;
+  background-color: #f5f5f7;
+  border: 1px solid #e8e8ed;
+  border-radius: 8px;
   padding: 16px;
   margin: 12px 0;
   overflow-x: auto;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: 'SF Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 13px;
   line-height: 1.5;
 }
 
 .message-text code {
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  background-color: #f6f8fa;
+  font-family: 'SF Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
+  background-color: #f5f5f7;
   padding: 2px 6px;
-  border-radius: 3px;
+  border-radius: 4px;
   font-size: 0.9em;
 }
 
