@@ -328,28 +328,67 @@ class TabManager {
         console.log(`[TabManager] ========== 创建异步等待Promise ==========`);
         console.log(`[TabManager] messageId: ${messageId}`);
         console.log(`[TabManager] 当前pendingResponses数量: ${pendingResponses.size}`);
+        console.log(`[TabManager] 当前时间: ${new Date().toISOString()}`);
+
+        // 先创建resolve和reject的引用，确保在Promise内部可以访问
+        let resolveRef, rejectRef;
 
         // 创建等待Promise
         const responsePromise = new Promise((resolve, reject) => {
+          resolveRef = resolve;
+          rejectRef = reject;
+
+          // 立即存入Map，避免竞态条件
           pendingResponses.set(messageId, { resolve, reject });
           console.log(`[TabManager] ✅ 已将messageId存入pendingResponses`);
+          console.log(`[TabManager] 当前pending messageIds:`, Array.from(pendingResponses.keys()));
 
-          // 3分钟超时
+          // 5分钟超时（增加超时时间）
           setTimeout(() => {
             if (pendingResponses.has(messageId)) {
-              console.log(`[TabManager] ❌ messageId ${messageId} 超时（180秒）`);
+              console.log(`[TabManager] ❌ messageId ${messageId} 超时（300秒）`);
+              console.log(`[TabManager] 删除超时的messageId: ${messageId}`);
+              console.log(`[TabManager] 当前时间: ${new Date().toISOString()}`);
               pendingResponses.delete(messageId);
-              reject(new Error('等待AI回复超时（180秒）'));
+              console.log(`[TabManager] 剩余pending messageIds:`, Array.from(pendingResponses.keys()));
+              reject(new Error('等待AI回复超时（300秒）'));
             }
-          }, 180000);
+          }, 300000); // 5分钟
         });
+
+        // 再次确认messageId已保存（防止竞态）
+        if (!pendingResponses.has(messageId)) {
+          console.error(`[TabManager] ❌ messageId未成功保存，重新保存`);
+          pendingResponses.set(messageId, { resolve: resolveRef, reject: rejectRef });
+        }
+
+        // 🔧 关键修复：等待一小段时间，确保messageId被完全保存
+        // 避免竞态条件：AI回复太快，在Promise创建前就返回
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // 最终确认
+        console.log(`[TabManager] 最终确认 - messageId在Map中:`, pendingResponses.has(messageId));
+        if (!pendingResponses.has(messageId)) {
+          console.error(`[TabManager] ❌ 严重错误：messageId最终确认失败`);
+          throw new Error('无法创建pending Promise');
+        }
 
         // 向content script发送消息
         console.log(`[TabManager] 发送消息到标签页 ${tab.id}`);
-        await chrome.tabs.sendMessage(tab.id, {
-          ...message,
-          messageId: messageId
-        });
+        console.log(`[TabManager] 发送时间: ${new Date().toISOString()}`);
+
+        try {
+          await chrome.tabs.sendMessage(tab.id, {
+            ...message,
+            messageId: messageId
+          });
+          console.log(`[TabManager] ✅ 消息已发送到content script`);
+        } catch (sendError) {
+          console.error(`[TabManager] ❌ 发送消息到content script失败:`, sendError);
+          // 清理pending
+          pendingResponses.delete(messageId);
+          throw sendError;
+        }
 
         console.log(`[TabManager] ⏳ 等待AI响应（messageId: ${messageId}）`);
 
@@ -454,7 +493,10 @@ class ConversationManager {
       name: name || `会话 ${conversations.length + 1}`,
       roleIds: roleIds || [],
       contextMode: contextMode || null, // 会话级别的上下文模式
+      sendMode: null, // 会话级别的发送模式
       roleUrls: {}, // 会话级别的角色URL映射（每个会话独立）
+      roleLastMessageIds: {}, // 共享模式顺序发送时，记录每个角色最后发送的消息ID
+      lastMessageId: null, // 共享模式并行发送时，记录全局最后发送的消息ID
       messages: [],
       createdAt: Date.now(),
       updatedAt: Date.now()
@@ -485,13 +527,15 @@ class ConversationManager {
     return null;
   }
 
-  async clearConversationMessages(conversationId) {
+    async clearConversationMessages(conversationId) {
     const conversations = await StorageManager.getConversations();
     const conversation = conversations.find(c => c.id === conversationId);
 
     if (conversation) {
       conversation.messages = [];
       conversation.roleUrls = {}; // 清空消息时也清空角色URL
+      conversation.roleLastMessageIds = {}; // 清空消息时也清空最后消息ID跟踪
+      conversation.lastMessageId = null; // 清空消息时也清空全局最后消息ID
       conversation.updatedAt = Date.now();
       await StorageManager.saveConversations(conversations);
       return conversation;
@@ -649,10 +693,15 @@ class AIMessageManager {
     const roles = await StorageManager.getRoles();
 
     // 先保存用户消息（这样历史中才能包含它）
-    await this.conversationManager.addMessage(conversationId, null, userMessage, true);
+    const userMessageResult = await this.conversationManager.addMessage(conversationId, null, userMessage, true);
+    console.log('[AIMessageManager] 用户消息已保存，ID:', userMessageResult?.id);
 
     // 重新获取conversation（包含刚保存的用户消息）
     conversation = await this.conversationManager.getConversation(conversationId);
+
+    // 🔧 确保使用最新的conversation对象
+    conversation = await this.conversationManager.getConversation(conversationId);
+    console.log(`[AIMessageManager] 🔧 发送前重新获取conversation，消息数: ${conversation.messages.length}`);
 
     // 根据发送模式选择不同的策略
     if (sendMode === 'parallel') {
@@ -682,12 +731,50 @@ class AIMessageManager {
     console.log('[AIMessageManager] 使用并行模式发送消息');
 
     const sendPromises = conversation.roleIds.map(async (roleId) => {
-      return await this.sendMessageToRole(roleId, roles, conversation, userMessage, contextMode, useFloatWindow, conversationId);
+      return await this.sendMessageToRole(roleId, roles, conversation, userMessage, contextMode, useFloatWindow, conversationId, false, 'parallel');
     });
 
     console.log('[AIMessageManager] 等待所有角色完成...');
     // 等待所有角色完成（不管成功失败）
-    await Promise.allSettled(sendPromises);
+    const results = await Promise.allSettled(sendPromises);
+
+    // 统计成功和失败的数量
+    const successCount = results.filter(r => r.status === 'fulfilled' && r.value).length;
+    const failCount = results.filter(r => r.status === 'rejected' || !r.value).length;
+    console.log(`[AIMessageManager] 并行发送完成: 成功 ${successCount}, 失败 ${failCount}`);
+
+    // 🔧 关键修复：并行模式下，所有角色完成后统一更新lastMessageId
+    if (contextMode === 'full' && successCount > 0) {
+      console.log('[AIMessageManager] 共享模式(并行)：所有角色完成，开始更新lastMessageId');
+
+      // 获取最新的会话状态
+      const updatedConversation = await this.conversationManager.getConversation(conversationId);
+      console.log(`[AIMessageManager] 当前会话消息总数: ${updatedConversation.messages?.length || 0}`);
+
+      // 找到最后一条消息
+      if (updatedConversation.messages && updatedConversation.messages.length > 0) {
+        const lastMessage = updatedConversation.messages[updatedConversation.messages.length - 1];
+        console.log('[AIMessageManager] 最后一条消息ID:', lastMessage.id);
+        console.log('[AIMessageManager] 最后一条消息类型:', lastMessage.isUser ? '用户' : 'AI');
+        console.log('[AIMessageManager] 当前lastMessageId:', updatedConversation.lastMessageId);
+
+        // 只有当最后一条是AI消息且ID不同时才更新
+        if (!lastMessage.isUser && lastMessage.id !== updatedConversation.lastMessageId) {
+          await this.conversationManager.updateConversation(conversationId, {
+            lastMessageId: lastMessage.id
+          });
+          console.log('[AIMessageManager] ✅ 已更新lastMessageId为:', lastMessage.id);
+        } else if (lastMessage.isUser) {
+          console.log('[AIMessageManager] ⚠️ 最后一条是用户消息，lastMessageId保持为:', updatedConversation.lastMessageId);
+        } else {
+          console.log('[AIMessageManager] ℹ️ lastMessageId已经是最新，无需更新');
+        }
+      } else {
+        console.log('[AIMessageManager] ⚠️ 会话中没有消息，跳过更新lastMessageId');
+      }
+    } else if (contextMode === 'full' && successCount === 0) {
+      console.warn('[AIMessageManager] ⚠️ 共享模式(并行)：所有角色都失败了，不更新lastMessageId');
+    }
   }
 
   // 顺序发送到所有角色（角色接龙模式）
@@ -701,7 +788,7 @@ class AIMessageManager {
       const roleId = roleOrder[i];
       console.log(`[AIMessageManager] 发送到第 ${i + 1}/${roleOrder.length} 个角色`);
 
-      await this.sendMessageToRole(roleId, roles, conversation, userMessage, contextMode, useFloatWindow, conversationId, true);
+      await this.sendMessageToRole(roleId, roles, conversation, userMessage, contextMode, useFloatWindow, conversationId, true, 'sequential');
 
       conversation = await this.conversationManager.getConversation(conversationId);
       console.log(`[AIMessageManager] 已更新conversation，当前消息数: ${conversation.messages.length}`);
@@ -720,7 +807,7 @@ class AIMessageManager {
       const roleId = shuffledRoleIds[i];
       console.log(`[AIMessageManager] 发送到第 ${i + 1}/${shuffledRoleIds.length} 个角色`);
 
-      await this.sendMessageToRole(roleId, roles, conversation, userMessage, contextMode, useFloatWindow, conversationId, true);
+      await this.sendMessageToRole(roleId, roles, conversation, userMessage, contextMode, useFloatWindow, conversationId, true, 'random');
 
       conversation = await this.conversationManager.getConversation(conversationId);
       console.log(`[AIMessageManager] 已更新conversation，当前消息数: ${conversation.messages.length}`);
@@ -728,7 +815,7 @@ class AIMessageManager {
   }
 
   // 发送消息到单个角色
-  async sendMessageToRole(roleId, roles, conversation, userMessage, contextMode, useFloatWindow, conversationId, includeAllHistory = false) {
+  async sendMessageToRole(roleId, roles, conversation, userMessage, contextMode, useFloatWindow, conversationId, includeAllHistory = false, sendMode = 'parallel') {
     const role = roles.find(r => r.id === roleId);
     if (!role) return null;
 
@@ -736,6 +823,7 @@ class AIMessageManager {
       console.log(`[AIMessageManager] ========== 发送到 ${role.provider} (${role.name}) ==========`);
       console.log(`[AIMessageManager] roleId: ${roleId}, provider: ${role.provider}`);
       console.log(`[AIMessageManager] 会话ID: ${conversationId}`);
+      console.log(`[AIMessageManager] sendMode: ${sendMode}`);
 
       let messageToSend = userMessage;
       let forceNewTab = false;
@@ -754,11 +842,25 @@ class AIMessageManager {
         }
       }
 
-      // 共享模式：发送完整历史并打开新标签页
+      // 共享模式：复用会话URL，只发送新增消息
       if (contextMode === 'full') {
-        messageToSend = this.formatConversationWithHistory(conversation, role.id, includeAllHistory, roles);
-        forceNewTab = true;
-        console.log(`[AIMessageManager] 共享模式：发送完整历史 (${messageToSend.length} 字符)，强制打开新标签页`);
+        messageToSend = this.formatConversationWithHistory(conversation, role.id, includeAllHistory, roles, sendMode);
+        
+        // 如果没有新消息需要发送，跳过
+        if (!messageToSend) {
+          console.log(`[AIMessageManager] 共享模式：没有新消息需要发送，跳过`);
+          return null;
+        }
+        
+        if (conversation.roleUrls && conversation.roleUrls[roleId]) {
+          // 会话中已保存该角色的URL，复用它（追加消息到同一会话）
+          targetUrl = conversation.roleUrls[roleId];
+          console.log(`[AIMessageManager] 共享模式：复用会话URL (${messageToSend.length} 字符)，URL: ${targetUrl}`);
+        } else {
+          // 第一次给该角色发消息：强制打开新标签页
+          forceNewTab = true;
+          console.log(`[AIMessageManager] 共享模式：首次发送，强制打开新标签页 (${messageToSend.length} 字符)`);
+        }
       }
 
       console.log(`[AIMessageManager] forceNewTab: ${forceNewTab}, targetUrl: ${targetUrl || 'none'}`);
@@ -781,6 +883,10 @@ class AIMessageManager {
       console.log(`[AIMessageManager] response.conversationUrl:`, response?.conversationUrl || 'none');
 
       if (response && response.success) {
+        console.log(`[AIMessageManager] ========== 开始处理成功的响应 ==========`);
+        console.log(`[AIMessageManager] response.conversationUrl:`, response.conversationUrl);
+        console.log(`[AIMessageManager] response.content 长度:`, response.content?.length || 0);
+
         // 更新会话中保存的角色URL（每个会话独立）
         if (response.conversationUrl) {
           if (!conversation.roleUrls) {
@@ -796,14 +902,58 @@ class AIMessageManager {
             console.log(`[AIMessageManager] ✓ 会话中角色URL未变化，跳过更新: ${response.conversationUrl}`);
           }
         }
-        console.log(`[AIMessageManager] 💾 保存 ${role.name} 的消息到conversation...`);
-        await this.conversationManager.addMessage(conversationId, roleId, response.content, false);
-        console.log(`[AIMessageManager] ✅ ${role.name} 消息已保存`);
 
-        if (useFloatWindow) {
-          await this.sendToFloatWindow('addMessage', {
-            role: role.name, content: response.content, isUser: false, isError: false, provider: role.provider
-          });
+        console.log(`[AIMessageManager] 💾 准备保存 ${role.name} 的消息到conversation...`);
+        console.log(`[AIMessageManager] conversationId: ${conversationId}`);
+        console.log(`[AIMessageManager] roleId: ${roleId}`);
+        console.log(`[AIMessageManager] content 长度: ${response.content?.length || 0}`);
+
+        try {
+          const savedMessage = await this.conversationManager.addMessage(conversationId, roleId, response.content, false);
+          console.log(`[AIMessageManager] ✅ ${role.name} 消息已保存，ID: ${savedMessage?.id}`);
+
+          // 共享模式：更新最后消息ID
+          if (contextMode === 'full' && savedMessage) {
+            if (sendMode === 'parallel') {
+              // 🔧 关键修复：并行模式下，不在单个角色完成时更新lastMessageId
+              // 而是在所有角色完成后统一更新（在sendToRolesParallel中处理）
+              console.log(`[AIMessageManager] 📝 共享模式(并行)：${role.name} 消息已保存，等待所有角色完成后再更新lastMessageId`);
+              } else {
+                // 顺序/随机模式：更新角色专属的最后消息ID
+                // 🔧 关键修复：不要重新获取conversation，直接使用当前的conversation对象
+                // 因为重新获取会丢失之前在processUserMessage中更新的roleLastMessageIds
+                
+                if (!conversation.roleLastMessageIds) {
+                  conversation.roleLastMessageIds = {};
+                }
+                const oldLastId = conversation.roleLastMessageIds[roleId];
+                
+                // 🔧 关键修复：只更新当前角色的lastMessageId，保留其他角色的
+                const newRoleLastMessageIds = { ...conversation.roleLastMessageIds };
+                newRoleLastMessageIds[roleId] = savedMessage.id;
+                
+                console.log(`[AIMessageManager] 💾 共享模式(顺序)：更新角色 ${role.name} 最后消息ID`);
+                console.log(`[AIMessageManager] 旧ID: ${oldLastId}, 新ID: ${savedMessage.id}`);
+                console.log(`[AIMessageManager] roleLastMessageIds:`, newRoleLastMessageIds);
+                await this.conversationManager.updateConversation(conversationId, {
+                  roleLastMessageIds: newRoleLastMessageIds
+                });
+                
+                // 更新本地conversation对象
+                conversation.roleLastMessageIds = newRoleLastMessageIds;
+
+              // 更新本地conversation对象，供后续使用
+              conversation = await this.conversationManager.getConversation(conversationId);
+            }
+          }
+
+          if (useFloatWindow) {
+            await this.sendToFloatWindow('addMessage', {
+              role: role.name, content: response.content, isUser: false, isError: false, provider: role.provider
+            });
+          }
+        } catch (saveError) {
+          console.error(`[AIMessageManager] ❌ 保存 ${role.name} 消息失败:`, saveError);
         }
       } else {
         console.warn(`[AIMessageManager] ⚠️ ${role.name} 响应失败或无内容`);
@@ -882,36 +1032,114 @@ class AIMessageManager {
   }
 
   // 格式化对话历史（共享模式）
-  formatConversationWithHistory(conversation, roleId, includeAllHistory = false, roles = []) {
-    const roleMessages = includeAllHistory
-      ? conversation.messages
-      : conversation.messages.filter(m => m.roleId === roleId || m.isUser);
-
+  formatConversationWithHistory(conversation, roleId, includeAllHistory = false, roles = [], sendMode = 'parallel') {
     const roleNameMap = {};
     roles.forEach(r => { roleNameMap[r.id] = r.name; });
 
     const currentRole = roles.find(r => r.id === roleId);
     const currentRoleName = currentRole?.name || '';
 
-    const roleNames = (conversation.roleIds || [])
-      .map(id => roleNameMap[id])
-      .filter(Boolean);
-    let formatted = `当前我们在一个会话里，会话里有成员 user、${roleNames.join('、')}\n`;
-    formatted += `你的当前会话名称是：${currentRoleName}\n`;
-    if (currentRole?.systemPrompt) {
-      formatted += `你的角色设定：${currentRole.systemPrompt}\n`;
-    }
-    formatted += '\n下面是当前会话的历史内容：\n\n';
+    console.log(`[AIMessageManager] ========== formatConversationWithHistory ==========`);
+    console.log(`[AIMessageManager] 当前消息总数: ${conversation.messages.length}`);
+    console.log(`[AIMessageManager] sendMode: ${sendMode}`);
+    console.log(`[AIMessageManager] 目标角色: ${roleId} (${currentRole?.name || '未知'})`);
 
-    if (roleMessages.length > 0) {
-      roleMessages.forEach(msg => {
-        if (msg.isUser) {
-          formatted += `User: ${msg.content}\n\n`;
-        } else {
-          formatted += `${roleNameMap[msg.roleId] || 'Assistant'}: ${msg.content}\n\n`;
-        }
-      });
+    // 根据发送模式获取lastMessageId
+    let lastMessageId;
+    if (sendMode === 'parallel') {
+      // 并行模式：使用全局最后消息ID
+      lastMessageId = conversation.lastMessageId;
+      console.log(`[AIMessageManager] 📌 并行模式`);
+      console.log(`[AIMessageManager]   全局lastMessageId: ${lastMessageId}`);
+    } else {
+      // 顺序/随机模式：使用角色专属的最后消息ID
+      lastMessageId = conversation.roleLastMessageIds?.[roleId];
+      console.log(`[AIMessageManager] 📌 顺序模式`);
+      console.log(`[AIMessageManager]   conversation.roleLastMessageIds:`, conversation.roleLastMessageIds);
+      console.log(`[AIMessageManager]   角色 ${roleId} 的 lastMessageId: ${lastMessageId}`);
     }
+
+    // 判断是否首次发送
+    const isFirstTime = !lastMessageId;
+    console.log(`[AIMessageManager] 是否首次发送: ${isFirstTime}`);
+
+    // 🔍 详细日志：打印所有消息ID
+    console.log(`[AIMessageManager] 📋 所有消息ID列表:`, conversation.messages.map((m, i) => `#${i} id=${m.id} ${m.isUser ? '用户' : `角色${m.roleId}`}`).join(' | '));
+
+    // 过滤消息：如果lastMessageId存在，只发送新增的消息
+    let roleMessages;
+    if (lastMessageId) {
+      // 找到lastMessageId在messages中的索引
+      const lastMessageIndex = conversation.messages.findIndex(m => m.id === lastMessageId);
+      console.log(`[AIMessageManager] 🔍 查找 lastMessageId=${lastMessageId} 在messages中的索引: ${lastMessageIndex}`);
+
+      if (lastMessageIndex >= 0) {
+        // 只发送该索引之后的消息
+        roleMessages = conversation.messages.slice(lastMessageIndex + 1);
+        console.log(`[AIMessageManager] ✅ 增量发送模式`);
+        console.log(`[AIMessageManager]   从消息索引 ${lastMessageIndex + 1}/${conversation.messages.length} 后开始`);
+        console.log(`[AIMessageManager]   需要发送的消息数: ${roleMessages.length}`);
+        if (roleMessages.length > 0) {
+          console.log(`[AIMessageManager]   要发送的消息ID:`, roleMessages.map(m => m.id).join(', '));
+        } else {
+          console.warn(`[AIMessageManager]   ⚠️ 没有新消息需要发送！`);
+        }
+      } else {
+        // 没找到，发送全部消息
+        roleMessages = conversation.messages;
+        console.log(`[AIMessageManager] ⚠️ 未找到lastMessageId=${lastMessageId}，发送全部消息`);
+        console.log(`[AIMessageManager]   总消息数: ${roleMessages.length}`);
+      }
+    } else {
+      // 第一次发送，发送全部消息
+      roleMessages = conversation.messages;
+      console.log(`[AIMessageManager] 📝 首次发送模式：发送全部消息`);
+      console.log(`[AIMessageManager]   总消息数: ${roleMessages.length}`);
+      console.log(`[AIMessageManager]   消息ID:`, roleMessages.map(m => m.id).join(', '));
+    }
+
+    if (roleMessages.length === 0) {
+      console.log(`[AIMessageManager] ℹ️ 没有新消息需要发送`);
+      return null;
+    }
+
+    // 打印要发送的消息详情
+    console.log(`[AIMessageManager] ========== 要发送的消息列表 ==========`);
+    roleMessages.forEach((msg, idx) => {
+      const role = msg.isUser ? 'User' : roleNameMap[msg.roleId];
+      const contentPreview = msg.content.substring(0, 50);
+      console.log(`[AIMessageManager] [${idx + 1}] ${role}: ${contentPreview}...`);
+    });
+
+    let formatted = '';
+
+    // 只在首次发送时添加会话介绍
+    if (isFirstTime) {
+      const roleNames = (conversation.roleIds || [])
+        .map(id => roleNameMap[id])
+        .filter(Boolean);
+      formatted += `当前我们在一个会话里，会话里有成员 user、${roleNames.join('、')}\n`;
+      formatted += `你的当前会话名称是：${currentRoleName}\n`;
+      if (currentRole?.systemPrompt) {
+        formatted += `你的角色设定：${currentRole.systemPrompt}\n`;
+      }
+      formatted += '\n下面是当前会话的历史内容：\n\n';
+    }
+
+    roleMessages.forEach(msg => {
+      if (msg.isUser) {
+        formatted += `User: ${msg.content}\n\n`;
+      } else {
+        formatted += `${roleNameMap[msg.roleId] || 'Assistant'}: ${msg.content}\n\n`;
+      }
+    });
+
+    console.log(`[AIMessageManager] ========== 格式化完成 ==========`);
+    console.log(`[AIMessageManager] 最终发送内容长度: ${formatted.length}`);
+    console.log(`[AIMessageManager] 内容预览: ${formatted.substring(0, 200)}...`);
+    console.log(`[AIMessageManager] ========== 完整发送内容 ==========`);
+    console.log(`[AIMessageManager] ${formatted}`);
+    console.log(`[AIMessageManager] ========== 内容结束 ==========`);
 
     return formatted.trim();
   }
@@ -979,6 +1207,10 @@ async function init() {
 // 等待AI响应的Promise存储
 const pendingResponses = new Map();
 
+// 🔧 调试：记录失败的响应（用于排查问题）
+const failedResponses = new Map();
+const MAX_FAILED_RESPONSES = 50; // 最多保留50个失败的响应
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('[Background] ========== 收到消息 ==========');
   console.log('[Background] action:', request.action || request.type);
@@ -1005,10 +1237,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
       if (request.error) {
         console.log('[Background] ❌ AI返回错误，reject promise');
+        console.log('[Background] 错误信息:', request.error);
         pending.reject(new Error(request.error));
       } else {
         console.log('[Background] ✅ AI返回成功，resolve promise');
-        console.log('[Background] response:', request.content);
+        console.log('[Background] response.success:', request.content?.success);
+        console.log('[Background] response.content长度:', request.content?.content?.length || 0);
+        console.log('[Background] response.conversationUrl:', request.content?.conversationUrl || 'none');
         // request.content 现在是 { success: true, content: "...", conversationUrl: "..." }
         pending.resolve(request.content);
       }
@@ -1018,6 +1253,33 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     } else {
       console.error('[Background] ❌ 未找到对应的pending Promise, messageId:', request.messageId);
       console.error('[Background] 当前的pending messageIds:', Array.from(pendingResponses.keys()));
+      console.error('[Background] 可能原因：Promise已超时被删除，或messageId不匹配');
+
+      // 🔧 记录失败的响应用于调试
+      if (failedResponses.size >= MAX_FAILED_RESPONSES) {
+        // 删除最旧的记录
+        const firstKey = failedResponses.keys().next().value;
+        failedResponses.delete(firstKey);
+      }
+      failedResponses.set(request.messageId, {
+        platform: request.platform,
+        timestamp: Date.now(),
+        hasContent: !!request.content,
+        contentLength: request.content?.content?.length || 0,
+        error: request.error
+      });
+      console.error('[Background] 🔧 已记录到失败响应队列，当前失败数:', failedResponses.size);
+
+      // 🔧 补救措施：即使找不到pending，也尝试处理响应
+      if (request.content && request.content.success && request.content.content) {
+        console.warn('[Background] ⚠️ 尝试补救处理：创建临时处理逻辑');
+
+        // 尝试通过platform找到相关的会话并保存
+        // 这里需要额外的上下文信息，暂时记录警告
+        console.warn('[Background] ⚠️ 无法自动补救，因为缺少conversationId等上下文');
+        console.warn('[Background] ⚠️ 响应内容将被丢弃，但content script已完成任务');
+      }
+
       sendResponse({ status: 'no_matching_promise' });
     }
     return;
@@ -1115,6 +1377,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       StorageManager.getSettings().then(sendResponse);
       return true;
 
+    case 'debugGetFailedResponses':
+      // 🔧 调试命令：获取失败的响应列表
+      sendResponse({
+        count: failedResponses.size,
+        responses: Array.from(failedResponses.entries()).map(([id, info]) => ({ id, ...info }))
+      });
+      return true;
+
     case 'testPlatform':
       // 真正测试AI平台：发送测试消息并等待回复
       console.log('[Background] 开始测试平台:', request.platform);
@@ -1170,6 +1440,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'pageReady') {
     console.log('[Background] 收到页面就绪通知:', message.platform, sender.tab?.url);
     sendResponse({ status: 'ok' });
+  }
+});
+
+// 额外的调试：监听所有runtime消息（应该在第一个listener之前）
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // 只记录aiResponse，用于调试
+  if (message && message.type === 'aiResponse') {
+    console.log('[Background-DEBUG] ========== 捕获到 aiResponse（调试监听器）==========');
+    console.log('[Background-DEBUG] messageId:', message.messageId);
+    console.log('[Background-DEBUG] platform:', message.platform);
+    console.log('[Background-DEBUG] 当前pending messageIds:', Array.from(pendingResponses.keys()));
+    console.log('[Background-DEBUG] 是否在pending中:', pendingResponses.has(message.messageId));
   }
 });
 

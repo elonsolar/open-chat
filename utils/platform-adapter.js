@@ -167,15 +167,38 @@ class AIPlatformAdapter {
 
       // DeepSeek特殊处理：只提取 ds-markdown 下的内容（真正的AI回复）
       if (this.platform === 'deepseek') {
-        // 克隆节点以避免修改原始DOM
-        const messageClone = lastAIMessage.cloneNode(true);
+        // 获取所有AI消息（不只是最后一个）
+        const allMessages = Array.from(document.querySelectorAll('.ds-message'));
+        const aiMessages = allMessages.filter((_, index) => index % 2 === 1);
 
-        // 移除 ds-think-content（思考过程）
-        const thinkContents = messageClone.querySelectorAll('.ds-think-content');
-        thinkContents.forEach(think => think.remove());
+        if (aiMessages.length === 0) {
+          return { found: false, content: '' };
+        }
 
-        if (thinkContents.length > 0) {
-          console.log(`[${this.platform}] 移除了 ${thinkContents.length} 个思考内容块`);
+        // 使用最新的AI消息
+        const latestAIMessage = aiMessages[aiMessages.length - 1];
+        const messageClone = latestAIMessage.cloneNode(true);
+
+        // 移除所有思考相关的元素（更全面的移除）
+        const thinkSelectors = [
+          '.ds-think-content',
+          '.think-content',
+          '[class*="think"]',
+          '[class*="thinking"]',
+          '[class*="thought"]'
+        ];
+
+        let removedCount = 0;
+        thinkSelectors.forEach(selector => {
+          const elements = messageClone.querySelectorAll(selector);
+          elements.forEach(el => {
+            el.remove();
+            removedCount++;
+          });
+        });
+
+        if (removedCount > 0) {
+          console.log(`[${this.platform}] 移除了 ${removedCount} 个思考相关元素`);
         }
 
         // 查找 ds-markdown 元素 - 尝试多种方式
@@ -183,60 +206,47 @@ class AIPlatformAdapter {
 
         if (!markdownElement) {
           // 尝试在原始节点查找
-          const originalMarkdown = lastAIMessage.querySelector('.ds-markdown');
+          const originalMarkdown = latestAIMessage.querySelector('.ds-markdown');
           if (originalMarkdown) {
             console.log(`[${this.platform}] 在原始节点找到 ds-markdown`);
             markdownElement = originalMarkdown;
           } else {
             console.log(`[${this.platform}] 未找到 .ds-markdown，调试信息:`);
-            console.log(`[${this.platform}] 节点HTML:`, messageClone.innerHTML.substring(0, 300));
+            console.log(`[${this.platform}] 节点HTML:`, messageClone.innerHTML.substring(0, 500));
             return { found: false, content: '' };
           }
         }
 
+        // 验证是否真的有内容（而不是空的思考容器）
+        const markdownClone = markdownElement.cloneNode(true);
+        // 再次确保移除思考内容
+        thinkSelectors.forEach(selector => {
+          const elements = markdownClone.querySelectorAll(selector);
+          elements.forEach(el => el.remove());
+        });
+
         // 优先使用 innerText 而不是只提取段落
         // innerText 会包含所有文本内容，包括代码块、列表等
-        const allText = markdownElement.innerText || markdownElement.textContent;
+        const allText = markdownClone.innerText || markdownClone.textContent;
 
-        // 如果文本太短（比如只有"[Pasted ~3 lines]"），可能内容在其他元素中
-        if (!allText || allText.trim().length < 20) {
-          console.log(`[${this.platform}] innerText太短 (${allText?.length || 0}字符)，尝试备用方法`);
-
-          // 备用方法：提取所有段落
-          const paragraphs = markdownElement.querySelectorAll('p');
-          console.log(`[${this.platform}] 找到段落数: ${paragraphs.length}`);
-
-          if (paragraphs.length > 0) {
-            const paragraphText = Array.from(paragraphs)
-              .map(p => p.textContent?.trim())
-              .filter(text => text && text.length > 0)
-              .join('\n\n');
-
-            if (paragraphText.length > 10) {
-              console.log(`[${this.platform}] 使用段落提取，长度: ${paragraphText.length}`);
-              return { found: true, content: paragraphText };
-            }
-          }
-
-          // 尝试查找所有可能的文本容器
-          const textContainers = markdownElement.querySelectorAll('div, pre, code, span');
-          let combinedText = '';
-          textContainers.forEach(container => {
-            const text = container.textContent?.trim();
-            if (text && text.length > 10 && !text.includes('[Pasted')) {
-              combinedText += (combinedText ? '\n\n' : '') + text;
-            }
-          });
-
-          if (combinedText.length > 10) {
-            console.log(`[${this.platform}] 使用容器提取，长度: ${combinedText.length}`);
-            return { found: true, content: combinedText };
-          }
-
+        // 如果文本太短或包含思考标志，可能不是真正的回复
+        if (!allText || allText.trim().length < 10) {
+          console.log(`[${this.platform}] 内容太短 (${allText?.length || 0}字符)，可能还在思考中`);
           return { found: false, content: '' };
         }
 
-        console.log(`[${this.platform}] 使用innerText提取，长度: ${allText.trim().length}`);
+        // 检查是否包含思考相关的关键词
+        const thinkKeywords = ['思考中', 'Thinking', '正在思考', '思考内容'];
+        const hasThinkKeyword = thinkKeywords.some(keyword =>
+          allText.includes(keyword)
+        );
+
+        if (hasThinkKeyword) {
+          console.log(`[${this.platform}] 检测到思考关键词，还未生成真正回复`);
+          return { found: false, content: '' };
+        }
+
+        console.log(`[${this.platform}] ✓ 成功提取真实回复内容，长度: ${allText.trim().length}`);
         return { found: true, content: allText.trim() };
       }
 
@@ -305,9 +315,11 @@ class AIPlatformAdapter {
     let lastHash = '';
     let hasNewMessage = false;
     let isResolved = false;
+    let hasStartedResponse = false; // 新增：标记是否开始有响应
 
     // 千问和DeepSeek需要更长的稳定时间（可能包含思考过程）
-    const STABLE_DURATION = (this.platform === 'deepseek' || this.platform === 'qianwen') ? 10000 : 8000;
+    // DeepSeek特别增加稳定时间，确保思考完成后真正内容输出完毕
+    const STABLE_DURATION = this.platform === 'deepseek' ? 20000 : (this.platform === 'qianwen' ? 15000 : 8000);
 
     // 记录会话历史，用于多轮对话
     const conversationSnapshot = this.getConversationHistory();
@@ -320,6 +332,7 @@ class AIPlatformAdapter {
     console.log(`[${this.platform}] 超时设置: ${timeout}ms`);
     console.log(`[${this.platform}] 稳定要求: 内容${STABLE_DURATION/1000}秒不再增长`);
     console.log(`[${this.platform}] 发送前AI消息数量: ${lastAIMessageCount}`);
+    console.log(`[${this.platform}] 初始内容长度: ${initialContent.length}`);
 
     // 统计当前AI消息数量（改进版，支持多轮对话）
     const countAIMessages = () => {
@@ -423,25 +436,31 @@ class AIPlatformAdapter {
           } else {
             console.log(`[${this.platform}] 检测到消息但无有效内容`);
           }
-        } else if (currentCount === lastAIMessageCount && currentCount > 0 && hasNewMessage) {
-          // 消息数量没变，但内容可能更新了（流式输出或编辑）
-          // 只有在已经检测到新消息后才检查内容更新
+        } else if (currentCount === lastAIMessageCount && currentCount > 0) {
+          // 消息数量没变，但内容可能更新了（流式输出或追加回复）
           const result = this.checkForNewContent();
+
           if (result.found && result.content.length > 0) {
             const newHash = this.simpleHash(result.content);
-            if (newHash !== lastHash) {
-              console.log(`[${this.platform}] 检测到内容变化（消息数量不变）`);
+            const initialHash = this.simpleHash(initialContent);
+
+            // 内容与初始内容不同，说明有新回复
+            if (newHash !== initialHash && newHash !== lastHash) {
+              console.log(`[${this.platform}] 检测到内容变化（消息数量不变，可能是追加回复）`);
               console.log(`[${this.platform}] 旧内容长度: ${lastContentLength} → 新内容长度: ${result.content.length}`);
 
-              // 只要内容哈希变化（内容确实不同了）就重置稳定时间
-              console.log(`[${this.platform}] ✅ 内容有变化，重置稳定时间`);
+              hasStartedResponse = true;
+              hasNewMessage = true;
               lastContent = result.content;
               lastHash = newHash;
               lastContentLength = result.content.length;
               lastStableTime = Date.now(); // 重置稳定时间
+            } else if (newHash !== lastHash && newHash === initialHash) {
+              console.log(`[${this.platform}] 内容回到初始状态，可能是重新生成`);
+              lastStableTime = Date.now();
             }
           }
-        } else if (currentCount === lastAIMessageCount && !hasNewMessage) {
+        } else if (currentCount === lastAIMessageCount && !hasStartedResponse) {
           // 还没检测到新消息，但是消息数量没变，输出调试信息
           const result = this.checkForNewContent();
           if (result.found && result.content.length > 0) {
@@ -507,19 +526,95 @@ class AIPlatformAdapter {
         }
 
         // DeepSeek特殊处理：检查是否真的有markdown内容（不是思考过程）
-        if (this.platform === 'deepseek' && lastContent.length > 0) {
-          // 重新检查内容，确保有markdown
-          const recheck = this.checkForNewContent();
-          if (!recheck.found) {
-            // 如果没有找到markdown，重置稳定时间
-            lastStableTime = Date.now();
-            console.log(`[${this.platform}] 未找到有效内容，重置稳定时间`);
+        const recheck = this.checkForNewContent();
+        const initialHash = this.simpleHash(initialContent);
+        const currentHash = recheck.found ? this.simpleHash(recheck.content) : '';
+
+        // 如果内容与初始内容不同，说明有回复（包括追加回复）
+        // 🔧 降低长度要求，允许短回复（从10降到3）
+        if (recheck.found && recheck.content.length >= 3 && currentHash !== initialHash) {
+          // 检查是否包含思考关键词
+          const thinkKeywords = ['思考中', 'Thinking', '正在思考'];
+          const hasThinkKeyword = thinkKeywords.some(kw => recheck.content.includes(kw));
+
+          if (!hasThinkKeyword) {
+            // 有有效内容且不在思考，标记开始响应
+            if (!hasStartedResponse) {
+              console.log(`[${this.platform}] ✅ DeepSeek开始响应（内容检测）`);
+              console.log(`[${this.platform}] 初始hash: ${initialHash.substring(0, 8)}...`);
+              console.log(`[${this.platform}] 当前hash: ${currentHash.substring(0, 8)}...`);
+              console.log(`[${this.platform}] 内容长度: ${recheck.content.length}`);
+              hasStartedResponse = true;
+              hasNewMessage = true;
+              lastStableTime = Date.now();
+            }
+
+            // 内容有变化，重置稳定时间
+            if (currentHash !== lastHash) {
+              lastContent = recheck.content;
+              lastHash = currentHash;
+              lastContentLength = recheck.content.length;
+              lastStableTime = Date.now();
+              console.log(`[${this.platform}] 📝 DeepSeek内容更新，长度: ${recheck.content.length}, 稳定时间重置`);
+            }
+          } else {
+            // 还在思考
+            if (hasStartedResponse) {
+              lastStableTime = Date.now();
+              console.log(`[${this.platform}] DeepSeek仍在思考，重置稳定时间`);
+            }
           }
+        } else if (!recheck.found) {
+          // 没有找到内容
+          if (hasStartedResponse) {
+            lastStableTime = Date.now();
+            console.log(`[${this.platform}] DeepSeek内容未找到，重置稳定时间`);
+          } else {
+            console.log(`[${this.platform}] DeepSeek等待内容出现...`);
+          }
+        } else if (recheck.content.length > 0 && recheck.content.length < 3) {
+          // 🔧 有内容但太短（1-2个字符），可能是刚开始输出
+          if (hasStartedResponse) {
+            // 如果已经开始响应了，不要重置时间，允许短回复
+            console.log(`[${this.platform}] DeepSeek内容很短 (${recheck.content.length})，但已开始响应，继续等待稳定`);
+          } else {
+            // 还没开始响应，等待更多内容
+            console.log(`[${this.platform}] DeepSeek内容太短 (${recheck.content.length})，等待更多内容...`);
+          }
+        } else {
+          // 内容与初始内容相同，还没开始响应
+          console.log(`[${this.platform}] DeepSeek内容未变化（hash相同），等待响应...`);
         }
 
         // 检查内容是否已经稳定足够长时间
-        // 必须已经检测到新消息才能完成
-        if (hasNewMessage && lastContent.length > 0 && stableElapsed >= STABLE_DURATION) {
+        // 必须已经检测到新消息或开始响应才能完成
+        if ((hasNewMessage || hasStartedResponse) && lastContent.length > 0 && stableElapsed >= STABLE_DURATION) {
+          // DeepSeek额外验证：确保不是思考内容
+          if (this.platform === 'deepseek') {
+            const finalCheck = this.checkForNewContent();
+            if (!finalCheck.found) {
+              console.log(`[${this.platform}] DeepSeek最终检查：未找到内容，继续等待`);
+              lastStableTime = Date.now();
+              return;
+            }
+
+            // 只检查是否完全没内容，允许短回复
+            if (finalCheck.content.length === 0) {
+              console.log(`[${this.platform}] DeepSeek最终检查：内容为空，继续等待`);
+              lastStableTime = Date.now();
+              return;
+            }
+
+            // 检查是否包含思考关键词
+            const thinkKeywords = ['思考中', 'Thinking', '正在思考', '思考内容'];
+            const hasThinkKeyword = thinkKeywords.some(kw => finalCheck.content.includes(kw));
+            if (hasThinkKeyword) {
+              console.log(`[${this.platform}] DeepSeek仍在思考中，继续等待`);
+              lastStableTime = Date.now();
+              return;
+            }
+          }
+
           // 确保只resolve一次
           if (isResolved) {
             console.log(`[${this.platform}] ⚠️ Promise已resolve，跳过重复检查`);
@@ -558,7 +653,7 @@ class AIPlatformAdapter {
       }, 500);
 
       // 超时处理
-      timeoutHandle = setTimeout(() => {
+      timeoutHandle = setTimeout(async () => {
         // 清理资源
         clearInterval(checkInterval);
         if (observer) observer.disconnect();
@@ -571,11 +666,46 @@ class AIPlatformAdapter {
 
         isResolved = true;
 
-        if (hasNewMessage && lastContent.length > 0) {
-          console.log(`[${this.platform}] ========== 超时但已有新内容 ==========`);
+        // 🔧 超时处理：只要有内容就接受，不再限制长度
+        if ((hasNewMessage || hasStartedResponse) && lastContent.length > 0) {
+          console.log(`[${this.platform}] ========== 超时但已有内容 ==========`);
           console.log(`[${this.platform}] 内容长度: ${lastContent.length}`);
           console.log(`[${this.platform}] 总耗时: ${Math.floor((Date.now() - startTime) / 1000)}秒`);
           console.log(`[${this.platform}] 当前会话URL:`, window.location.href);
+          console.log(`[${this.platform}] 内容预览: ${lastContent.substring(0, 50)}...`);
+          resolve({
+            success: true,
+            content: lastContent,
+            conversationUrl: window.location.href
+          });
+        } else if (lastContent.length > 0) {
+          // 🔧 有内容但还没开始响应，可能刚开始输出，额外等待一下
+          console.warn(`[${this.platform}] ========== 超时但内容刚开始 ==========`);
+          console.warn(`[${this.platform}] 内容长度: ${lastContent.length}`);
+          console.warn(`[${this.platform}] 内容预览: ${lastContent}`);
+          console.warn(`[${this.platform}] 尝试继续等待...`);
+
+          // 额外等待一段时间，看看内容是否会增长
+          await this.sleep(5000);
+          const finalCheck = this.checkForNewContent();
+
+          // 🔧 只要有内容就接受，不限制长度
+          if (finalCheck.found && finalCheck.content.length > 0) {
+            const finalHash = this.simpleHash(finalCheck.content);
+            const initialHash = this.simpleHash(initialContent);
+            if (finalHash !== initialHash) {
+              console.log(`[${this.platform}] ✅ 额外等待后获得有效内容`);
+              resolve({
+                success: true,
+                content: finalCheck.content,
+                conversationUrl: window.location.href
+              });
+              return;
+            }
+          }
+
+          // 如果还是没有，用已有内容返回
+          console.warn(`[${this.platform}] ⚠️ 额外等待后仍无更好内容，使用现有内容`);
           resolve({
             success: true,
             content: lastContent,
@@ -586,8 +716,28 @@ class AIPlatformAdapter {
           console.error(`[${this.platform}] 总等待时间: ${Math.floor((Date.now() - startTime) / 1000)}秒`);
           console.error(`[${this.platform}] AI消息数量: ${countAIMessages()} (初始: ${lastAIMessageCount})`);
           console.error(`[${this.platform}] 检测到新消息: ${hasNewMessage}`);
+          console.error(`[${this.platform}] 开始响应: ${hasStartedResponse}`);
           console.error(`[${this.platform}] 最后内容长度: ${lastContent.length}`);
-          reject(new Error(`等待AI回复超时 (${timeout / 1000}秒)，未收到新的AI回复`));
+          console.error(`[${this.platform}] 提示: DeepSeek可能在追加回复，消息数不变但内容在更新`);
+
+          // 最后尝试一次检查
+          const emergencyCheck = this.checkForNewContent();
+          // 🔧 降低紧急检查的长度要求（从20降到3）
+          if (emergencyCheck.found && emergencyCheck.content.length > 3) {
+            const emergencyHash = this.simpleHash(emergencyCheck.content);
+            const initialHash = this.simpleHash(initialContent);
+            if (emergencyHash !== initialHash) {
+              console.log(`[${this.platform}] ✅ 紧急检查找到有效内容`);
+              resolve({
+                success: true,
+                content: emergencyCheck.content,
+                conversationUrl: window.location.href
+              });
+              return;
+            }
+          }
+
+          reject(new Error(`等待AI回复超时 (${timeout / 1000}秒)，未收到有效的AI回复`));
         }
       }, timeout);
     });
@@ -679,8 +829,84 @@ class AIPlatformAdapter {
           inputBox.dispatchEvent(shiftEnterEvent);
         }
 
-        await this.sleep(1000);
+        await this.sleep(2000);
         console.log(`[${this.platform}] DeepSeek Enter发送完成`);
+
+        // DeepSeek特殊处理：等待思考过程完成或开始响应
+        console.log(`[${this.platform}] 等待DeepSeek思考过程完成...`);
+        let thinkingCompleted = false;
+        let thinkingAttempts = 0;
+        const maxThinkingAttempts = 30; // 最多等待30秒（1秒检查一次）
+
+        while (!thinkingCompleted && thinkingAttempts < maxThinkingAttempts) {
+          await this.sleep(1000);
+          thinkingAttempts++;
+
+          // 检查AI消息情况
+          const currentMessages = document.querySelectorAll('.ds-message');
+          const aiMessages = Array.from(currentMessages).filter((_, index) => index % 2 === 1);
+
+          if (aiMessages.length > initialAIMessageCount) {
+            // 有新消息，检查是否包含真实内容（不是思考）
+            const latestMessage = aiMessages[aiMessages.length - 1];
+            const markdownElement = latestMessage.querySelector('.ds-markdown');
+
+            if (markdownElement) {
+              const content = markdownElement.innerText || markdownElement.textContent || '';
+              // 内容长度大于20且不包含思考关键词，认为思考完成
+              const thinkKeywords = ['思考中', 'Thinking', '正在思考'];
+              const hasThinkKeyword = thinkKeywords.some(kw => content.includes(kw));
+
+              if (content.length > 20 && !hasThinkKeyword) {
+                console.log(`[${this.platform}] ✓ DeepSeek思考完成，开始生成真实内容 (${thinkingAttempts}秒)`);
+                thinkingCompleted = true;
+              } else {
+                console.log(`[${this.platform}] DeepSeek仍在思考中... (${thinkingAttempts}/${maxThinkingAttempts})`);
+              }
+            }
+          } else if (aiMessages.length === initialAIMessageCount && aiMessages.length > 0) {
+            // 消息数量没变，可能是追加回复，检查最后一条消息的内容是否有变化
+            const latestMessage = aiMessages[aiMessages.length - 1];
+            const markdownElement = latestMessage.querySelector('.ds-markdown');
+
+            if (markdownElement) {
+              const content = markdownElement.innerText || markdownElement.textContent || '';
+              const initialHash = this.simpleHash(initialAIContent);
+              const currentHash = this.simpleHash(content);
+
+              // 🔧 降低追加回复的长度要求（从20降到3），允许短回复
+              if (content.length > 3 && currentHash !== initialHash) {
+                const thinkKeywords = ['思考中', 'Thinking', '正在思考'];
+                const hasThinkKeyword = thinkKeywords.some(kw => content.includes(kw));
+
+                if (!hasThinkKeyword) {
+                  console.log(`[${this.platform}] ✓ DeepSeek开始追加回复 (${thinkingAttempts}秒)`);
+                  thinkingCompleted = true;
+                }
+              }
+            }
+          }
+
+          // 如果内容明显变化（非思考），也可以认为完成等待
+          const latestCheck = this.checkForNewContent();
+          // 🔧 降低内容变化的长度要求（从50降到10）
+          if (latestCheck.found && latestCheck.content.length > 10) {
+            const thinkKeywords = ['思考中', 'Thinking', '正在思考'];
+            const hasThinkKeyword = thinkKeywords.some(kw => latestCheck.content.includes(kw));
+            if (!hasThinkKeyword) {
+              console.log(`[${this.platform}] ✓ 检测到有效内容，完成等待 (${thinkingAttempts}秒)`);
+              thinkingCompleted = true;
+            }
+          }
+
+          if (!thinkingCompleted) {
+            console.log(`[${this.platform}] 等待DeepSeek响应... (${thinkingAttempts}/${maxThinkingAttempts})`);
+          }
+        }
+
+        if (!thinkingCompleted) {
+          console.log(`[${this.platform}] ⚠️ 思考等待超时，继续执行（可能是追加回复）`);
+        }
       } else if (this.platform === 'qianwen') {
         console.log(`[${this.platform}] 开始千问发送流程...`);
 
@@ -981,30 +1207,66 @@ class AIPlatformAdapter {
         return { found: false, content: '' };
       }
 
-      // 提取文本内容
+      // 提取文本内容和代码块
       let text = '';
+      const codeBlocks = [];
 
       // 尝试提取 .qk-md-paragraph
       const paragraphs = markdownElement.querySelectorAll('.qk-md-paragraph');
       if (paragraphs.length > 0) {
-        text = Array.from(paragraphs)
-          .map(p => p.textContent?.trim())
-          .filter(t => t && t.length > 0)
-          .join('\n\n');
+        paragraphs.forEach(p => {
+          // 检查是否包含代码块
+          const codeBlock = p.querySelector('pre, code');
+          if (codeBlock) {
+            // 提取代码块内容
+            const code = codeBlock.textContent || codeBlock.innerText || '';
+            if (code.trim()) {
+              // 获取语言标识（如果有）
+              const language = codeBlock.className.match(/language-(\w+)/)?.[1] || '';
+              codeBlocks.push(`\`\`\`${language}\n${code.trim()}\n\`\`\``);
+            }
+          } else {
+            // 普通段落文本
+            const pText = p.textContent?.trim();
+            if (pText) {
+              text += (text ? '\n\n' : '') + pText;
+            }
+          }
+        });
       } else {
-        // 直接获取元素文本
-        text = markdownElement.textContent?.trim() || markdownElement.innerText?.trim() || '';
+        // 直接提取所有内容，包括代码块
+        const allCodeBlocks = markdownElement.querySelectorAll('pre, code');
+        allCodeBlocks.forEach(block => {
+          const code = block.textContent || block.innerText || '';
+          if (code.trim() && code.length > 10) {
+            const language = block.className.match(/language-(\w+)/)?.[1] || '';
+            codeBlocks.push(`\`\`\`${language}\n${code.trim()}\n\`\`\``);
+          }
+        });
+
+        // 提取非代码的文本
+        const clone = markdownElement.cloneNode(true);
+        const codes = clone.querySelectorAll('pre, code');
+        codes.forEach(c => c.remove());
+        text = clone.textContent?.trim() || clone.innerText?.trim() || '';
       }
 
-      if (!text || text.length < 5) {
+      // 合并文本和代码块
+      let finalText = text;
+      if (codeBlocks.length > 0) {
+        finalText += (finalText ? '\n\n' : '') + codeBlocks.join('\n\n');
+        console.log(`[${this.platform}] 提取了 ${codeBlocks.length} 个代码块`);
+      }
+
+      if (!finalText || finalText.length < 5) {
         console.log(`[${this.platform}] 提取的文本太短`);
         return { found: false, content: '' };
       }
 
-      console.log(`[${this.platform}] ✓ 成功提取AI内容，长度: ${text.length}`);
-      console.log(`[${this.platform}] 内容预览: ${text.substring(0, 80)}`);
+      console.log(`[${this.platform}] ✓ 成功提取AI内容，长度: ${finalText.length}`);
+      console.log(`[${this.platform}] 内容预览: ${finalText.substring(0, 80)}`);
 
-      return { found: true, content: text };
+      return { found: true, content: finalText };
 
     } catch (error) {
       console.error(`[${this.platform}] 提取千问AI内容失败:`, error);

@@ -21,6 +21,9 @@ logs/
 *.log
 npm-debug.log*
 
+# Playwright MCP snapshots
+.playwright-mcp/
+
 # Build output
 dist/
 build/
