@@ -625,7 +625,13 @@ class AIPlatformAdapter {
       // 聚焦并填入消息
       console.log(`[${this.platform}] 步骤2: 填入消息...`);
       inputBox.focus();
-      inputBox.value = content;
+      
+      // 千问使用contenteditable的div，需要用textContent而不是value
+      if (this.platform === 'qianwen') {
+        console.log(`[${this.platform}] 千问平台，跳过value设置（将在后续特殊处理中填入）`);
+      } else {
+        inputBox.value = content;
+      }
 
       // DeepSeek特殊处理：使用react的事件系统
       if (this.platform === 'deepseek') {
@@ -669,146 +675,136 @@ class AIPlatformAdapter {
 
         const editor = inputBox;
         
-        // 方法：使用临时textarea模拟真实输入，避免直接操作Slate DOM
-        console.log(`[${this.platform}] 使用原生输入方法...`);
+        // 方法：通过beforeinput事件让Slate处理文本，避免直接DOM操作导致状态不一致
+        console.log(`[${this.platform}] 使用Slate兼容输入方法...`);
         
         // 1. 聚焦编辑器
-        editor.focus();
-        await this.sleep(200);
-        
-        // 2. 清空编辑器（Ctrl+A + Delete）
-        // 创建并模拟键盘事件
-        const simulateKey = (key, options = {}) => {
-          const defaultOptions = {
-            key: key,
-            code: key,
-            keyCode: key.charCodeAt(0),
-            which: key.charCodeAt(0),
-            bubbles: true,
-            cancelable: true
-          };
-          
-          const eventOptions = { ...defaultOptions, ...options };
-          
-          editor.dispatchEvent(new KeyboardEvent('keydown', eventOptions));
-          editor.dispatchEvent(new KeyboardEvent('keyup', eventOptions));
-        };
-        
-        // 模拟 Ctrl+A
-        simulateKey('a', { ctrlKey: true, code: 'KeyA' });
-        await this.sleep(50);
-        document.execCommand('selectAll');
-        await this.sleep(100);
-        document.execCommand('delete');
-        await this.sleep(200);
-        
-        console.log(`[${this.platform}] ✓ 编辑器已清空`);
-        
-        // 3. 使用临时的 textarea 和 execCommand('insertText') 来插入文本
-        // 这个方法不会触发 Slate 错误，因为它是标准的浏览器 API
-        const sel = window.getSelection();
-        const range = document.createRange();
-        
-        // 确保光标在编辑器中
-        const pElement = editor.querySelector('p[data-slate-node="element"]');
-        if (pElement) {
-          range.setStart(pElement, 0);
-          range.collapse(true);
-          sel.removeAllRanges();
-          sel.addRange(range);
-        }
-        
-        editor.focus();
-        await this.sleep(100);
-        
-        // 关键：逐字符使用 execCommand('insertText')
-        // 这会触发 Slate 的正确处理流程
-        console.log(`[${this.platform}] 逐字符输入...`);
-        
-        for (let i = 0; i < content.length; i++) {
-          const char = content[i];
-          
-          // 触发完整的键盘事件序列（模拟真实输入）
-          const keyCode = char.charCodeAt(0);
-          
-          // keydown
-          editor.dispatchEvent(new KeyboardEvent('keydown', {
-            key: char,
-            code: `Key${char.toUpperCase()}`,
-            keyCode: keyCode,
-            which: keyCode,
-            bubbles: true,
-            cancelable: true
-          }));
-          
-          // beforeinput
-          editor.dispatchEvent(new InputEvent('beforeinput', {
-            bubbles: true,
-            cancelable: true,
-            inputType: 'insertText',
-            data: char
-          }));
-          
-          // 使用 execCommand 插入字符（关键！）
-          document.execCommand('insertText', false, char);
-          
-          // input
-          editor.dispatchEvent(new InputEvent('input', {
-            bubbles: true,
-            cancelable: false,
-            inputType: 'insertText',
-            data: char
-          }));
-          
-          // keyup
-          editor.dispatchEvent(new KeyboardEvent('keyup', {
-            key: char,
-            code: `Key${char.toUpperCase()}`,
-            keyCode: keyCode,
-            which: keyCode,
-            bubbles: true,
-            cancelable: true
-          }));
-          
-          // 每5个字符暂停一下，避免过快
-          if (i % 5 === 0) {
-            await this.sleep(10);
+        try {
+          if (editor && editor.offsetParent !== null) {
+            editor.focus();
+          } else {
+            console.warn(`[${this.platform}] 编辑器不可见或不可聚焦`);
           }
+        } catch (e) {
+          console.warn(`[${this.platform}] 聚焦编辑器失败:`, e.message);
+        }
+        await this.sleep(200);
+        
+        // 2. 找到或创建Slate文本节点
+        let textNode = editor.querySelector('span[data-slate-node="text"]');
+        
+        if (!textNode) {
+          const existingElement = editor.querySelector('[data-slate-node="element"]');
+          if (existingElement) {
+            textNode = document.createElement('span');
+            textNode.setAttribute('data-slate-node', 'text');
+            existingElement.appendChild(textNode);
+          } else {
+            const pElement = document.createElement('p');
+            pElement.setAttribute('data-slate-node', 'element');
+            textNode = document.createElement('span');
+            textNode.setAttribute('data-slate-node', 'text');
+            pElement.appendChild(textNode);
+            editor.appendChild(pElement);
+          }
+          await this.sleep(50);
         }
         
+        // 3. 选中全部现有内容并删除（通过beforeinput事件让Slate处理）
+        const selection = window.getSelection();
+        let range = document.createRange();
+        range.selectNodeContents(textNode);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        
+        editor.dispatchEvent(new InputEvent('beforeinput', {
+          bubbles: true, cancelable: true, inputType: 'deleteContent'
+        }));
+        editor.dispatchEvent(new InputEvent('input', {
+          bubbles: true, cancelable: false, inputType: 'deleteContent'
+        }));
+        await this.sleep(100);
+        
+        // 4. 将光标移到文本节点末尾（此时应已被清空）
+        range = document.createRange();
+        range.selectNodeContents(textNode);
+        range.collapse(false);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        
+        // 5. 通过beforeinput事件让Slate插入新文本
+        editor.dispatchEvent(new InputEvent('beforeinput', {
+          bubbles: true, cancelable: true, inputType: 'insertText', data: content
+        }));
+        editor.dispatchEvent(new InputEvent('input', {
+          bubbles: true, cancelable: false, inputType: 'insertText', data: content
+        }));
+        
+        await this.sleep(500);
         console.log(`[${this.platform}] ✓ 文本输入完成`);
-        await this.sleep(300);
         
-        // 4. 验证内容
-        const editorContent = editor.textContent?.trim();
-        console.log(`[${this.platform}] 编辑器内容:`, editorContent);
+        // 4. 等待发送按钮出现并启用（React状态更新需要时间）
+        console.log(`[${this.platform}] 等待发送按钮出现并启用...`);
+        let sendButton = null;
+        let buttonReady = false;
+        let attempts = 0;
+        const maxAttempts = 40;
         
-        if (editorContent !== content) {
-          console.warn(`[${this.platform}] ⚠ 内容不匹配`, {
-            expected: content,
-            actual: editorContent
-          });
-        }
+        const sendButtonSelectors = [
+          'button[aria-label="发送消息"]',
+          'button[aria-label="发送"]',
+          'button[aria-label="send"]',
+          'button[type="submit"]',
+          'button[class*="send"]',
+          'button[class*="submit"]',
+          'button:has(svg)',
+          'div[class*="send"] button',
+          'div[class*="submit"] button',
+          'button[class*="Send"]',
+          'button[class*="chat"]'
+        ];
         
-        // 5. 检查并点击发送按钮
-        const sendButton = document.querySelector('button[aria-label="发送消息"]');
-        if (sendButton) {
-          // 检查按钮状态
-          const isDisabled = sendButton.hasAttribute('disabled') || 
-                            sendButton.classList.contains('bg-[--ty-text-disabled]');
-          
-          console.log(`[${this.platform}] 按钮状态:`, isDisabled ? '禁用' : '启用');
-          
-          if (isDisabled) {
-            console.log(`[${this.platform}] 移除禁用状态...`);
-            sendButton.removeAttribute('disabled');
-            sendButton.classList.remove('bg-[--ty-text-disabled]', 'cursor-not-allowed');
-            sendButton.classList.remove('[&>*]:!cursor-not-allowed', '[&_svg]:!cursor-not-allowed', '[&_span]:!cursor-not-allowed');
-            sendButton.classList.add('bg-black-button');
-            sendButton.style.cssText = 'cursor: pointer !important; pointer-events: auto !important;';
-            await this.sleep(100);
+        while (!buttonReady && attempts < maxAttempts) {
+          // 尝试所有选择器
+          for (const selector of sendButtonSelectors) {
+            sendButton = document.querySelector(selector);
+            if (sendButton) break;
           }
           
+          if (sendButton) {
+            const isDisabled = sendButton.hasAttribute('disabled') || 
+                              sendButton.classList.contains('bg-[--ty-text-disabled]') ||
+                              sendButton.disabled;
+            
+            if (!isDisabled && sendButton.offsetParent !== null) {
+              buttonReady = true;
+              console.log(`[${this.platform}] ✓ 发送按钮已就绪`);
+              break;
+            }
+          }
+          
+          if (attempts < maxAttempts - 1) {
+            console.log(`[${this.platform}] 等待按钮就绪... (${attempts + 1}/${maxAttempts})`);
+          }
+          await this.sleep(200);
+          attempts++;
+        }
+        
+        // 5. 如果找到按钮但禁用，强制启用
+        if (!buttonReady && sendButton) {
+          console.log(`[${this.platform}] 按钮仍未启用，尝试强制启用...`);
+          sendButton.removeAttribute('disabled');
+          sendButton.disabled = false;
+          sendButton.classList.remove('bg-[--ty-text-disabled]', 'cursor-not-allowed');
+          sendButton.classList.remove('[&>*]:!cursor-not-allowed', '[&_svg]:!cursor-not-allowed', '[&_span]:!cursor-not-allowed');
+          sendButton.classList.add('bg-black-button');
+          sendButton.style.cssText = 'cursor: pointer !important; pointer-events: auto !important;';
+          await this.sleep(200);
+          buttonReady = true;
+        }
+        
+        // 6. 发送消息
+        if (sendButton && buttonReady) {
           console.log(`[${this.platform}] ✓ 点击发送按钮`);
           sendButton.click();
         } else {
@@ -937,7 +933,8 @@ class AIPlatformAdapter {
         const allDivs = messageElement.querySelectorAll('div');
         for (const div of allDivs) {
           const className = div.className || '';
-          const text = div.textContent || '';
+          // 使用 innerText 而不是 textContent，避免触发 Slate 错误
+          const text = div.innerText || '';
           // 如果类名包含 answer/answer-text 且有实际内容
           if ((className.includes('answer') || className.includes('markdown')) && text.trim().length > 20) {
             markdownElement = div;
@@ -962,7 +959,7 @@ class AIPlatformAdapter {
         const buttons = clone.querySelectorAll('button, [class*="icon"], [class*="button"]');
         buttons.forEach(btn => btn.remove());
 
-        const text = clone.textContent?.trim() || '';
+        const text = clone.innerText?.trim() || clone.textContent?.trim() || '';
 
         if (text.length > 10) {
           console.log(`[${this.platform}] ✓ 备用方法成功提取，长度: ${text.length}`);

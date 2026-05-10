@@ -483,6 +483,20 @@ class ConversationManager {
     return null;
   }
 
+  async clearConversationMessages(conversationId) {
+    const conversations = await StorageManager.getConversations();
+    const conversation = conversations.find(c => c.id === conversationId);
+
+    if (conversation) {
+      conversation.messages = [];
+      conversation.updatedAt = Date.now();
+      await StorageManager.saveConversations(conversations);
+      return conversation;
+    }
+
+    return null;
+  }
+
   async addMessage(conversationId, roleId, content, isUser = false) {
     const conversations = await StorageManager.getConversations();
     const conversation = conversations.find(c => c.id === conversationId);
@@ -596,8 +610,10 @@ class AIMessageManager {
     // 使用会话的上下文模式，如果没有则使用全局设置
     const contextMode = conversation.contextMode || settings.contextMode || 'self';
     const useFloatWindow = settings.floatWindow !== false; // 默认使用浮动窗口
+    // 使用会话的发送模式，如果没有则使用默认并行模式
+    const sendMode = conversation.sendMode || 'parallel';
 
-    console.log(`[AIMessageManager] 上下文模式: ${contextMode} (来源: ${conversation.contextMode ? '会话' : '全局设置'}), 浮动窗口: ${useFloatWindow}`);
+    console.log(`[AIMessageManager] 上下文模式: ${contextMode} (来源: ${conversation.contextMode ? '会话' : '全局设置'}), 浮动窗口: ${useFloatWindow}, 发送模式: ${sendMode}`);
 
     // 如果使用浮动窗口，显示用户消息
     if (useFloatWindow) {
@@ -618,90 +634,146 @@ class AIMessageManager {
     // 重新获取conversation（包含刚保存的用户消息）
     conversation = await this.conversationManager.getConversation(conversationId);
 
-    // 为每个角色发送消息到对应的AI平台（并行）
+    // 根据发送模式选择不同的策略
+    if (sendMode === 'parallel') {
+      // 并行模式：同时发送到所有角色
+      await this.sendToRolesParallel(conversation, roles, userMessage, contextMode, useFloatWindow, conversationId);
+    } else if (sendMode === 'sequential') {
+      // 顺序模式：按角色列表顺序依次发送
+      await this.sendToRolesSequential(conversation, roles, userMessage, contextMode, useFloatWindow, conversationId);
+    } else if (sendMode === 'random') {
+      // 随机模式：随机打乱顺序后依次发送
+      await this.sendToRolesRandom(conversation, roles, userMessage, contextMode, useFloatWindow, conversationId);
+    }
+
+    console.log('[AIMessageManager] ========== 所有角色处理完成 ==========');
+
+    // 延迟一下，确保所有消息都已保存到storage
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // 返回更新后的会话
+    const updatedConversation = await this.conversationManager.getConversation(conversationId);
+    console.log('[AIMessageManager] 返回的会话消息数:', updatedConversation?.messages?.length || 0);
+    return updatedConversation;
+  }
+
+  // 并行发送到所有角色
+  async sendToRolesParallel(conversation, roles, userMessage, contextMode, useFloatWindow, conversationId) {
+    console.log('[AIMessageManager] 使用并行模式发送消息');
+
     const sendPromises = conversation.roleIds.map(async (roleId) => {
-      const role = roles.find(r => r.id === roleId);
-      if (!role) return null;
-
-      try {
-        console.log(`[AIMessageManager] ========== 发送到 ${role.provider} (${role.name}) ==========`);
-        console.log(`[AIMessageManager] roleId: ${roleId}, provider: ${role.provider}`);
-        console.log(`[AIMessageManager] role.conversationUrl: ${role.conversationUrl || 'none'}`);
-
-        let messageToSend = userMessage;
-        let forceNewTab = false;
-        let targetUrl = null;
-
-        // AI自保持模式：使用保存的会话URL
-        if (contextMode === 'self' && role.conversationUrl) {
-          targetUrl = role.conversationUrl;
-          console.log(`[AIMessageManager] 使用保存的会话URL: ${targetUrl}`);
-        }
-
-        // 完整上下文模式：强制新建标签页
-        if (contextMode === 'full') {
-          messageToSend = this.formatConversationWithHistory(conversation, role.id);
-          forceNewTab = true;
-        }
-
-        console.log(`[AIMessageManager] forceNewTab: ${forceNewTab}, targetUrl: ${targetUrl || 'none'}`);
-        console.log(`[AIMessageManager] messageToSend 长度: ${messageToSend.length}`);
-
-        const hasRoleMessages = conversation.messages.some(m => m.roleId === role.id && !m.isUser);
-        if (!hasRoleMessages && role.systemPrompt) {
-          messageToSend = `${role.systemPrompt}\n\n${messageToSend}`;
-          console.log(`[AIMessageManager] 添加了systemPrompt，新长度: ${messageToSend.length}`);
-        }
-
-        console.log(`[AIMessageManager] ⏳ 调用 tabManager.sendMessage...`);
-
-        // 调用sendMessage，内部已经有30秒超时控制
-        const response = await this.tabManager.sendMessage(role.provider, messageToSend, forceNewTab, targetUrl);
-
-        console.log(`[AIMessageManager] ✅ 收到 ${role.name} 响应`);
-        console.log(`[AIMessageManager] response.success:`, response?.success);
-        console.log(`[AIMessageManager] response.content 长度:`, response?.content?.length || 0);
-        console.log(`[AIMessageManager] response.conversationUrl:`, response?.conversationUrl || 'none');
-
-        if (response && response.success) {
-          // 如果返回了会话URL且角色没有保存过，保存到角色数据
-          if (response.conversationUrl && !role.conversationUrl) {
-            console.log(`[AIMessageManager] 💾 保存会话URL到角色 ${role.name}: ${response.conversationUrl}`);
-            role.conversationUrl = response.conversationUrl;
-            await StorageManager.saveRoles(roles);
-          }
-          console.log(`[AIMessageManager] 💾 保存 ${role.name} 的消息到conversation...`);
-          await this.conversationManager.addMessage(conversationId, roleId, response.content, false);
-          console.log(`[AIMessageManager] ✅ ${role.name} 消息已保存`);
-
-          if (useFloatWindow) {
-            await this.sendToFloatWindow('addMessage', {
-              role: role.name, content: response.content, isUser: false, isError: false, provider: role.provider
-            });
-          }
-        } else {
-          console.warn(`[AIMessageManager] ⚠️ ${role.name} 响应失败或无内容`);
-        }
-      } catch (error) {
-        console.error(`[AIMessageManager] ❌ ${role.provider} 失败:`, error);
-        console.error(`[AIMessageManager] 错误堆栈:`, error.stack);
-        // 显示错误但不中断其他角色
-      }
+      return await this.sendMessageToRole(roleId, roles, conversation, userMessage, contextMode, useFloatWindow, conversationId);
     });
 
     console.log('[AIMessageManager] 等待所有角色完成...');
     // 等待所有角色完成（不管成功失败）
     await Promise.allSettled(sendPromises);
+  }
 
-    console.log('[AIMessageManager] ========== 所有角色处理完成 ==========');
-    
-    // 延迟一下，确保所有消息都已保存到storage
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // 返回更新后的会话
-    const updatedConversation = await this.conversationManager.getConversation(conversationId);
-    console.log('[AIMessageManager] 返回的会话消息数:', updatedConversation?.messages?.length || 0);
-    return updatedConversation;
+  // 顺序发送到所有角色（角色接龙模式）
+  async sendToRolesSequential(conversation, roles, userMessage, contextMode, useFloatWindow, conversationId) {
+    console.log('[AIMessageManager] 使用顺序模式发送消息（角色接龙）');
+
+    const roleOrder = conversation.roleOrder || conversation.roleIds;
+    console.log('[AIMessageManager] 角色顺序:', roleOrder);
+
+    for (let i = 0; i < roleOrder.length; i++) {
+      const roleId = roleOrder[i];
+      console.log(`[AIMessageManager] 发送到第 ${i + 1}/${roleOrder.length} 个角色`);
+
+      await this.sendMessageToRole(roleId, roles, conversation, userMessage, contextMode, useFloatWindow, conversationId, true);
+
+      conversation = await this.conversationManager.getConversation(conversationId);
+      console.log(`[AIMessageManager] 已更新conversation，当前消息数: ${conversation.messages.length}`);
+    }
+  }
+
+  // 随机顺序发送到所有角色（角色接龙模式）
+  async sendToRolesRandom(conversation, roles, userMessage, contextMode, useFloatWindow, conversationId) {
+    console.log('[AIMessageManager] 使用随机模式发送消息（角色接龙）');
+
+    const baseRoleIds = conversation.roleOrder || conversation.roleIds;
+    const shuffledRoleIds = [...baseRoleIds].sort(() => Math.random() - 0.5);
+    console.log('[AIMessageManager] 随机顺序:', shuffledRoleIds);
+
+    for (let i = 0; i < shuffledRoleIds.length; i++) {
+      const roleId = shuffledRoleIds[i];
+      console.log(`[AIMessageManager] 发送到第 ${i + 1}/${shuffledRoleIds.length} 个角色`);
+
+      await this.sendMessageToRole(roleId, roles, conversation, userMessage, contextMode, useFloatWindow, conversationId, true);
+
+      conversation = await this.conversationManager.getConversation(conversationId);
+      console.log(`[AIMessageManager] 已更新conversation，当前消息数: ${conversation.messages.length}`);
+    }
+  }
+
+  // 发送消息到单个角色
+  async sendMessageToRole(roleId, roles, conversation, userMessage, contextMode, useFloatWindow, conversationId, includeAllHistory = false) {
+    const role = roles.find(r => r.id === roleId);
+    if (!role) return null;
+
+    try {
+      console.log(`[AIMessageManager] ========== 发送到 ${role.provider} (${role.name}) ==========`);
+      console.log(`[AIMessageManager] roleId: ${roleId}, provider: ${role.provider}`);
+      console.log(`[AIMessageManager] role.conversationUrl: ${role.conversationUrl || 'none'}`);
+
+      let messageToSend = userMessage;
+      let forceNewTab = false;
+      let targetUrl = null;
+
+      if (contextMode === 'self' && role.conversationUrl) {
+        targetUrl = role.conversationUrl;
+        console.log(`[AIMessageManager] 使用保存的会话URL: ${targetUrl}`);
+      }
+
+      if (contextMode === 'full') {
+        messageToSend = this.formatConversationWithHistory(conversation, role.id, includeAllHistory);
+        forceNewTab = true;
+      }
+
+      console.log(`[AIMessageManager] forceNewTab: ${forceNewTab}, targetUrl: ${targetUrl || 'none'}`);
+      console.log(`[AIMessageManager] messageToSend 长度: ${messageToSend.length}`);
+
+      const hasRoleMessages = conversation.messages.some(m => m.roleId === role.id && !m.isUser);
+      if (role.systemPrompt) {
+        messageToSend = `${role.systemPrompt}\n\n${messageToSend}`;
+        console.log(`[AIMessageManager] 添加了systemPrompt，新长度: ${messageToSend.length}`);
+      }
+
+      console.log(`[AIMessageManager] ⏳ 调用 tabManager.sendMessage...`);
+
+      // 调用sendMessage，内部已经有30秒超时控制
+      const response = await this.tabManager.sendMessage(role.provider, messageToSend, forceNewTab, targetUrl);
+
+      console.log(`[AIMessageManager] ✅ 收到 ${role.name} 响应`);
+      console.log(`[AIMessageManager] response.success:`, response?.success);
+      console.log(`[AIMessageManager] response.content 长度:`, response?.content?.length || 0);
+      console.log(`[AIMessageManager] response.conversationUrl:`, response?.conversationUrl || 'none');
+
+      if (response && response.success) {
+        // 如果返回了会话URL且角色没有保存过，保存到角色数据
+        if (response.conversationUrl && !role.conversationUrl) {
+          console.log(`[AIMessageManager] 💾 保存会话URL到角色 ${role.name}: ${response.conversationUrl}`);
+          role.conversationUrl = response.conversationUrl;
+          await StorageManager.saveRoles(roles);
+        }
+        console.log(`[AIMessageManager] 💾 保存 ${role.name} 的消息到conversation...`);
+        await this.conversationManager.addMessage(conversationId, roleId, response.content, false);
+        console.log(`[AIMessageManager] ✅ ${role.name} 消息已保存`);
+
+        if (useFloatWindow) {
+          await this.sendToFloatWindow('addMessage', {
+            role: role.name, content: response.content, isUser: false, isError: false, provider: role.provider
+          });
+        }
+      } else {
+        console.warn(`[AIMessageManager] ⚠️ ${role.name} 响应失败或无内容`);
+      }
+    } catch (error) {
+      console.error(`[AIMessageManager] ❌ ${role.provider} 失败:`, error);
+      console.error(`[AIMessageManager] 错误堆栈:`, error.stack);
+      // 显示错误但不中断其他角色
+    }
   }
 
   // 发送消息到浮动窗口
@@ -771,20 +843,18 @@ class AIMessageManager {
   }
 
   // 格式化对话历史（完整上下文模式）
-  formatConversationWithHistory(conversation, roleId) {
-    // 找到该角色相关的所有历史消息
-    const roleMessages = conversation.messages.filter(m =>
-      m.roleId === roleId || m.isUser
-    );
+  formatConversationWithHistory(conversation, roleId, includeAllHistory = false) {
+    // 接龙模式下包含所有消息，否则只包含该角色相关的消息
+    const roleMessages = includeAllHistory
+      ? conversation.messages
+      : conversation.messages.filter(m => m.roleId === roleId || m.isUser);
 
     if (roleMessages.length === 0) {
       return '请开始我们的对话。';
     }
 
-    // 构建格式化的对话历史
     let formatted = '以下是我们之前的对话历史，请参考这些历史来继续对话：\n\n';
 
-    // 格式化所有消息（包括最新保存的用户消息）
     roleMessages.forEach(msg => {
       const role = msg.isUser ? 'User' : 'Assistant';
       formatted += `${role}: ${msg.content}\n\n`;
@@ -801,6 +871,48 @@ class AIMessageManager {
     } catch (error) {
       console.error(`[AIMessageManager] 在 ${provider} 创建新会话失败:`, error);
       return false;
+    }
+  }
+
+  // 清除会话内容和重置角色URL
+  async clearConversation(conversationId) {
+    console.log('[AIMessageManager] ========== clearConversation ==========');
+    console.log('[AIMessageManager] conversationId:', conversationId);
+
+    try {
+      const conversation = await this.conversationManager.getConversation(conversationId);
+      if (!conversation) {
+        throw new Error('会话不存在');
+      }
+
+      console.log('[AIMessageManager] roleIds:', conversation.roleIds);
+
+      // 重置所有关联角色的 conversationUrl
+      const roles = await StorageManager.getRoles();
+      let updatedRoles = false;
+
+      for (const roleId of conversation.roleIds) {
+        const role = roles.find(r => r.id === roleId);
+        if (role && role.conversationUrl) {
+          console.log(`[AIMessageManager] 重置角色 ${role.name} 的 conversationUrl`);
+          role.conversationUrl = null;
+          updatedRoles = true;
+        }
+      }
+
+      if (updatedRoles) {
+        await StorageManager.saveRoles(roles);
+        console.log('[AIMessageManager] 已保存角色更新');
+      }
+
+      // 清除会话的所有消息
+      const updatedConversation = await this.conversationManager.clearConversationMessages(conversationId);
+      console.log('[AIMessageManager] 已清除会话消息');
+
+      return updatedConversation;
+    } catch (error) {
+      console.error('[AIMessageManager] 清除会话失败:', error);
+      throw error;
     }
   }
 }
@@ -890,6 +1002,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     case 'updateConversation':
       conversationManager.updateConversation(request.conversationId, request.updates)
         .then(conversation => sendResponse(conversation));
+      return true;
+
+    case 'clearConversation':
+      aiMessageManager.clearConversation(request.conversationId)
+        .then(conversation => sendResponse(conversation))
+        .catch(error => sendResponse({ error: error.message }));
       return true;
 
     case 'addMessage':

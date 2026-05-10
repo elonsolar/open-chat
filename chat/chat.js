@@ -44,6 +44,7 @@ function initElements() {
   elements.messagesContainer = document.getElementById('messagesContainer');
   elements.messageInput = document.getElementById('messageInput');
   elements.sendBtn = document.getElementById('sendBtn');
+  elements.modeBadge = document.getElementById('modeBadge');
 }
 
 async function loadData() {
@@ -72,6 +73,45 @@ function bindEvents() {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
+    } else if (e.key === 'Escape') {
+      hideCommandSuggestions();
+    }
+  });
+
+  elements.messageInput.addEventListener('input', (e) => {
+    const value = e.target.value;
+    
+    if (value === '/') {
+      showCommandSuggestions();
+    } else if (value.startsWith('/') && !value.includes(' ')) {
+      const filter = value.substring(1).toLowerCase();
+      showCommandSuggestions(filter);
+    } else {
+      hideCommandSuggestions();
+    }
+  });
+
+  // 模式徽章点击打开模式选择器
+  const modeBadge = document.getElementById('modeBadge');
+  if (modeBadge) {
+    modeBadge.addEventListener('click', () => {
+      if (state.conversation.contextMode === 'full') {
+        showModeSelector();
+      } else {
+        showError('/mode 命令仅在完整上下文模式下可用');
+      }
+    });
+  }
+
+  // 角色标签点击打开排序
+  elements.rolesTags.addEventListener('click', (e) => {
+    const tag = e.target.closest('.role-tag.draggable');
+    if (tag) {
+      if (state.conversation.contextMode === 'full') {
+        showModeSelector(true);
+      } else {
+        showError('顺序调整仅在完整上下文模式下可用');
+      }
     }
   });
 }
@@ -101,6 +141,9 @@ function render() {
   // 设置标题
   elements.chatTitle.textContent = state.conversation.name;
 
+  // 显示当前模式
+  renderModeBadge();
+
   // 设置角色标签
   renderRolesTags();
 
@@ -114,10 +157,30 @@ function renderRolesTags() {
     return;
   }
 
+  const hasOrdering = state.conversation.sendMode && state.conversation.sendMode !== 'parallel';
+
   elements.rolesTags.innerHTML = state.conversation.roleIds.map(roleId => {
     const role = state.roles.find(r => r.id === roleId);
-    return role ? `<span class="role-tag">${escapeHtml(role.name)}</span>` : '';
+    if (!role) return '';
+    const roleIndex = (state.conversation.roleOrder || state.conversation.roleIds).indexOf(roleId);
+    return `<span class="role-tag${hasOrdering ? ' draggable' : ''}" data-role-id="${roleId}" title="${hasOrdering ? '点击调整顺序' : ''}">
+      ${hasOrdering ? `<span class="role-tag-drag-handle">#${roleIndex + 1}</span>` : ''}
+      ${escapeHtml(role.name)}
+    </span>`;
   }).join('');
+}
+
+function renderModeBadge() {
+  const badge = document.getElementById('modeBadge');
+  if (!badge) return;
+
+  const mode = state.conversation.sendMode || 'parallel';
+  const modeNames = { parallel: '并行', sequential: '顺序接龙', random: '随机接龙' };
+  const modeLabels = { parallel: '并行模式', sequential: '顺序模式（角色接龙）', random: '随机模式（角色接龙）' };
+
+  badge.className = 'mode-badge mode-' + mode;
+  badge.textContent = modeNames[mode] || '并行';
+  badge.title = '当前模式: ' + (modeLabels[mode] || '并行模式') + '\n点击切换';
 }
 
 function renderMessages() {
@@ -175,6 +238,13 @@ async function sendMessage() {
     return;
   }
 
+  // 检查是否是命令
+  if (content.startsWith('/')) {
+    await handleCommand(content);
+    elements.messageInput.value = '';
+    return;
+  }
+
   state.isLoading = true;
   elements.sendBtn.disabled = true;
   elements.sendBtn.textContent = '发送中...';
@@ -201,6 +271,244 @@ async function sendMessage() {
     elements.sendBtn.disabled = false;
     elements.sendBtn.textContent = '发送';
   }
+}
+
+async function handleCommand(command) {
+  console.log('[Chat] 处理命令:', command);
+
+  const parts = command.trim().split(/\s+/);
+  const cmd = parts[0].toLowerCase();
+  const args = parts.slice(1);
+
+  switch (cmd) {
+    case '/clear':
+      await handleClearCommand();
+      break;
+    case '/mode':
+      await handleModeCommand();
+      break;
+    default:
+      showError('未知命令: ' + cmd);
+  }
+}
+
+async function handleClearCommand() {
+  if (!confirm('确定要清除所有会话内容吗？这将删除所有消息并重置角色会话URL。')) {
+    return;
+  }
+
+  try {
+    const updatedConversation = await chrome.runtime.sendMessage({
+      action: 'clearConversation',
+      conversationId
+    });
+
+    if (updatedConversation) {
+      state.conversation = updatedConversation;
+      renderMessages();
+      console.log('[Chat] 会话已清除');
+    }
+  } catch (error) {
+    console.error('[Chat] 清除会话失败:', error);
+    showError('清除会话失败: ' + error.message);
+  }
+}
+
+async function handleModeCommand() {
+  const contextMode = state.conversation.contextMode;
+  
+  if (contextMode !== 'full') {
+    showError('/mode 命令仅在完整上下文模式下可用');
+    return;
+  }
+  
+  showModeSelector();
+}
+
+function showModeSelector(focusOrder) {
+  const currentMode = state.conversation.sendMode || 'parallel';
+  const currentOrder = state.conversation.roleOrder || state.conversation.roleIds || [];
+  const modeNames = {
+    parallel: '并行模式',
+    sequential: '顺序模式',
+    random: '随机模式'
+  };
+
+  const modal = document.createElement('div');
+  modal.className = 'mode-selector-modal';
+  modal.innerHTML = `
+    <div class="modal-overlay">
+      <div class="modal-content">
+        <h2>选择发送模式</h2>
+        <div class="mode-options">
+          <label class="mode-option">
+            <input type="radio" name="sendMode" value="parallel" ${currentMode === 'parallel' ? 'checked' : ''}>
+            <div class="mode-info">
+              <div class="mode-name">并行模式</div>
+              <div class="mode-desc">所有角色同时收到消息并独立响应</div>
+            </div>
+          </label>
+          <label class="mode-option">
+            <input type="radio" name="sendMode" value="sequential" ${currentMode === 'sequential' ? 'checked' : ''}>
+            <div class="mode-info">
+              <div class="mode-name">顺序模式（角色接龙）</div>
+              <div class="mode-desc">按角色顺序依次发送，每个角色能看到之前角色的回复</div>
+            </div>
+          </label>
+          <label class="mode-option">
+            <input type="radio" name="sendMode" value="random" ${currentMode === 'random' ? 'checked' : ''}>
+            <div class="mode-info">
+              <div class="mode-name">随机模式（角色接龙）</div>
+              <div class="mode-desc">随机顺序依次发送，每个角色能看到之前角色的回复</div>
+            </div>
+          </label>
+        </div>
+        <div class="mode-order-section" id="modeOrderSection">
+          <h3>角色顺序</h3>
+          <p class="mode-order-hint">拖动角色卡片调整顺序（用于顺序/随机模式）</p>
+          <div class="role-order-list" id="modeRoleOrderList">
+            ${currentOrder.map((roleId, index) => {
+              const role = state.roles.find(r => r.id === roleId);
+              if (!role) return '';
+              return `
+                <div class="role-order-item" draggable="true" data-role-id="${roleId}">
+                  <div class="role-order-handle">⋮⋮</div>
+                  <div class="role-order-avatar">${escapeHtml(role.name.charAt(0))}</div>
+                  <div class="role-order-info">
+                    <div class="role-order-name">${escapeHtml(role.name)}</div>
+                    <div class="role-order-provider">${getProviderDisplayName(role.provider)}</div>
+                  </div>
+                  <div class="role-order-index">${index + 1}</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" id="cancelModeBtn">取消</button>
+          <button class="btn btn-primary" id="saveModeBtn">保存</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // 拖拽排序
+  let draggedItem = null;
+  const orderList = modal.querySelector('#modeRoleOrderList');
+
+  orderList.addEventListener('dragstart', (e) => {
+    if (e.target.classList.contains('role-order-item')) {
+      draggedItem = e.target;
+      e.target.style.opacity = '0.5';
+    }
+  });
+
+  orderList.addEventListener('dragend', (e) => {
+    if (e.target.classList.contains('role-order-item')) {
+      e.target.style.opacity = '1';
+      draggedItem = null;
+      updateOrderIndices(orderList);
+    }
+  });
+
+  orderList.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    const afterElement = getDragAfterElement(orderList, e.clientY);
+    if (draggedItem) {
+      if (afterElement == null) {
+        orderList.appendChild(draggedItem);
+      } else {
+        orderList.insertBefore(draggedItem, afterElement);
+      }
+    }
+  });
+
+  // 模式切换时高亮排序区域
+  modal.querySelectorAll('input[name="sendMode"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      const section = modal.querySelector('#modeOrderSection');
+      if (section) {
+        if (radio.value === 'parallel') {
+          section.style.opacity = '0.4';
+          section.style.pointerEvents = 'none';
+        } else {
+          section.style.opacity = '1';
+          section.style.pointerEvents = '';
+        }
+      }
+    });
+  });
+
+  // 初始化排序区域可见性
+  const initEvent = new Event('change');
+  modal.querySelector('input[name="sendMode"]:checked').dispatchEvent(initEvent);
+
+  // 如果是从角色标签打开的，滚动到排序区域
+  if (focusOrder) {
+    const section = modal.querySelector('#modeOrderSection');
+    if (section) {
+      setTimeout(() => section.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+    }
+  }
+
+  document.getElementById('cancelModeBtn').addEventListener('click', () => {
+    document.body.removeChild(modal);
+  });
+
+  document.getElementById('saveModeBtn').addEventListener('click', async () => {
+    const selectedMode = modal.querySelector('input[name="sendMode"]:checked').value;
+    const items = orderList.querySelectorAll('.role-order-item');
+    const newOrder = Array.from(items).map(item => item.getAttribute('data-role-id'));
+
+    try {
+      const updatedConversation = await chrome.runtime.sendMessage({
+        action: 'updateConversation',
+        conversationId,
+        updates: {
+          sendMode: selectedMode,
+          roleOrder: newOrder
+        }
+      });
+
+      if (updatedConversation) {
+        state.conversation = updatedConversation;
+        render();
+        console.log('[Chat] 发送模式已更新为:', modeNames[selectedMode]);
+        console.log('[Chat] 角色顺序已更新:', newOrder);
+      }
+
+      document.body.removeChild(modal);
+    } catch (error) {
+      console.error('[Chat] 更新失败:', error);
+      showError('更新失败: ' + error.message);
+    }
+  });
+}
+
+function getDragAfterElement(container, y) {
+  const draggableElements = [...container.querySelectorAll('.role-order-item:not(.dragging)')];
+
+  return draggableElements.reduce((closest, child) => {
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    if (offset < 0 && offset > closest.offset) {
+      return { offset: offset, element: child };
+    } else {
+      return closest;
+    }
+  }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+function updateOrderIndices(container) {
+  const items = container.querySelectorAll('.role-order-item');
+  items.forEach((item, index) => {
+    const indexEl = item.querySelector('.role-order-index');
+    if (indexEl) {
+      indexEl.textContent = index + 1;
+    }
+  });
 }
 
 function addTempMessage(content, isUser) {
@@ -311,6 +619,53 @@ function scrollToBottom() {
 
 function showError(message) {
   elements.messagesContainer.innerHTML = `<div class="error-message">${escapeHtml(message)}</div>`;
+}
+
+const availableCommands = [
+  { name: '/clear', description: '清除所有会话内容和重置角色会话URL' },
+  { name: '/mode', description: '切换发送模式和调整角色顺序' }
+];
+
+function showCommandSuggestions(filter = '') {
+  hideCommandSuggestions();
+
+  const filteredCommands = filter 
+    ? availableCommands.filter(cmd => cmd.name.toLowerCase().includes(filter))
+    : availableCommands;
+
+  if (filteredCommands.length === 0) {
+    return;
+  }
+
+  const suggestionsDiv = document.createElement('div');
+  suggestionsDiv.className = 'command-suggestions';
+  suggestionsDiv.id = 'commandSuggestions';
+
+  filteredCommands.forEach((cmd, index) => {
+    const item = document.createElement('div');
+    item.className = 'command-suggestion-item';
+    item.innerHTML = `
+      <div class="command-name">${escapeHtml(cmd.name)}</div>
+      <div class="command-desc">${escapeHtml(cmd.description)}</div>
+    `;
+    item.addEventListener('click', () => {
+      elements.messageInput.value = cmd.name + ' ';
+      hideCommandSuggestions();
+      elements.messageInput.focus();
+    });
+    suggestionsDiv.appendChild(item);
+  });
+
+  const inputContainer = elements.messageInput.parentElement;
+  inputContainer.style.position = 'relative';
+  inputContainer.appendChild(suggestionsDiv);
+}
+
+function hideCommandSuggestions() {
+  const existingSuggestions = document.getElementById('commandSuggestions');
+  if (existingSuggestions) {
+    existingSuggestions.remove();
+  }
 }
 
 // 启动
