@@ -312,9 +312,9 @@ class FloatingWindow {
       return;
     }
 
-    // 通过CDN加载marked.js
+    // 从本地加载marked.js
     const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/marked@11.0.0/marked.min.js';
+    script.src = chrome.runtime.getURL('libs/marked.min.js');
     script.onload = () => {
       console.log('[FloatingWindow] marked.js loaded');
     };
