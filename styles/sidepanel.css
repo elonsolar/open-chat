@@ -4,6 +4,12 @@
   box-sizing: border-box;
 }
 
+button {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   font-size: 14px;
@@ -31,63 +37,35 @@ body {
 
 .tabs {
   display: flex;
-  gap: 4px;
-  background: #e8e8ed;
-  border-radius: 8px;
-  padding: 3px;
+  gap: 6px;
+  background: #f0f0f0;
+  border-radius: 10px;
+  padding: 4px;
 }
 
 .tab {
   flex: 1;
-  padding: 8px 12px;
+  padding: 8px 16px;
   border: none;
   background: transparent;
-  border-radius: 6px;
+  border-radius: 7px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
   font-size: 13px;
   font-weight: 500;
-  color: #1d1d1f;
+  color: #6b6b6b;
 }
 
 .tab:hover {
-  background: rgba(0, 0, 0, 0.04);
+  color: #1d1d1f;
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .tab.active {
   background: #fff;
   color: #007aff;
   font-weight: 600;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.tabs {
-  display: flex;
-  gap: 8px;
-}
-
-.tab {
-  flex: 1;
-  padding: 8px 12px;
-  border: none;
-  background-color: rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 13px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.tab:hover {
-  background-color: rgba(255, 255, 255, 0.3);
-  color: rgba(255, 255, 255, 0.95);
-}
-
-.tab.active {
-  background: #fff;
-  color: #2196f3;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* 标签内容 */
@@ -141,57 +119,7 @@ body {
   background: #e8e8ed;
 }
 
-/* 标签内容 */
-.tab-content {
-  display: none;
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-}
 
-.tab-content.active {
-  display: flex;
-  flex-direction: column;
-}
-
-.btn {
-  width: 100%;
-  padding: 12px 18px;
-  border: none;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  letter-spacing: 0.3px;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
-  color: #fff;
-  box-shadow: 0 2px 6px rgba(33, 150, 243, 0.25);
-}
-
-.btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(33, 150, 243, 0.3);
-}
-
-.btn-primary:active {
-  transform: translateY(0);
-}
-
-.btn-secondary {
-  background-color: #757575;
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-.btn-secondary:hover {
-  background-color: #616161;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
 
 /* 会话列表 */
 .conversation-list,
