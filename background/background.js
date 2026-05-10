@@ -727,15 +727,15 @@ class AIMessageManager {
       }
 
       if (contextMode === 'full') {
-        messageToSend = this.formatConversationWithHistory(conversation, role.id, includeAllHistory);
+        messageToSend = this.formatConversationWithHistory(conversation, role.id, includeAllHistory, roles);
         forceNewTab = true;
       }
 
       console.log(`[AIMessageManager] forceNewTab: ${forceNewTab}, targetUrl: ${targetUrl || 'none'}`);
       console.log(`[AIMessageManager] messageToSend 长度: ${messageToSend.length}`);
 
-      const hasRoleMessages = conversation.messages.some(m => m.roleId === role.id && !m.isUser);
-      if (role.systemPrompt) {
+      // 非完整上下文模式才单独添加systemPrompt（完整模式下已内嵌到格式中）
+      if (contextMode !== 'full' && role.systemPrompt) {
         messageToSend = `${role.systemPrompt}\n\n${messageToSend}`;
         console.log(`[AIMessageManager] 添加了systemPrompt，新长度: ${messageToSend.length}`);
       }
@@ -843,22 +843,36 @@ class AIMessageManager {
   }
 
   // 格式化对话历史（完整上下文模式）
-  formatConversationWithHistory(conversation, roleId, includeAllHistory = false) {
-    // 接龙模式下包含所有消息，否则只包含该角色相关的消息
+  formatConversationWithHistory(conversation, roleId, includeAllHistory = false, roles = []) {
     const roleMessages = includeAllHistory
       ? conversation.messages
       : conversation.messages.filter(m => m.roleId === roleId || m.isUser);
 
-    if (roleMessages.length === 0) {
-      return '请开始我们的对话。';
+    const roleNameMap = {};
+    roles.forEach(r => { roleNameMap[r.id] = r.name; });
+
+    const currentRole = roles.find(r => r.id === roleId);
+    const currentRoleName = currentRole?.name || '';
+
+    const roleNames = (conversation.roleIds || [])
+      .map(id => roleNameMap[id])
+      .filter(Boolean);
+    let formatted = `当前我们在一个会话里，会话里有成员 user、${roleNames.join('、')}\n`;
+    formatted += `你的当前会话名称是：${currentRoleName}\n`;
+    if (currentRole?.systemPrompt) {
+      formatted += `你的角色设定：${currentRole.systemPrompt}\n`;
     }
+    formatted += '\n下面是当前会话的历史内容：\n\n';
 
-    let formatted = '以下是我们之前的对话历史，请参考这些历史来继续对话：\n\n';
-
-    roleMessages.forEach(msg => {
-      const role = msg.isUser ? 'User' : 'Assistant';
-      formatted += `${role}: ${msg.content}\n\n`;
-    });
+    if (roleMessages.length > 0) {
+      roleMessages.forEach(msg => {
+        if (msg.isUser) {
+          formatted += `User: ${msg.content}\n\n`;
+        } else {
+          formatted += `${roleNameMap[msg.roleId] || 'Assistant'}: ${msg.content}\n\n`;
+        }
+      });
+    }
 
     return formatted.trim();
   }
