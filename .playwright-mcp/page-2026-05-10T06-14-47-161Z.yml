@@ -1,0 +1,254 @@
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - complementary [ref=e5]:
+        - generic [ref=e7]:
+          - generic [ref=e8]:
+            - generic [ref=e9]:
+              - img "tyIcon" [ref=e12] [cursor=pointer]
+              - generic [ref=e13]:
+                - button [ref=e14] [cursor=pointer]:
+                  - img [ref=e16]
+                - button [ref=e18] [cursor=pointer]:
+                  - img [ref=e20]
+            - generic [ref=e23]:
+              - button "新建对话" [ref=e24] [cursor=pointer]:
+                - img [ref=e26]
+                - generic [ref=e28]: 新建对话
+              - button [ref=e29] [cursor=pointer]:
+                - img [ref=e31]
+          - list [ref=e34]:
+            - generic [ref=e35]:
+              - generic [ref=e36] [cursor=pointer]:
+                - img [ref=e38]
+                - generic [ref=e40]: 我的空间
+              - generic [ref=e41] [cursor=pointer]:
+                - img [ref=e43]
+                - generic [ref=e45]: 智能体
+            - generic [ref=e47]:
+              - generic [ref=e49]: 对话分组
+              - generic [ref=e50]:
+                - generic [ref=e51] [cursor=pointer]:
+                  - img [ref=e53]
+                  - generic [ref=e55]: 新分组
+                - generic [ref=e58] [cursor=pointer]: golang
+            - generic [ref=e61]: 最近对话
+            - generic [ref=e65] [cursor=pointer]: QGraphicsView
+            - generic [ref=e69] [cursor=pointer]: 数数接龙：5-6-8
+            - generic [ref=e73] [cursor=pointer]: 数数游戏：从1到6接力
+            - generic [ref=e77] [cursor=pointer]: 数数游戏：1
+            - generic [ref=e81] [cursor=pointer]: 南京天气与游玩推荐
+            - generic [ref=e85] [cursor=pointer]: 2026年5月10日南京天气对话
+            - generic [ref=e89] [cursor=pointer]: 与小字的对话历史
+            - generic [ref=e93] [cursor=pointer]: 牙龈出血怎么办？
+            - generic [ref=e97] [cursor=pointer]: 南京之旅：表达爱意与暖心回应
+            - generic [ref=e101] [cursor=pointer]: 表达爱意与寻求对话
+            - generic [ref=e105] [cursor=pointer]: 测试消息发送成功
+            - generic [ref=e109] [cursor=pointer]: 你好-初次对话
+            - generic [ref=e113] [cursor=pointer]: JavaScript闭包解析
+            - generic [ref=e117] [cursor=pointer]: 测试消息对话
+            - generic [ref=e121] [cursor=pointer]: 你好啊
+            - generic [ref=e125] [cursor=pointer]: JavaScript：网页动态交互脚本语言
+          - generic [ref=e130] [cursor=pointer]:
+            - img [ref=e131]
+            - generic [ref=e132]: Qwen5546
+      - generic [ref=e134]:
+        - generic [ref=e135]:
+          - generic [ref=e136]:
+            - img "tyIcon" [ref=e139] [cursor=pointer]
+            - generic [ref=e140]:
+              - button [ref=e141] [cursor=pointer]:
+                - img [ref=e143]
+              - button [ref=e145] [cursor=pointer]:
+                - img [ref=e147]
+          - generic [ref=e150]:
+            - button "新建对话" [ref=e151] [cursor=pointer]:
+              - img [ref=e153]
+              - generic [ref=e155]: 新建对话
+            - button [ref=e156] [cursor=pointer]:
+              - img [ref=e158]
+        - list [ref=e161]:
+          - generic [ref=e162]:
+            - generic [ref=e163] [cursor=pointer]:
+              - img [ref=e165]
+              - generic [ref=e167]: 我的空间
+            - generic [ref=e168] [cursor=pointer]:
+              - img [ref=e170]
+              - generic [ref=e172]: 智能体
+          - generic [ref=e174]:
+            - generic [ref=e176]: 对话分组
+            - generic [ref=e177]:
+              - generic [ref=e178] [cursor=pointer]:
+                - img [ref=e180]
+                - generic [ref=e182]: 新分组
+              - generic [ref=e185] [cursor=pointer]: golang
+          - generic [ref=e188]: 最近对话
+          - generic [ref=e192] [cursor=pointer]: QGraphicsView
+          - generic [ref=e196] [cursor=pointer]: 数数接龙：5-6-8
+          - generic [ref=e200] [cursor=pointer]: 数数游戏：从1到6接力
+          - generic [ref=e204] [cursor=pointer]: 数数游戏：1
+          - generic [ref=e208] [cursor=pointer]: 南京天气与游玩推荐
+          - generic [ref=e212] [cursor=pointer]: 2026年5月10日南京天气对话
+          - generic [ref=e216] [cursor=pointer]: 与小字的对话历史
+          - generic [ref=e220] [cursor=pointer]: 牙龈出血怎么办？
+          - generic [ref=e224] [cursor=pointer]: 南京之旅：表达爱意与暖心回应
+          - generic [ref=e228] [cursor=pointer]: 表达爱意与寻求对话
+          - generic [ref=e232] [cursor=pointer]: 测试消息发送成功
+          - generic [ref=e236] [cursor=pointer]: 你好-初次对话
+          - generic [ref=e240] [cursor=pointer]: JavaScript闭包解析
+          - generic [ref=e244] [cursor=pointer]: 测试消息对话
+          - generic [ref=e248] [cursor=pointer]: 你好啊
+          - generic [ref=e252] [cursor=pointer]: JavaScript：网页动态交互脚本语言
+        - generic [ref=e257] [cursor=pointer]:
+          - img [ref=e258]
+          - generic [ref=e259]: Qwen5546
+      - generic [ref=e264]:
+        - generic [ref=e266]:
+          - generic [ref=e269] [cursor=pointer]:
+            - generic [ref=e270]: Qwen3.5-千问
+            - img [ref=e273]
+          - generic [ref=e276]:
+            - button "下载电脑端" [ref=e277] [cursor=pointer]:
+              - img [ref=e279]
+              - generic [ref=e281]: 下载电脑端
+            - button "API 服务" [ref=e282] [cursor=pointer]:
+              - img [ref=e284]
+              - generic [ref=e286]: API 服务
+            - button [ref=e288] [cursor=pointer]:
+              - img [ref=e290]
+        - generic [ref=e297]:
+          - status "你好，" [ref=e302]:
+            - img [ref=e303]
+            - generic [ref=e304]: 你好，
+          - generic [ref=e312]:
+            - textbox [active] [ref=e316]:
+              - paragraph [ref=e317]:
+                - generic:
+                  - generic:
+                    - generic: 向千问提问
+            - generic [ref=e319]:
+              - button "添加附件" [ref=e321] [cursor=pointer]:
+                - img [ref=e323]
+              - generic [ref=e327]:
+                - generic [ref=e328]:
+                  - button "任务助理" [ref=e331] [cursor=pointer]:
+                    - img [ref=e335]
+                    - generic [ref=e337]: 任务助理
+                  - button "思考" [ref=e340] [cursor=pointer]:
+                    - img [ref=e343]
+                    - generic [ref=e345]: 思考
+                  - button "研究" [ref=e348] [cursor=pointer]:
+                    - img [ref=e352]
+                    - generic [ref=e354]: 研究
+                  - button "HappyHorse 内测" [ref=e357] [cursor=pointer]:
+                    - img [ref=e361]
+                    - generic [ref=e364]:
+                      - generic [ref=e365]: HappyHorse
+                      - generic [ref=e366]: 内测
+                  - button "PPT创作" [ref=e369] [cursor=pointer]:
+                    - img [ref=e373]
+                    - generic [ref=e375]: PPT创作
+                  - button "更多" [ref=e378] [cursor=pointer]:
+                    - img [ref=e381]
+                    - generic [ref=e383]: 更多
+                - generic:
+                  - generic:
+                    - generic:
+                      - button:
+                        - generic:
+                          - generic:
+                            - generic:
+                              - img
+                        - generic: 任务助理
+                  - generic:
+                    - generic:
+                      - button:
+                        - generic:
+                          - generic:
+                            - img
+                        - generic: 思考
+                  - generic:
+                    - generic:
+                      - button:
+                        - generic:
+                          - generic:
+                            - generic:
+                              - img
+                        - generic: 研究
+                  - generic:
+                    - generic:
+                      - button:
+                        - generic:
+                          - generic:
+                            - generic:
+                              - img
+                        - generic:
+                          - generic:
+                            - generic: HappyHorse
+                            - generic: 内测
+                  - generic:
+                    - generic:
+                      - button:
+                        - generic:
+                          - generic:
+                            - generic:
+                              - img
+                        - generic: PPT创作
+                  - generic:
+                    - generic:
+                      - button:
+                        - generic:
+                          - generic:
+                            - generic:
+                              - img
+                        - generic: AI生图
+                  - generic:
+                    - generic:
+                      - button:
+                        - generic:
+                          - generic:
+                            - generic:
+                              - img
+                        - generic: 代码
+                  - generic:
+                    - generic:
+                      - button:
+                        - generic:
+                          - generic:
+                            - generic:
+                              - img
+                        - generic: 翻译
+                  - generic:
+                    - generic:
+                      - button:
+                        - generic:
+                          - generic:
+                            - generic:
+                              - img
+                        - generic: AI写作
+                  - generic:
+                    - generic:
+                      - button:
+                        - generic:
+                          - generic:
+                            - generic:
+                              - img
+                        - generic: 实时记录
+                  - generic:
+                    - generic:
+                      - button:
+                        - generic:
+                          - generic:
+                            - img
+                        - generic: 更多
+              - generic [ref=e384]:
+                - img [ref=e387] [cursor=pointer]
+                - button "发送消息" [disabled] [ref=e389]:
+                  - img [ref=e391]
+    - generic:
+      - button
+    - generic:
+      - button
+    - generic:
+      - button
+  - heading "千问 - 阿里旗下全能AI助手" [level=1] [ref=e393]

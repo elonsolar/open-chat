@@ -289,7 +289,7 @@ class AIPlatformAdapter {
     let isResolved = false;
 
     // 千问和DeepSeek需要更长的稳定时间（可能包含思考过程）
-    const STABLE_DURATION = (this.platform === 'deepseek' || this.platform === 'qianwen') ? 5000 : 3000;
+    const STABLE_DURATION = (this.platform === 'deepseek' || this.platform === 'qianwen') ? 10000 : 8000;
 
     // 记录会话历史，用于多轮对话
     const conversationSnapshot = this.getConversationHistory();
@@ -415,20 +415,12 @@ class AIPlatformAdapter {
               console.log(`[${this.platform}] 检测到内容变化（消息数量不变）`);
               console.log(`[${this.platform}] 旧内容长度: ${lastContentLength} → 新内容长度: ${result.content.length}`);
 
-              // 只有当内容长度显著增长时（> 10字符）才重置稳定时间
-              // 这样可以避免因DOM微小变化（如光标闪烁、格式调整）导致无法完成等待
-              if (result.content.length > lastContentLength + 10) {
-                console.log(`[${this.platform}] ✅ 内容显著增长，重置稳定时间`);
-                lastContent = result.content;
-                lastHash = newHash;
-                lastContentLength = result.content.length;
-                lastStableTime = Date.now(); // 重置稳定时间
-              } else {
-                console.log(`[${this.platform}] ℹ️ 内容变化微小（< 10字符），忽略，不重置稳定时间`);
-                // 只更新内容和哈希，不重置稳定时间
-                lastContent = result.content;
-                lastHash = newHash;
-              }
+              // 只要内容哈希变化（内容确实不同了）就重置稳定时间
+              console.log(`[${this.platform}] ✅ 内容有变化，重置稳定时间`);
+              lastContent = result.content;
+              lastHash = newHash;
+              lastContentLength = result.content.length;
+              lastStableTime = Date.now(); // 重置稳定时间
             }
           }
         } else if (currentCount === lastAIMessageCount && !hasNewMessage) {
@@ -542,7 +534,8 @@ class AIPlatformAdapter {
 
         // 每5秒输出一次进度
         if (elapsed % 5000 < 500) {
-          console.log(`[${this.platform}] 等待中... AI消息数: ${countAIMessages()}, 内容长度: ${lastContent.length}, 稳定: ${Math.floor(stableElapsed / 1000)}秒/${STABLE_DURATION / 1000}秒`);
+          const stablePercent = Math.min(100, Math.floor((stableElapsed / STABLE_DURATION) * 100));
+          console.log(`[${this.platform}] 等待中... AI消息数: ${countAIMessages()}, 内容长度: ${lastContent.length}, 稳定: ${Math.floor(stableElapsed / 1000)}秒/${STABLE_DURATION / 1000}秒 (${stablePercent}%)`);
         }
       }, 500);
 
@@ -869,7 +862,7 @@ class AIPlatformAdapter {
       const currentAIContent = currentAIMessageCount > 0 ?
         currentConversation.filter(msg => !msg.isUser).pop()?.content : '';
 
-      const response = await this.waitForResponse(60000, currentAIMessageCount, currentAIContent);
+      const response = await this.waitForResponse(180000, currentAIMessageCount, currentAIContent);
       console.log(`[${this.platform}] ========== 收到回复 ==========`);
       console.log(`[${this.platform}] 回复长度:`, response.content.length);
       console.log(`[${this.platform}] 会话URL:`, response.conversationUrl);

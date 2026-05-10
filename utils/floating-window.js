@@ -168,8 +168,73 @@ class FloatingWindow {
         font-size: 14px;
         line-height: 1.6;
         color: #333;
-        white-space: pre-wrap;
         word-wrap: break-word;
+        overflow-x: auto;
+      }
+
+      .message-content pre {
+        background: #f6f8fa;
+        border: 1px solid #e1e4e8;
+        border-radius: 6px;
+        padding: 12px;
+        margin: 8px 0;
+        overflow-x: auto;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .message-content code {
+        background: #f6f8fa;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        font-size: 13px;
+        color: #24292e;
+      }
+
+      .message-content pre code {
+        background: transparent;
+        padding: 0;
+        border: none;
+        color: #24292e;
+      }
+
+      .message-content p {
+        margin: 8px 0;
+      }
+
+      .message-content ul, .message-content ol {
+        margin: 8px 0;
+        padding-left: 24px;
+      }
+
+      .message-content li {
+        margin: 4px 0;
+      }
+
+      .message-content h1, .message-content h2, .message-content h3 {
+        margin: 12px 0 8px 0;
+        font-weight: 600;
+      }
+
+      .message-content h1 { font-size: 18px; }
+      .message-content h2 { font-size: 16px; }
+      .message-content h3 { font-size: 14px; }
+
+      .message-content blockquote {
+        border-left: 3px solid #667eea;
+        padding-left: 12px;
+        margin: 8px 0;
+        color: #6a737d;
+      }
+
+      .message-content a {
+        color: #667eea;
+        text-decoration: none;
+      }
+
+      .message-content a:hover {
+        text-decoration: underline;
       }
 
       .user-message {
@@ -236,6 +301,27 @@ class FloatingWindow {
     `;
 
     this.shadowRoot.appendChild(style);
+
+    // 加载marked.js用于markdown渲染
+    this.loadMarkdownLibrary();
+  }
+
+  loadMarkdownLibrary() {
+    // 检查是否已加载
+    if (typeof marked !== 'undefined') {
+      return;
+    }
+
+    // 通过CDN加载marked.js
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/marked@11.0.0/marked.min.js';
+    script.onload = () => {
+      console.log('[FloatingWindow] marked.js loaded');
+    };
+    script.onerror = () => {
+      console.warn('[FloatingWindow] Failed to load marked.js');
+    };
+    document.head.appendChild(script);
   }
 
   addContent() {
@@ -405,6 +491,9 @@ class FloatingWindow {
       minute: '2-digit'
     });
 
+    // 渲染内容（支持markdown）
+    const renderedContent = this.renderContent(content, isUser, isError);
+
     messageItem.innerHTML = `
       <div class="message-header">
         <div class="message-role ${!isUser && provider ? 'clickable' : ''}"
@@ -413,7 +502,7 @@ class FloatingWindow {
         </div>
         <div class="message-time">${time}</div>
       </div>
-      <div class="message-content">${this.escapeHtml(content)}</div>
+      <div class="message-content">${renderedContent}</div>
     `;
 
     // 绑定点击事件（AI消息）
@@ -433,6 +522,54 @@ class FloatingWindow {
     this.scrollToBottom();
 
     return messageItem;
+  }
+
+  // 渲染内容
+  renderContent(content, isUser, isError) {
+    if (isError) {
+      return this.escapeHtml(content);
+    }
+
+    if (isUser) {
+      return this.escapeHtml(content);
+    }
+
+    // AI消息：尝试markdown渲染
+    if (typeof marked !== 'undefined' && marked.parse) {
+      try {
+        const html = marked.parse(content);
+        return html;
+      } catch (e) {
+        console.warn('[FloatingWindow] Markdown解析失败:', e);
+        return this.escapeHtml(content);
+      }
+    }
+
+    // markdown库未加载，使用简单格式化
+    return this.formatSimpleMarkdown(content);
+  }
+
+  // 简单markdown格式化（备用方案）
+  formatSimpleMarkdown(text) {
+    // 转义HTML
+    let formatted = this.escapeHtml(text);
+
+    // 代码块 ```code```
+    formatted = formatted.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+
+    // 行内代码 `code`
+    formatted = formatted.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+    // 粗体 **text**
+    formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+    // 斜体 *text*
+    formatted = formatted.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+    // 链接 [text](url)
+    formatted = formatted.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+
+    return formatted;
   }
 
   // 清空消息

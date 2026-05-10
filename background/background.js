@@ -334,14 +334,14 @@ class TabManager {
           pendingResponses.set(messageId, { resolve, reject });
           console.log(`[TabManager] ✅ 已将messageId存入pendingResponses`);
 
-          // 90秒超时
+          // 3分钟超时
           setTimeout(() => {
             if (pendingResponses.has(messageId)) {
-              console.log(`[TabManager] ❌ messageId ${messageId} 超时（90秒）`);
+              console.log(`[TabManager] ❌ messageId ${messageId} 超时（180秒）`);
               pendingResponses.delete(messageId);
-              reject(new Error('等待AI回复超时（90秒）'));
+              reject(new Error('等待AI回复超时（180秒）'));
             }
-          }, 90000);
+          }, 180000);
         });
 
         // 在消息中包含messageId

@@ -60,3 +60,7 @@
 **AI 不回复？** 检查网络，刷新 AI 页面，重新测试连接。
 
 **数据会丢失？** 数据存储在浏览器本地，清除浏览器数据会丢失。
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=elonsolar/open-chat&type=Date)](https://star-history.com/#elonsolar/open-chat&Date)
