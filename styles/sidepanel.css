@@ -7,8 +7,8 @@
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   font-size: 14px;
-  color: #1a1a1a;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #2c3e50;
+  background: linear-gradient(135deg, #e8f4f8 0%, #f0e6f6 50%, #fff5f8 100%);
   background-attachment: fixed;
 }
 
@@ -16,16 +16,17 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: #fff;
-  box-shadow: 0 0 40px rgba(0, 0, 0, 0.15);
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
 }
 
 /* 头部 */
 .header {
   padding: 20px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+  border-bottom: 1px solid rgba(168, 192, 255, 0.15);
+  background: linear-gradient(135deg, #a8c0ff 0%, #b8d4ff 50%, #c8e0ff 100%);
+  box-shadow: 0 2px 12px rgba(168, 192, 255, 0.15);
 }
 
 .header h1 {
@@ -63,7 +64,7 @@ body {
 
 .tab.active {
   background: linear-gradient(135deg, #fff 0%, #f0f0f0 100%);
-  color: #667eea;
+  color: #a8c0ff;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
@@ -98,14 +99,14 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #a8c0ff 0%, #c8e0ff 100%);
   color: #fff;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 3px 10px rgba(168, 192, 255, 0.25);
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 5px 16px rgba(168, 192, 255, 0.35);
 }
 
 .btn-primary:active {
@@ -135,20 +136,20 @@ body {
 .role-item {
   padding: 14px 16px;
   margin-bottom: 10px;
-  background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
+  background: linear-gradient(135deg, #f8fbff 0%, #fcf8fb 100%);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid rgba(102, 126, 234, 0.1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(168, 192, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .conversation-item:hover,
 .role-item:hover {
-  background: linear-gradient(135deg, #fff 0%, #f8f9ff 100%);
+  background: linear-gradient(135deg, #fff 0%, #f8fbff 100%);
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.15);
-  border-color: rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 16px rgba(168, 192, 255, 0.15);
+  border-color: rgba(168, 192, 255, 0.25);
 }
 
 .conversation-header,
@@ -216,20 +217,20 @@ body {
 .edit-btn {
   padding: 6px 12px;
   border: none;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #a8c0ff 0%, #c8e0ff 100%);
   color: #fff;
   border-radius: 8px;
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 2px 8px rgba(168, 192, 255, 0.25);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .edit-btn:hover {
-  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  background: linear-gradient(135deg, #c8e0ff 0%, #a8c0ff 100%);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px rgba(168, 192, 255, 0.35);
 }
 
 /* 空状态 */
@@ -272,8 +273,8 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-bottom: 1px solid rgba(168, 192, 255, 0.15);
+  background: linear-gradient(135deg, #a8c0ff 0%, #b8d4ff 50%, #c8e0ff 100%);
   border-radius: 20px 20px 0 0;
 }
 
@@ -331,21 +332,21 @@ body {
 .form-group textarea {
   width: 100%;
   padding: 10px 14px;
-  border: 2px solid rgba(102, 126, 234, 0.2);
+  border: 2px solid rgba(168, 192, 255, 0.2);
   border-radius: 10px;
   font-size: 13px;
   font-family: inherit;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  background-color: #f8f9ff;
+  background-color: #f8fbff;
 }
 
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #a8c0ff;
   background-color: #fff;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+  box-shadow: 0 4px 12px rgba(168, 192, 255, 0.15);
 }
 
 .form-group textarea {
@@ -370,18 +371,18 @@ body {
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
+  background: linear-gradient(135deg, #f8fbff 0%, #fcf8fb 100%);
   border-radius: 10px;
   cursor: pointer;
-  border: 1px solid rgba(102, 126, 234, 0.1);
+  border: 1px solid rgba(168, 192, 255, 0.1);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .role-checkbox:hover {
-  background: linear-gradient(135deg, #fff 0%, #f8f9ff 100%);
-  border-color: rgba(102, 126, 234, 0.3);
+  background: linear-gradient(135deg, #fff 0%, #f8fbff 100%);
+  border-color: rgba(168, 192, 255, 0.25);
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+  box-shadow: 0 2px 8px rgba(168, 192, 255, 0.15);
 }
 
 .role-checkbox input[type="checkbox"] {
@@ -547,7 +548,7 @@ body {
 }
 
 .platform-item a {
-  color: #667eea;
+  color: #a8c0ff;
   text-decoration: none;
   font-size: 12px;
   font-weight: 600;
@@ -558,10 +559,10 @@ body {
 }
 
 .platform-item a:hover {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #a8c0ff 0%, #c8e0ff 100%);
   color: white;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(168, 192, 255, 0.25);
 }
 
 /* 测试按钮 */
