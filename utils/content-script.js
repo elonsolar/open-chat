@@ -61,16 +61,20 @@ function detectPlatform() {
   const hostname = window.location.hostname;
   const pathname = window.location.pathname;
 
+  console.log('[AI Plugin] 检测平台:', { hostname, pathname });
+
   if (hostname.includes('deepseek')) {
     return 'deepseek';
   } else if (hostname.includes('doubao') || hostname.includes('feishu')) {
     return 'doubao';
   } else if (hostname.includes('qianwen') || hostname.includes('aliyun')) {
+    console.log('[AI Plugin] ✓ 检测到千问平台');
     return 'qianwen';
   } else if (hostname.includes('chatgpt') || hostname.includes('openai')) {
     return 'openai';
   }
 
+  console.log('[AI Plugin] ⚠️ 未知平台');
   return 'unknown';
 }
 

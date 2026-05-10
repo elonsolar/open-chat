@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "多模型AI对话助手",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "集成多个大模型，支持角色管理和会话管理的AI对话助手",
   "permissions": [
     "storage",

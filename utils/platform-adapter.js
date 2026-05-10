@@ -4,6 +4,8 @@ class AIPlatformAdapter {
     this.platform = platform;
     this.selectors = this.getSelectors(platform);
     this.lastUrl = window.location.href; // 记录初始URL
+    this.conversationHistory = []; // 新增：会话历史记录
+    this.lastMessageId = null; // 新增：最后一条消息的标识
     console.log(`[${platform}] 初始化适配器，选择器:`, this.selectors);
   }
 
@@ -29,13 +31,13 @@ class AIPlatformAdapter {
         newChatButton: '[class*="new"]'
       },
       qianwen: {
-        inputBox: 'textarea',
-        sendButton: 'button',
-        messageList: '[class*="message"]',
-        messageSelector: '[class*="message"]',  // 新增
-        userInput: '[class*="user"]',
-        aiResponse: '[class*="assistant"]',
-        newChatButton: '[class*="new"]'
+        inputBox: 'div[contenteditable="true"][data-slate-editor="true"]',
+        sendButton: 'button[aria-label="发送消息"]',
+        messageList: '.message-list-content-container',
+        messageSelector: '.chat-round',
+        userInput: '.question-text-card',
+        aiResponse: '.answer-common-card, .qk-markdown',
+        newChatButton: 'button[class*="new"], a:contains("新对话")'
       },
       openai: {
         inputBox: 'textarea',
@@ -55,18 +57,44 @@ class AIPlatformAdapter {
   async waitForElement(selector, timeout = 10000) {
     const startTime = Date.now();
 
+    console.log(`[${this.platform}] 等待元素: ${selector}`);
+
     while (Date.now() - startTime < timeout) {
       const element = document.querySelector(selector);
       if (element) {
+        console.log(`[${this.platform}] ✓ 找到元素:`, {
+          tagName: element.tagName,
+          className: element.className,
+          id: element.id,
+          visible: element.offsetParent !== null
+        });
         return element;
       }
       await this.sleep(100);
     }
 
+    console.error(`[${this.platform}] ✗ 元素查找超时: ${selector}`);
+    console.error(`[${this.platform}] 当前页面URL: ${window.location.href}`);
+    console.error(`[${this.platform}] 页面标题: ${document.title}`);
+
+    // 尝试帮助调试：查找所有textarea
+    if (selector.includes('textarea')) {
+      const allTextareas = document.querySelectorAll('textarea');
+      console.error(`[${this.platform}] 页面上的textarea数量: ${allTextareas.length}`);
+      allTextareas.forEach((ta, i) => {
+        console.error(`[${this.platform}] textarea[${i}]:`, {
+          className: ta.className,
+          id: ta.id,
+          placeholder: ta.placeholder,
+          visible: ta.offsetParent !== null
+        });
+      });
+    }
+
     throw new Error(`元素未找到: ${selector}`);
   }
 
-  // 检查是否有新内容（使用奇偶顺序：用户消息偶数位，AI消息奇数位）
+  // 检查是否有新内容
   checkForNewContent() {
     try {
       // 根据平台使用不同的选择器
@@ -78,11 +106,38 @@ class AIPlatformAdapter {
       } else if (this.platform === 'doubao') {
         // 豆包优先使用 data-message-id
         messageElements = document.querySelectorAll('[data-message-id]');
-        
-        // 如果没有找到，输出调试信息
+
         if (messageElements.length === 0) {
           console.log(`[${this.platform}] 未找到 [data-message-id] 元素`);
         }
+      } else if (this.platform === 'qianwen') {
+        // 千问：每个 .chat-round 包含问答对，需要检查是否有 AI 回答
+        messageElements = document.querySelectorAll('.chat-round');
+
+        if (messageElements.length === 0) {
+          console.log(`[${this.platform}] 未找到 .chat-round 元素`);
+          return { found: false, content: '' };
+        }
+
+        // 千问特殊处理：查找所有包含 AI 回答的 .chat-round
+        const messagesWithAnswer = Array.from(messageElements).filter(msg => {
+          const hasAnswer = !!msg.querySelector('.qk-markdown, .answer-common-card, .answer-text');
+          return hasAnswer;
+        });
+
+        console.log(`[${this.platform}] 找到 ${messageElements.length} 个聊天轮次，其中 ${messagesWithAnswer.length} 个包含AI回答`);
+
+        if (messagesWithAnswer.length === 0) {
+          console.log(`[${this.platform}] 没有找到包含AI回答的消息`);
+          return { found: false, content: '' };
+        }
+
+        // 取最后一个包含 AI 回答的消息
+        const lastAIMessage = messagesWithAnswer[messagesWithAnswer.length - 1];
+
+        // 提取 AI 内容（使用专门的千问提取逻辑）
+        return this.extractQianwenAIContent(lastAIMessage);
+
       } else {
         // 其他平台使用 data-message-id 属性
         messageElements = document.querySelectorAll('[data-message-id]');
@@ -167,7 +222,7 @@ class AIPlatformAdapter {
         return { found: true, content: text };
       }
 
-      // 其他平台：使用原有逻辑
+      // DeepSeek特殊处理：只提取 ds-markdown 下的内容（真正的AI回复）
       let messageClone = lastAIMessage;
 
       // 尝试多种方式提取文本
@@ -222,19 +277,22 @@ class AIPlatformAdapter {
     }
   }
 
-  // 等待AI回复（检测AI消息数量变化）
+  // 等待AI回复（检测AI消息数量变化，支持多轮对话）
   async waitForResponse(timeout = 30000, initialAIMessageCount = 0, initialContent = '') {
     const startTime = Date.now();
-    let lastAIMessageCount = initialAIMessageCount;  // 使用传入的初始值
+    let lastAIMessageCount = initialAIMessageCount;
     let lastContent = '';
-    let lastContentLength = 0;  // 记录上次内容长度，用于判断是否真的在增长
+    let lastContentLength = 0;
     let lastStableTime = Date.now();
-    let lastHash = '';  // 新增：内容的哈希值，用于检测内容变化
-    let hasNewMessage = false;  // 新增：标记是否检测到新的AI消息
-    let isResolved = false;  // 新增：确保Promise只被resolve一次
+    let lastHash = '';
+    let hasNewMessage = false;
+    let isResolved = false;
 
-    // DeepSeek需要更长的稳定时间（因为可能有思考过程）
-    const STABLE_DURATION = this.platform === 'deepseek' ? 5000 : 3000;
+    // 千问和DeepSeek需要更长的稳定时间（可能包含思考过程）
+    const STABLE_DURATION = (this.platform === 'deepseek' || this.platform === 'qianwen') ? 5000 : 3000;
+
+    // 记录会话历史，用于多轮对话
+    const conversationSnapshot = this.getConversationHistory();
 
     let observer = null;
     let checkInterval = null;
@@ -245,28 +303,46 @@ class AIPlatformAdapter {
     console.log(`[${this.platform}] 稳定要求: 内容${STABLE_DURATION/1000}秒不再增长`);
     console.log(`[${this.platform}] 发送前AI消息数量: ${lastAIMessageCount}`);
 
-    // 统计当前AI消息数量（奇数位）
+    // 统计当前AI消息数量（改进版，支持多轮对话）
     const countAIMessages = () => {
       let messages;
 
       if (this.platform === 'deepseek') {
-        // DeepSeek使用 .ds-message 类
         messages = document.querySelectorAll('.ds-message');
+        const allMessages = Array.from(messages);
+        const aiMessages = allMessages.filter((_, index) => index % 2 === 1);
+        console.log(`[${this.platform}] 消息统计: 总数=${allMessages.length}, AI=${aiMessages.length}`);
+        return aiMessages.length;
+
       } else if (this.platform === 'doubao') {
-        // 豆包使用 data-message-id
         messages = document.querySelectorAll('[data-message-id]');
+        const allMessages = Array.from(messages);
+        const aiMessages = allMessages.filter((_, index) => index % 2 === 1);
+        console.log(`[${this.platform}] 消息统计: 总数=${allMessages.length}, AI=${aiMessages.length}`);
+        return aiMessages.length;
+
+      } else if (this.platform === 'qianwen') {
+        // 千问：每个 .chat-round 包含问答对，计算包含 AI 回答的数量
+        messages = document.querySelectorAll('.chat-round');
+        const allMessages = Array.from(messages);
+
+        // 统计包含 AI 回答的消息数量
+        const messagesWithAnswer = allMessages.filter(msg => {
+          const hasAnswer = !!msg.querySelector('.qk-markdown, .answer-common-card, .answer-text');
+          return hasAnswer;
+        });
+
+        console.log(`[${this.platform}] 消息统计: 总轮次=${allMessages.length}, AI回答=${messagesWithAnswer.length}`);
+        return messagesWithAnswer.length;
+
       } else {
         // 其他平台使用 data-message-id 属性
         messages = document.querySelectorAll('[data-message-id]');
+        const allMessages = Array.from(messages);
+        const aiMessages = allMessages.filter((_, index) => index % 2 === 1);
+        console.log(`[${this.platform}] 消息统计: 总数=${allMessages.length}, AI=${aiMessages.length}`);
+        return aiMessages.length;
       }
-
-      const allMessages = Array.from(messages);
-      const aiMessages = allMessages.filter((_, index) => index % 2 === 1);
-      
-      // 调试输出
-      console.log(`[${this.platform}] 消息统计: 总数=${allMessages.length}, AI=${aiMessages.length}`);
-      
-      return aiMessages.length;
     };
 
     // 检查发送后立即是否有新消息（AI回复很快的情况）
@@ -507,57 +583,38 @@ class AIPlatformAdapter {
   }
 
   // 发送消息
-  async sendMessage(content) {
+  async sendMessage(content, options = {}) {
     // 标记正在发送消息
     if (typeof window !== 'undefined') {
       window.isSendingMessage = true;
     }
+
+    const { enableThink = false } = options; // 是否启用思考模式
 
     try {
       console.log(`[${this.platform}] ========== 发送消息 ==========`);
       console.log(`[${this.platform}] 消息内容:`, content);
       console.log(`[${this.platform}] 平台URL:`, window.location.href);
       console.log(`[${this.platform}] 页面标题:`, document.title);
+      console.log(`[${this.platform}] 思考模式:`, enableThink ? '启用' : '禁用');
 
-      // 📍 步骤0：在发送前先记录当前AI消息数量和内容
-      console.log(`[${this.platform}] 步骤0: 记录发送前的AI消息数量和内容...`);
-      const { count: initialAIMessageCount, content: initialAIContent } = (() => {
-        let messages;
-        if (this.platform === 'deepseek') {
-          messages = document.querySelectorAll('.ds-message');
-        } else {
-          messages = document.querySelectorAll('[data-message-id]');
-        }
-        const aiMessages = Array.from(messages).filter((_, index) => index % 2 === 1);
-        
-        // 获取最后一个AI消息的内容
-        let lastContent = '';
-        if (aiMessages.length > 0) {
-          const lastAIMessage = aiMessages[aiMessages.length - 1];
-          lastContent = lastAIMessage.textContent?.trim() || '';
-        }
-        
-        return { count: aiMessages.length, content: lastContent };
-      })();
+      // 📍 步骤0：获取当前会话快照
+      console.log(`[${this.platform}] 步骤0: 记录发送前会话状态...`);
+      const conversationBefore = this.getConversationHistory();
+      const initialAIMessageCount = conversationBefore.filter(msg => !msg.isUser).length;
+      
+      // 获取最后一条AI消息的内容
+      const initialAIContent = initialAIMessageCount > 0 ? 
+        conversationBefore.filter(msg => !msg.isUser).pop()?.content : '';
+      
       console.log(`[${this.platform}] 发送前AI消息数量: ${initialAIMessageCount}`);
       if (initialAIContent) {
         console.log(`[${this.platform}] 发送前最后AI消息内容: ${initialAIContent.substring(0, 50)}...`);
       }
 
-      // ⚠️ 检查是否在旧会话中，如果在，清空输入框并创建新会话
-      const isInOldConversation = initialAIMessageCount > 0;
-      if (isInOldConversation) {
-        console.log(`[${this.platform}] ⚠️ 检测到旧会话（${initialAIMessageCount}条AI消息），尝试创建新会话...`);
-        
-        // 尝试清空输入框
-        const inputBox = document.querySelector('textarea');
-        if (inputBox) {
-          inputBox.value = '';
-          inputBox.focus();
-        }
-        
-        // 等待一下让页面稳定
-        await this.sleep(1000);
+      // 📍 步骤0.5：如果启用思考模式，点击思考按钮
+      if (enableThink && this.platform === 'qianwen') {
+        await this.enableThinkMode();
       }
 
       // 等待输入框
@@ -607,6 +664,160 @@ class AIPlatformAdapter {
 
         await this.sleep(1000);
         console.log(`[${this.platform}] DeepSeek Enter发送完成`);
+      } else if (this.platform === 'qianwen') {
+        console.log(`[${this.platform}] 开始千问发送流程...`);
+
+        const editor = inputBox;
+        
+        // 方法：使用临时textarea模拟真实输入，避免直接操作Slate DOM
+        console.log(`[${this.platform}] 使用原生输入方法...`);
+        
+        // 1. 聚焦编辑器
+        editor.focus();
+        await this.sleep(200);
+        
+        // 2. 清空编辑器（Ctrl+A + Delete）
+        // 创建并模拟键盘事件
+        const simulateKey = (key, options = {}) => {
+          const defaultOptions = {
+            key: key,
+            code: key,
+            keyCode: key.charCodeAt(0),
+            which: key.charCodeAt(0),
+            bubbles: true,
+            cancelable: true
+          };
+          
+          const eventOptions = { ...defaultOptions, ...options };
+          
+          editor.dispatchEvent(new KeyboardEvent('keydown', eventOptions));
+          editor.dispatchEvent(new KeyboardEvent('keyup', eventOptions));
+        };
+        
+        // 模拟 Ctrl+A
+        simulateKey('a', { ctrlKey: true, code: 'KeyA' });
+        await this.sleep(50);
+        document.execCommand('selectAll');
+        await this.sleep(100);
+        document.execCommand('delete');
+        await this.sleep(200);
+        
+        console.log(`[${this.platform}] ✓ 编辑器已清空`);
+        
+        // 3. 使用临时的 textarea 和 execCommand('insertText') 来插入文本
+        // 这个方法不会触发 Slate 错误，因为它是标准的浏览器 API
+        const sel = window.getSelection();
+        const range = document.createRange();
+        
+        // 确保光标在编辑器中
+        const pElement = editor.querySelector('p[data-slate-node="element"]');
+        if (pElement) {
+          range.setStart(pElement, 0);
+          range.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+        
+        editor.focus();
+        await this.sleep(100);
+        
+        // 关键：逐字符使用 execCommand('insertText')
+        // 这会触发 Slate 的正确处理流程
+        console.log(`[${this.platform}] 逐字符输入...`);
+        
+        for (let i = 0; i < content.length; i++) {
+          const char = content[i];
+          
+          // 触发完整的键盘事件序列（模拟真实输入）
+          const keyCode = char.charCodeAt(0);
+          
+          // keydown
+          editor.dispatchEvent(new KeyboardEvent('keydown', {
+            key: char,
+            code: `Key${char.toUpperCase()}`,
+            keyCode: keyCode,
+            which: keyCode,
+            bubbles: true,
+            cancelable: true
+          }));
+          
+          // beforeinput
+          editor.dispatchEvent(new InputEvent('beforeinput', {
+            bubbles: true,
+            cancelable: true,
+            inputType: 'insertText',
+            data: char
+          }));
+          
+          // 使用 execCommand 插入字符（关键！）
+          document.execCommand('insertText', false, char);
+          
+          // input
+          editor.dispatchEvent(new InputEvent('input', {
+            bubbles: true,
+            cancelable: false,
+            inputType: 'insertText',
+            data: char
+          }));
+          
+          // keyup
+          editor.dispatchEvent(new KeyboardEvent('keyup', {
+            key: char,
+            code: `Key${char.toUpperCase()}`,
+            keyCode: keyCode,
+            which: keyCode,
+            bubbles: true,
+            cancelable: true
+          }));
+          
+          // 每5个字符暂停一下，避免过快
+          if (i % 5 === 0) {
+            await this.sleep(10);
+          }
+        }
+        
+        console.log(`[${this.platform}] ✓ 文本输入完成`);
+        await this.sleep(300);
+        
+        // 4. 验证内容
+        const editorContent = editor.textContent?.trim();
+        console.log(`[${this.platform}] 编辑器内容:`, editorContent);
+        
+        if (editorContent !== content) {
+          console.warn(`[${this.platform}] ⚠ 内容不匹配`, {
+            expected: content,
+            actual: editorContent
+          });
+        }
+        
+        // 5. 检查并点击发送按钮
+        const sendButton = document.querySelector('button[aria-label="发送消息"]');
+        if (sendButton) {
+          // 检查按钮状态
+          const isDisabled = sendButton.hasAttribute('disabled') || 
+                            sendButton.classList.contains('bg-[--ty-text-disabled]');
+          
+          console.log(`[${this.platform}] 按钮状态:`, isDisabled ? '禁用' : '启用');
+          
+          if (isDisabled) {
+            console.log(`[${this.platform}] 移除禁用状态...`);
+            sendButton.removeAttribute('disabled');
+            sendButton.classList.remove('bg-[--ty-text-disabled]', 'cursor-not-allowed');
+            sendButton.classList.remove('[&>*]:!cursor-not-allowed', '[&_svg]:!cursor-not-allowed', '[&_span]:!cursor-not-allowed');
+            sendButton.classList.add('bg-black-button');
+            sendButton.style.cssText = 'cursor: pointer !important; pointer-events: auto !important;';
+            await this.sleep(100);
+          }
+          
+          console.log(`[${this.platform}] ✓ 点击发送按钮`);
+          sendButton.click();
+        } else {
+          console.error(`[${this.platform}] ✗ 未找到发送按钮`);
+          throw new Error('发送按钮未找到');
+        }
+
+        await this.sleep(1000);
+        console.log(`[${this.platform}] ✓ 发送完成`);
       } else {
         // 其他平台：使用原有逻辑
         inputBox.dispatchEvent(new Event('input', { bubbles: true }));
@@ -655,10 +866,20 @@ class AIPlatformAdapter {
 
       // 等待AI回复
       console.log(`[${this.platform}] 步骤4: 等待AI回复...`);
-      const response = await this.waitForResponse(60000, initialAIMessageCount, initialAIContent);
+      
+      // 获取最新的会话状态作为初始状态
+      const currentConversation = this.getConversationHistory();
+      const currentAIMessageCount = currentConversation.filter(msg => !msg.isUser).length;
+      const currentAIContent = currentAIMessageCount > 0 ?
+        currentConversation.filter(msg => !msg.isUser).pop()?.content : '';
+
+      const response = await this.waitForResponse(60000, currentAIMessageCount, currentAIContent);
       console.log(`[${this.platform}] ========== 收到回复 ==========`);
       console.log(`[${this.platform}] 回复长度:`, response.content.length);
       console.log(`[${this.platform}] 会话URL:`, response.conversationUrl);
+
+      // 更新会话历史
+      this.getConversationHistory();
 
       return response;
     } catch (error) {
@@ -693,6 +914,96 @@ class AIPlatformAdapter {
     }
   }
 
+  // 千问专用：提取 AI 回答内容
+  extractQianwenAIContent(messageElement) {
+    try {
+      console.log(`[${this.platform}] 提取千问AI内容...`);
+
+      // 方法1: 优先查找 .qk-markdown
+      let markdownElement = messageElement.querySelector('.qk-markdown');
+
+      // 方法2: 查找 .answer-text
+      if (!markdownElement) {
+        markdownElement = messageElement.querySelector('.answer-text');
+      }
+
+      // 方法3: 查找 .answer-common-card
+      if (!markdownElement) {
+        markdownElement = messageElement.querySelector('.answer-common-card');
+      }
+
+      // 方法4: 查找任何包含 "answer" 的 div
+      if (!markdownElement) {
+        const allDivs = messageElement.querySelectorAll('div');
+        for (const div of allDivs) {
+          const className = div.className || '';
+          const text = div.textContent || '';
+          // 如果类名包含 answer/answer-text 且有实际内容
+          if ((className.includes('answer') || className.includes('markdown')) && text.trim().length > 20) {
+            markdownElement = div;
+            break;
+          }
+        }
+      }
+
+      if (!markdownElement) {
+        console.log(`[${this.platform}] 未找到明确的AI回答元素，尝试备用方法`);
+
+        // 备用方案：克隆消息元素并移除用户问题部分
+        const clone = messageElement.cloneNode(true);
+
+        // 移除用户问题卡片
+        const questionCard = clone.querySelector('.question-text-card');
+        if (questionCard) {
+          questionCard.remove();
+        }
+
+        // 移除按钮和图标
+        const buttons = clone.querySelectorAll('button, [class*="icon"], [class*="button"]');
+        buttons.forEach(btn => btn.remove());
+
+        const text = clone.textContent?.trim() || '';
+
+        if (text.length > 10) {
+          console.log(`[${this.platform}] ✓ 备用方法成功提取，长度: ${text.length}`);
+          return { found: true, content: text };
+        }
+
+        console.log(`[${this.platform}] ✗ 备用方法也失败`);
+        return { found: false, content: '' };
+      }
+
+      // 提取文本内容
+      let text = '';
+
+      // 尝试提取 .qk-md-paragraph
+      const paragraphs = markdownElement.querySelectorAll('.qk-md-paragraph');
+      if (paragraphs.length > 0) {
+        text = Array.from(paragraphs)
+          .map(p => p.textContent?.trim())
+          .filter(t => t && t.length > 0)
+          .join('\n\n');
+      } else {
+        // 直接获取元素文本
+        text = markdownElement.textContent?.trim() || markdownElement.innerText?.trim() || '';
+      }
+
+      if (!text || text.length < 5) {
+        console.log(`[${this.platform}] 提取的文本太短`);
+        return { found: false, content: '' };
+      }
+
+      console.log(`[${this.platform}] ✓ 成功提取AI内容，长度: ${text.length}`);
+      console.log(`[${this.platform}] 内容预览: ${text.substring(0, 80)}`);
+
+      return { found: true, content: text };
+
+    } catch (error) {
+      console.error(`[${this.platform}] 提取千问AI内容失败:`, error);
+      return { found: false, content: '' };
+    }
+  }
+
   // 获取聊天历史
   async getChatHistory() {
     try {
@@ -715,6 +1026,115 @@ class AIPlatformAdapter {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  // 启用思考模式（千问专用）
+  async enableThinkMode() {
+    if (this.platform !== 'qianwen') {
+      console.log(`[${this.platform}] 思考模式仅支持千问平台`);
+      return false;
+    }
+
+    try {
+      console.log(`[${this.platform}] 尝试启用思考模式...`);
+
+      // 查找思考按钮
+      const thinkButton = document.querySelector('button[aria-label="思考"]');
+
+      if (!thinkButton) {
+        console.log(`[${this.platform}] 未找到思考按钮`);
+        return false;
+      }
+
+      // 检查是否已经激活
+      const isActive = thinkButton.classList.contains('bg-gray-button-hover') ||
+                      thinkButton.classList.contains('active');
+
+      if (isActive) {
+        console.log(`[${this.platform}] 思考模式已启用`);
+        return true;
+      }
+
+      // 点击启用思考模式
+      thinkButton.click();
+      await this.sleep(500);
+
+      console.log(`[${this.platform}] ✓ 思考模式已启用`);
+      return true;
+    } catch (error) {
+      console.error(`[${this.platform}] 启用思考模式失败:`, error);
+      return false;
+    }
+  }
+
+  // 获取会话历史（用于多轮对话）
+  getConversationHistory() {
+    try {
+      const messages = document.querySelectorAll('.chat-round');
+      
+      this.conversationHistory = Array.from(messages).map((msg, idx) => {
+        // 判断消息类型
+        const isUser = msg.classList.contains('chat-round-user') || 
+                       !!msg.querySelector('.question-text-card');
+        
+        // 提取内容
+        let content = '';
+        if (isUser) {
+          // 用户消息
+          const userContent = msg.querySelector('.question-text-card, [class*="question"]');
+          content = userContent ? userContent.textContent?.trim() : msg.textContent?.trim();
+        } else {
+          // AI消息
+          const aiContent = msg.querySelector('.qk-markdown, .answer-text, [class*="answer"]');
+          content = aiContent ? aiContent.textContent?.trim() : msg.textContent?.trim();
+        }
+
+        return {
+          index: idx,
+          isUser,
+          content: content || '',
+          timestamp: Date.now(),
+          element: msg // 保留引用以便后续操作
+        };
+      });
+
+      console.log(`[${this.platform}] 会话历史: ${this.conversationHistory.length} 条消息`);
+      return this.conversationHistory;
+    } catch (error) {
+      console.error(`[${this.platform}] 获取会话历史失败:`, error);
+      return [];
+    }
+  }
+
+  // 提取思考内容（如果存在）
+  extractThinkContent(messageElement) {
+    try {
+      // 各种可能的思考容器选择器
+      const thinkSelectors = [
+        '.thinking-content',
+        '.think-process',
+        '[class*="think"]',
+        '[class*="thought"]',
+        '.qk-think',
+        '.think-container'
+      ];
+
+      for (const selector of thinkSelectors) {
+        const thinkElement = messageElement.querySelector(selector);
+        if (thinkElement) {
+          const thinkText = thinkElement.textContent?.trim();
+          if (thinkText && thinkText.length > 5) {
+            console.log(`[${this.platform}] 找到思考内容，长度: ${thinkText.length}`);
+            return thinkText;
+          }
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.warn(`[${this.platform}] 提取思考内容失败:`, error);
+      return null;
+    }
+  }
+
   // 辅助方法：简单哈希函数（用于检测内容变化）
   simpleHash(str) {
     if (!str) return '';
@@ -725,6 +1145,13 @@ class AIPlatformAdapter {
       hash = hash & hash; // Convert to 32bit integer
     }
     return hash.toString(36);
+  }
+
+  // 辅助方法：HTML转义（防止XSS）
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 }
 

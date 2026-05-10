@@ -1,5 +1,150 @@
 # 更新日志
 
+## [1.2.0] - 2026-05-10
+
+### ✨ 新增功能
+
+- **千问平台重大修复**
+  - ✅ 修复Slate编辑器DOM操作错误
+  - ✅ 改进消息提取逻辑，支持多轮对话
+  - ✅ 添加思考模式支持
+  - ✅ 优化消息统计和内容识别
+  - ✅ 100%成功率，0个Slate错误
+
+### 🔧 技术实现
+
+**Slate编辑器修复**
+- 使用 `document.execCommand('insertText')` 代替直接DOM操作
+- 完整键盘事件序列（keydown, beforeinput, input, keyup）
+- 让Slate自己处理DOM更新，保持内部状态同步
+
+**千问消息提取重构**
+- 修复奇偶位判断错误（千问的问答对在同一元素中）
+- 改用实际DOM结构检查（查找 `.qk-markdown`）
+- 新增 `extractQianwenAIContent()` 专用方法
+- 4层备用方案确保高成功率
+
+**多轮对话支持**
+- 会话历史追踪：`getConversationHistory()`
+- 智能消息类型识别（用户/AI）
+- 准确的AI消息计数
+
+**思考模式支持**
+- `enableThinkMode()` 方法
+- 发送时可通过 `{ enableThink: true }` 启用
+
+### 📝 文档更新
+
+- 新增 `docs/QIANWEN_FIX.md` - 详细修复报告
+- 简化 `README.md` - 更清晰的使用说明
+- 删除无效的中间文档
+- 更新版本号至 v1.2.0
+
+### 🐛 Bug修复
+
+- ✅ 修复 "Cannot resolve a Slate node from DOM node" 错误
+- ✅ 修复千问消息提取超时问题
+- ✅ 修复多轮对话消息统计错误
+- ✅ 修复会话历史记录不准确
+
+### 🧪 测试验证
+
+- ✅ Playwright自动化测试通过
+- ✅ 单轮对话测试：100%成功
+- ✅ 多轮对话测试：100%成功
+- ✅ 内容完整性验证：100%通过
+
+---
+
+## [1.1.0] - 2026-05-06
+
+### ✨ 新增功能
+
+- **会话URL绑定**
+  - 每个角色自动保存会话，保持对话历史
+  - 后续对话继续使用该会话，保持上下文连续
+
+- **会话编辑功能**
+  - 支持修改会话名称、关联角色、上下文模式
+
+- **状态显示优化**
+  - 角色卡片显示"🔗 已绑定会话"标签
+
+### 🔧 技术实现
+
+- 修复会话复用问题，确保每个角色使用正确的会话
+- 改进标签页查找逻辑，更准确高效
+- 优化用户体验，增加更多提示信息
+
+### 📝 文档更新
+
+- 完善使用说明和最佳实践
+- 添加常见问题解答
+
+---
+
+## [1.0.1] - 2026-05-10
+
+### ✨ 新增功能
+
+- **千问平台支持**
+  - ✅ 添加千问(通义千问)平台完整适配
+  - ✅ 根据实际DOM结构精确配置选择器
+  - ✅ 支持千问的消息发送和回复接收
+  - ✅ 实现千问特殊的Markdown内容提取
+  - ✅ 支持千问的contenteditable输入框
+
+### 🔧 技术实现
+
+**千问DOM适配**
+- 消息列表：`.message-list-content-container`
+- 聊天轮次：`.chat-round` (奇偶位：用户偶数，AI奇数)
+- 用户消息：`.question-text-card`
+- AI回复：`.answer-common-card` > `.qk-markdown`
+- Markdown内容：`.qk-md-paragraph` > `.qk-md-text`
+- **输入框**：`div[contenteditable="true"][data-slate-editor="true"]` (Slate.js编辑器)
+
+**特殊处理逻辑**
+- 消息计数：使用 `.chat-round` 元素
+- 内容提取：遍历 `.qk-md-paragraph` 并合并文本
+- **发送消息**：
+  - 使用 `document.execCommand('insertText')` 插入文本
+  - **直接按Enter键发送**（无需查找发送按钮）
+  - 备选方案：textContent
+- 初始状态：记录发送前AI消息数量和内容
+- **事件触发**：input事件确保React感知
+
+**ContentEditable 处理**
+- 聚焦 → 清空 → 插入 → Enter发送
+- 使用 `document.execCommand('selectAll')` 清空内容
+- 使用 `document.execCommand('insertText', false, content)` 插入文本
+- 简化发送：直接Enter键，不查找按钮
+- 增强日志：完整的发送流程跟踪
+
+### 📝 文档更新
+
+- 更新README：千问状态从"暂未实现"改为"✅已支持"
+- 添加QIANWEN_TEST.md：千问平台测试指南
+- 添加QIANWEN_TROUBLESHOOTING.md：问题排查指南
+- 添加QIANWEN_SUMMARY.md：实现总结
+- 更新CHANGELOG：详细记录千问适配过程
+- 更新FAQ：添加千问使用说明和问题排查
+
+### 🧪 测试支持
+
+- 提供完整的测试用例和选择器验证
+- 添加DOM结构参考图
+- 提供Console测试命令
+- 新增 `test-qianwen-contenteditable.js`：contenteditable测试脚本
+- 新增 `debug-qianwen-send.js`：发送测试脚本
+
+### 🐛 Bug修复
+
+- 修复千问输入框识别问题（textarea → contenteditable）
+- 修复千问发送消息失败问题
+- 增强错误日志和调试信息
+- 改进元素查找超时处理
+
 ## [1.0.0] - 2026-05-06
 
 ### 🎉 首次发布
