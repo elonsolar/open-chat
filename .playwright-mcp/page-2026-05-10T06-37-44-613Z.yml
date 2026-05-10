@@ -1,0 +1,47 @@
+- generic [ref=e2]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - img [ref=e7] [cursor=pointer]
+      - generic [ref=e19]:
+        - button [ref=e20] [cursor=pointer]:
+          - img [ref=e24]
+        - button [ref=e27] [cursor=pointer]:
+          - img [ref=e30]
+    - generic [ref=e32] [cursor=pointer]:
+      - img [ref=e34]
+      - generic [ref=e36]: 开启新对话
+      - text: Ctrl + J
+    - generic [ref=e40]:
+      - generic [ref=e41]: 今天
+      - link "猜数字游戏代码提供" [ref=e42] [cursor=pointer]:
+        - /url: /a/chat/s/ce6abd8f-b105-4554-94a0-0d0883a72747
+        - generic [ref=e43]: 猜数字游戏代码提供
+        - button [ref=e44]:
+          - img [ref=e48]
+    - img [ref=e56] [cursor=pointer]
+  - generic [ref=e61]:
+    - generic [ref=e62]:
+      - generic [ref=e64]:
+        - generic [ref=e65] [cursor=pointer]: 猜数字游戏代码提供
+        - generic [ref=e66]:
+          - img [ref=e68]
+          - generic [ref=e70]: 快速模式
+      - button [ref=e71] [cursor=pointer]:
+        - img [ref=e74]
+    - generic [ref=e79]:
+      - generic [ref=e82]:
+        - textbox "给 DeepSeek 发送消息" [active] [ref=e84]:
+          - /placeholder: "给 DeepSeek 发送消息 "
+        - generic [ref=e85]:
+          - button "深度思考" [ref=e86] [cursor=pointer]:
+            - img [ref=e88]
+            - generic [ref=e91]: 深度思考
+          - button "智能搜索" [pressed] [ref=e92] [cursor=pointer]:
+            - img [ref=e94]
+            - generic [ref=e96]: 智能搜索
+          - generic [ref=e97]:
+            - button [ref=e98] [cursor=pointer]:
+              - img [ref=e101]
+            - button [disabled] [ref=e104] [cursor=pointer]:
+              - img [ref=e106]
+      - generic [ref=e108]: 内容由 AI 生成，请仔细甄别

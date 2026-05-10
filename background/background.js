@@ -63,7 +63,7 @@ class TabManager {
     try {
       // 如果不强制新建，检查是否已有该平台的标签页
       if (!forceNew) {
-        // 如果指定了目标URL，只精准查找该URL的标签页
+        // 如果指定了目标URL，先精准查找该URL的标签页
         if (targetUrl) {
           console.log(`[TabManager] 🔍 查找目标URL的标签页: ${targetUrl}`);
           const exactTab = await this.findTabByUrl(targetUrl);
@@ -73,8 +73,15 @@ class TabManager {
             await this.sleep(1000);
             return exactTab;
           } else {
-            console.log(`[TabManager] ⚠️ 未找到目标URL标签页，将创建新标签页并导航到该URL`);
-            // 未找到目标URL，直接创建新标签页（不继续查找其他标签页）
+            console.log(`[TabManager] ⚠️ 未找到目标URL标签页，尝试查找任意${platform}标签页...`);
+            // 回退方案：查找该平台的任意标签页
+            const anyTab = await this.findPlatformTab(platform);
+            if (anyTab) {
+              console.log(`[TabManager] ✓ 找到${platform}标签页，导航到目标URL: ${targetUrl}`);
+              await chrome.tabs.update(anyTab.id, { url: targetUrl, active: false });
+              await this.waitForTabReady(anyTab.id);
+              return anyTab;
+            }
           }
         } else {
           // 没有指定目标URL，查找该平台的任意标签页
@@ -751,11 +758,15 @@ class AIMessageManager {
       console.log(`[AIMessageManager] response.conversationUrl:`, response?.conversationUrl || 'none');
 
       if (response && response.success) {
-        // 如果返回了会话URL且角色没有保存过，保存到角色数据
-        if (response.conversationUrl && !role.conversationUrl) {
-          console.log(`[AIMessageManager] 💾 保存会话URL到角色 ${role.name}: ${response.conversationUrl}`);
-          role.conversationUrl = response.conversationUrl;
-          await StorageManager.saveRoles(roles);
+        // 每次都更新会话URL（支持用户手动切换会话的情况）
+        if (response.conversationUrl) {
+          if (role.conversationUrl !== response.conversationUrl) {
+            console.log(`[AIMessageManager] 💾 更新会话URL到角色 ${role.name}: ${response.conversationUrl}`);
+            role.conversationUrl = response.conversationUrl;
+            await StorageManager.saveRoles(roles);
+          } else {
+            console.log(`[AIMessageManager] ✓ 会话URL未变化，跳过更新: ${response.conversationUrl}`);
+          }
         }
         console.log(`[AIMessageManager] 💾 保存 ${role.name} 的消息到conversation...`);
         await this.conversationManager.addMessage(conversationId, roleId, response.content, false);

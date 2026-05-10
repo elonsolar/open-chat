@@ -1,0 +1,39 @@
+- generic [ref=e5]:
+  - generic [ref=e7]:
+    - img [ref=e10]
+    - generic [ref=e22]:
+      - generic [ref=e23]:
+        - generic [ref=e26]:
+          - generic [ref=e27]: "+86"
+          - textbox "请输入手机号" [active] [ref=e28]
+        - generic [ref=e32]:
+          - textbox "请输入验证码" [ref=e33]
+          - button "发送验证码" [ref=e36] [cursor=pointer]:
+            - generic [ref=e37]: 发送验证码
+        - generic [ref=e40]:
+          - text: 注册登录即代表已阅读并同意我们的
+          - link "用户协议" [ref=e41] [cursor=pointer]:
+            - /url: https://cdn.deepseek.com/policies/zh-CN/deepseek-terms-of-use.html
+          - text: 与
+          - link "隐私政策" [ref=e42] [cursor=pointer]:
+            - /url: https://cdn.deepseek.com/policies/zh-CN/deepseek-privacy-policy.html
+          - text: ，未注册的手机号将自动注册
+        - button "登录" [ref=e43] [cursor=pointer]:
+          - generic [ref=e44]: 登录
+        - generic [ref=e47]:
+          - button [ref=e48] [cursor=pointer]:
+            - img [ref=e50]
+          - button [ref=e53] [cursor=pointer]:
+            - img [ref=e55]
+      - generic [ref=e58]:
+        - iframe [ref=e60]:
+          - img [ref=f1e8]
+        - generic [ref=e61]:
+          - img [ref=e63]
+          - generic [ref=e65]: 微信扫码登录
+  - generic [ref=e67]:
+    - link "浙ICP备2023025841号" [ref=e68] [cursor=pointer]:
+      - /url: https://beian.miit.gov.cn
+    - generic [ref=e69]: ·
+    - link "联系我们" [ref=e70] [cursor=pointer]:
+      - /url: mailto:service@deepseek.com
