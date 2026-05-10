@@ -7,8 +7,8 @@
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   font-size: 14px;
-  color: #2c3e50;
-  background: linear-gradient(135deg, #e8f4f8 0%, #f0e6f6 50%, #fff5f8 100%);
+  color: #1a1a1a;
+  background: linear-gradient(135deg, #f5f7fa 0%, #f0f2f5 100%);
   background-attachment: fixed;
 }
 
@@ -25,24 +25,25 @@ body {
 
 /* 聊天头部 */
 .chat-header {
-  padding: 20px 24px;
-  border-bottom: 1px solid rgba(168, 192, 255, 0.15);
-  background: linear-gradient(135deg, #a8c0ff 0%, #b8d4ff 50%, #c8e0ff 100%);
-  box-shadow: 0 2px 12px rgba(168, 192, 255, 0.15);
+  padding: 24px 28px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .chat-header-top {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
 }
 
 .chat-header h1 {
-  font-size: 20px;
-  color: #fff;
-  font-weight: 700;
-  letter-spacing: -0.5px;
+  font-size: 22px;
+  color: #1a1a1a;
+  font-weight: 600;
+  letter-spacing: -0.3px;
 }
 
 /* 模式徽章 */
@@ -66,31 +67,31 @@ body {
 }
 
 .mode-badge.mode-context-self {
-  background: linear-gradient(135deg, #a8c0ff 0%, #b8d4ff 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #fff;
   border: none;
 }
 
 .mode-badge.mode-context-full {
-  background: linear-gradient(135deg, #ffb3d9 0%, #ffcce0 100%);
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
   color: #fff;
   border: none;
 }
 
 .mode-badge.mode-parallel {
-  background: linear-gradient(135deg, #b3e5fc 0%, #c5f1fa 100%);
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   color: #fff;
   border: none;
 }
 
 .mode-badge.mode-sequential {
-  background: linear-gradient(135deg, #c8e6c9 0%, #dcedc8 100%);
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
   color: #fff;
   border: none;
 }
 
 .mode-badge.mode-random {
-  background: linear-gradient(135deg, #ffccbc 0%, #ffebd4 100%);
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
   color: #fff;
   border: none;
 }
@@ -110,19 +111,19 @@ body {
 .role-tag {
   display: inline-block;
   padding: 6px 14px;
-  background: linear-gradient(135deg, #a8c0ff 0%, #b8d4ff 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #fff;
   border-radius: 20px;
   font-size: 12px;
   font-weight: 600;
   cursor: default;
-  box-shadow: 0 2px 8px rgba(168, 192, 255, 0.25);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.25);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .role-tag:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(168, 192, 255, 0.35);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
 }
 
 .role-tag.draggable {
@@ -149,20 +150,20 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: 24px;
-  background: linear-gradient(to bottom, #f8fbff 0%, #fcf8fb 100%);
+  background: #fafbfc;
 }
 
 .empty-messages {
   text-align: center;
   padding: 60px 20px;
-  color: #999;
+  color: #7a8a9a;
   font-size: 14px;
 }
 
 .error-message {
   text-align: center;
   padding: 60px 20px;
-  color: #ff5252;
+  color: #e53935;
   font-size: 14px;
 }
 
@@ -205,12 +206,12 @@ body {
 }
 
 .user-avatar {
-  background: linear-gradient(135deg, #a8c0ff 0%, #c8e0ff 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #fff;
 }
 
 .ai-avatar {
-  background: linear-gradient(135deg, #b3e5fc 0%, #d1ebff 100%);
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   color: #fff;
 }
 
@@ -221,7 +222,7 @@ body {
 
 .message-role {
   font-size: 12px;
-  color: #666;
+  color: #5a6a7a;
   margin-bottom: 4px;
   font-weight: 500;
   display: flex;
@@ -251,11 +252,12 @@ body {
 .message-text {
   padding: 14px 18px;
   background-color: #fff;
-  border-radius: 18px;
+  border-radius: 16px;
   line-height: 1.6;
   word-wrap: break-word;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #1a1a1a;
 }
 
 .user-message .message-content {
@@ -263,14 +265,14 @@ body {
 }
 
 .user-message .message-text {
-  background: linear-gradient(135deg, #a8c0ff 0%, #c8e0ff 100%);
+  background: linear-gradient(135deg, #4a90e2 0%, #5ba3f5 100%);
   color: #fff;
-  box-shadow: 0 3px 10px rgba(168, 192, 255, 0.25);
+  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.25);
 }
 
 .ai-message .message-text {
   background-color: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .message:hover .message-text {
@@ -287,30 +289,31 @@ body {
 /* 输入区域 */
 .input-container {
   padding: 20px 24px;
-  border-top: 1px solid rgba(168, 192, 255, 0.1);
-  background: linear-gradient(to top, #fff 0%, #f8fbff 100%);
-  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.03);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  background: #fff;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .input-container textarea {
   width: 100%;
   padding: 14px 16px;
-  border: 2px solid rgba(168, 192, 255, 0.2);
-  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
   font-size: 14px;
   font-family: inherit;
   resize: none;
   min-height: 70px;
   max-height: 140px;
-  background-color: #fff;
+  background-color: #fafbfc;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  color: #1a1a1a;
 }
 
 .input-container textarea:focus {
   outline: none;
-  border-color: #a8c0ff;
-  box-shadow: 0 4px 16px rgba(168, 192, 255, 0.15);
+  border-color: #4a90e2;
+  background-color: #fff;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
 }
 
 .input-actions {
@@ -331,14 +334,14 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #a8c0ff 0%, #c8e0ff 100%);
+  background: linear-gradient(135deg, #4a90e2 0%, #5ba3f5 100%);
   color: #fff;
-  box-shadow: 0 3px 10px rgba(168, 192, 255, 0.25);
+  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.25);
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 5px 16px rgba(168, 192, 255, 0.35);
+  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.35);
 }
 
 .btn-primary:active {

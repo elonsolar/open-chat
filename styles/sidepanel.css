@@ -7,9 +7,8 @@
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   font-size: 14px;
-  color: #2c3e50;
-  background: linear-gradient(135deg, #e8f4f8 0%, #f0e6f6 50%, #fff5f8 100%);
-  background-attachment: fixed;
+  color: #1a1a1a;
+  background: #f5f7fa;
 }
 
 .container {
@@ -23,18 +22,18 @@ body {
 
 /* 头部 */
 .header {
-  padding: 20px;
-  border-bottom: 1px solid rgba(168, 192, 255, 0.15);
-  background: linear-gradient(135deg, #a8c0ff 0%, #b8d4ff 50%, #c8e0ff 100%);
-  box-shadow: 0 2px 12px rgba(168, 192, 255, 0.15);
+  padding: 24px 20px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .header h1 {
-  font-size: 20px;
+  font-size: 22px;
   margin-bottom: 16px;
-  color: #fff;
-  font-weight: 700;
-  letter-spacing: -0.5px;
+  color: #1a1a1a;
+  font-weight: 600;
+  letter-spacing: -0.3px;
 }
 
 .tabs {
@@ -45,27 +44,26 @@ body {
 .tab {
   flex: 1;
   padding: 10px 14px;
-  border: none;
-  background-color: rgba(255, 255, 255, 0.2);
-  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background-color: transparent;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 13px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
+  font-weight: 500;
+  color: #5a6a7a;
 }
 
 .tab:hover {
-  background-color: rgba(255, 255, 255, 0.3);
-  color: rgba(255, 255, 255, 0.9);
-  transform: translateY(-1px);
+  background-color: #f5f7fa;
+  color: #1a1a1a;
 }
 
 .tab.active {
-  background: linear-gradient(135deg, #fff 0%, #f0f0f0 100%);
-  color: #a8c0ff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(135deg, #4a90e2 0%, #5ba3f5 100%);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.25);
 }
 
 /* 标签内容 */
@@ -99,14 +97,14 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #a8c0ff 0%, #c8e0ff 100%);
+  background: linear-gradient(135deg, #4a90e2 0%, #5ba3f5 100%);
   color: #fff;
-  box-shadow: 0 3px 10px rgba(168, 192, 255, 0.25);
+  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.25);
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 5px 16px rgba(168, 192, 255, 0.35);
+  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.35);
 }
 
 .btn-primary:active {
@@ -136,20 +134,20 @@ body {
 .role-item {
   padding: 14px 16px;
   margin-bottom: 10px;
-  background: linear-gradient(135deg, #f8fbff 0%, #fcf8fb 100%);
-  border-radius: 12px;
+  background: #fff;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid rgba(168, 192, 255, 0.1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
 .conversation-item:hover,
 .role-item:hover {
-  background: linear-gradient(135deg, #fff 0%, #f8fbff 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(168, 192, 255, 0.15);
-  border-color: rgba(168, 192, 255, 0.25);
+  background: #f8fafc;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-color: rgba(74, 144, 226, 0.2);
 }
 
 .conversation-header,
@@ -273,8 +271,8 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid rgba(168, 192, 255, 0.15);
-  background: linear-gradient(135deg, #a8c0ff 0%, #b8d4ff 50%, #c8e0ff 100%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background: linear-gradient(135deg, #4a90e2 0%, #5ba3f5 100%);
   border-radius: 20px 20px 0 0;
 }
 
@@ -332,21 +330,22 @@ body {
 .form-group textarea {
   width: 100%;
   padding: 10px 14px;
-  border: 2px solid rgba(168, 192, 255, 0.2);
-  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
   font-size: 13px;
   font-family: inherit;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  background-color: #f8fbff;
+  background-color: #fafbfc;
+  color: #1a1a1a;
 }
 
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #a8c0ff;
+  border-color: #4a90e2;
   background-color: #fff;
-  box-shadow: 0 4px 12px rgba(168, 192, 255, 0.15);
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
 }
 
 .form-group textarea {
