@@ -8,7 +8,7 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   font-size: 14px;
   color: #1a1a1a;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #e8f4f8 0%, #e3f2fd 100%);
   background-attachment: fixed;
 }
 
@@ -19,29 +19,28 @@ body {
   max-width: 1200px;
   margin: 0 auto;
   background-color: #fff;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
 }
 
 .chat-header {
-  padding: 28px 32px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 24px 28px;
+  background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
   border-bottom: none;
-  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 2px 12px rgba(33, 150, 243, 0.2);
 }
 
 .chat-header-top {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .chat-header h1 {
-  font-size: 26px;
+  font-size: 24px;
   color: #fff;
   font-weight: 700;
   letter-spacing: -0.5px;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .chat-container {
@@ -78,50 +77,43 @@ body {
 .mode-badge {
   display: inline-flex;
   align-items: center;
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 16px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease;
   user-select: none;
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .mode-badge:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
 }
 
 .mode-badge.mode-context-self {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #42a5f5 0%, #2196f3 100%);
   color: #fff;
-  border: none;
 }
 
 .mode-badge.mode-context-full {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 100%);
   color: #fff;
-  border: none;
 }
 
 .mode-badge.mode-parallel {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(135deg, #90caf9 0%, #64b5f6 100%);
   color: #fff;
-  border: none;
 }
 
 .mode-badge.mode-sequential {
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-  color: #fff;
-  border: none;
+  background: linear-gradient(135deg, #bbdefb 0%, #90caf9 100%);
+  color: #1976d2;
 }
 
 .mode-badge.mode-random {
-  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-  color: #fff;
-  border: none;
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  color: #1976d2;
 }
 
 .chat-info {
@@ -138,20 +130,20 @@ body {
 
 .role-tag {
   display: inline-block;
-  padding: 8px 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
   color: #fff;
-  border-radius: 20px;
-  font-size: 13px;
+  border-radius: 16px;
+  font-size: 12px;
   font-weight: 600;
   cursor: default;
-  box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 6px rgba(33, 150, 243, 0.25);
+  transition: all 0.2s ease;
 }
 
 .role-tag:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 16px rgba(102, 126, 234, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(33, 150, 243, 0.3);
 }
 
 .role-tag.draggable {
@@ -177,8 +169,8 @@ body {
 .messages-container {
   flex: 1;
   overflow-y: auto;
-  padding: 24px 28px;
-  background: linear-gradient(to bottom, #f8f9ff 0%, #f0f2ff 100%);
+  padding: 20px 24px;
+  background: #f5f7fa;
 }
 
 .empty-messages {
@@ -234,12 +226,12 @@ body {
 }
 
 .user-avatar {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
   color: #fff;
 }
 
 .ai-avatar {
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  background: linear-gradient(135deg, #42a5f5 0%, #2196f3 100%);
   color: #fff;
 }
 
@@ -278,13 +270,12 @@ body {
 }
 
 .message-text {
-  padding: 14px 18px;
+  padding: 12px 16px;
   background-color: #fff;
-  border-radius: 16px;
+  border-radius: 12px;
   line-height: 1.6;
   word-wrap: break-word;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   color: #1a1a1a;
 }
 
@@ -293,14 +284,14 @@ body {
 }
 
 .user-message .message-text {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
   color: #fff;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.25);
 }
 
 .ai-message .message-text {
   background-color: #fff;
-  border: 1px solid rgba(102, 126, 234, 0.1);
+  border: 1px solid #e0e0e0;
 }
 
 .message:hover .message-text {
@@ -316,31 +307,30 @@ body {
 
 /* 输入区域 */
 .input-container {
-  padding: 20px 28px;
-  border-top: 1px solid rgba(102, 126, 234, 0.1);
-  background: linear-gradient(to top, #fff 0%, #f8f9ff 100%);
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+  padding: 16px 24px;
+  border-top: 1px solid #e0e0e0;
+  background: #fff;
 }
 
 .input-container textarea {
   width: 100%;
-  padding: 14px 18px;
-  border: 2px solid rgba(102, 126, 234, 0.2);
-  border-radius: 12px;
+  padding: 12px 14px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
   font-size: 14px;
   font-family: inherit;
   resize: none;
   min-height: 70px;
   max-height: 140px;
-  background-color: #fff;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background-color: #fafafa;
+  transition: all 0.2s ease;
 }
 
 .input-container textarea:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
+  border-color: #2196f3;
+  background-color: #fff;
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
 }
 
 .input-actions {
@@ -361,14 +351,14 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
   color: #fff;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 2px 6px rgba(33, 150, 243, 0.25);
 }
 
 .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(33, 150, 243, 0.3);
 }
 
 .btn-primary:active {
@@ -387,8 +377,8 @@ body {
 
 /* 滚动条样式 */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -396,12 +386,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: #c1c1c1;
-  border-radius: 3px;
+  background-color: #bdbdbd;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: #a8a8a8;
+  background-color: #9e9e9e;
 }
 
 /* 响应式 */
@@ -482,18 +472,16 @@ body {
   display: flex;
   align-items: flex-start;
   padding: 14px 16px;
-  border: 2px solid rgba(102, 126, 234, 0.2);
-  border-radius: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease;
   background-color: #fff;
 }
 
 .mode-option:hover {
-  border-color: #667eea;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+  border-color: #2196f3;
+  background: #f5f7fa;
 }
 
 .mode-option input[type="radio"] {
@@ -564,13 +552,13 @@ body {
 }
 
 .command-suggestion-item:hover {
-  background-color: #f5f9ff;
+  background-color: #f5f7fa;
 }
 
 .command-name {
   font-size: 13px;
   font-weight: 600;
-  color: #667eea;
+  color: #2196f3;
   margin-bottom: 2px;
 }
 
@@ -606,9 +594,9 @@ body {
   color: #6b7280;
   margin-bottom: 16px;
   padding: 8px 12px;
-  background-color: #f8f9ff;
+  background-color: #f5f7fa;
   border-radius: 6px;
-  border: 1px solid rgba(102, 126, 234, 0.1);
+  border: 1px solid #e0e0e0;
 }
 
 .role-order-list {
@@ -625,10 +613,37 @@ body {
   gap: 12px;
   padding: 10px 12px;
   background-color: #fff;
-  border: 2px solid rgba(102, 126, 234, 0.2);
-  border-radius: 10px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
   cursor: move;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease;
+}
+
+.role-order-item:hover {
+  border-color: #2196f3;
+  background-color: #f5f7fa;
+}
+
+.role-order-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #2196f3;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.role-order-index {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2196f3;
+  min-width: 24px;
+  text-align: center;
 }
 
 .role-order-item:hover {
