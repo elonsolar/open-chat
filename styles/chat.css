@@ -7,9 +7,8 @@
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   font-size: 14px;
-  color: #1a1a1a;
-  background: linear-gradient(135deg, #f5f7fa 0%, #f0f2f5 100%);
-  background-attachment: fixed;
+  color: #1f2937;
+  background: #f9fafb;
 }
 
 .chat-container {
@@ -18,82 +17,71 @@ body {
   height: 100vh;
   max-width: 1200px;
   margin: 0 auto;
-  background-color: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  background-color: #fff;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.06);
 }
 
 /* 聊天头部 */
 .chat-header {
-  padding: 24px 28px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 20px 24px;
   background: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .chat-header-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   margin-bottom: 12px;
 }
 
 .chat-header h1 {
-  font-size: 22px;
-  color: #1a1a1a;
+  font-size: 20px;
+  color: #111827;
   font-weight: 600;
-  letter-spacing: -0.3px;
 }
 
 /* 模式徽章 */
 .mode-badge {
   display: inline-flex;
   align-items: center;
-  padding: 6px 14px;
-  border-radius: 20px;
+  padding: 4px 10px;
+  border-radius: 6px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease;
   user-select: none;
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .mode-badge:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  opacity: 0.85;
 }
 
 .mode-badge.mode-context-self {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #fff;
-  border: none;
+  background: #dbeafe;
+  color: #1e40af;
 }
 
 .mode-badge.mode-context-full {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  color: #fff;
-  border: none;
+  background: #fce7f3;
+  color: #9f1239;
 }
 
 .mode-badge.mode-parallel {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  color: #fff;
-  border: none;
+  background: #d1fae5;
+  color: #065f46;
 }
 
 .mode-badge.mode-sequential {
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-  color: #fff;
-  border: none;
+  background: #fef3c7;
+  color: #92400e;
 }
 
 .mode-badge.mode-random {
-  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-  color: #fff;
-  border: none;
+  background: #e0e7ff;
+  color: #3730a3;
 }
 
 .chat-info {
@@ -110,20 +98,18 @@ body {
 
 .role-tag {
   display: inline-block;
-  padding: 6px 14px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #fff;
-  border-radius: 20px;
+  padding: 4px 10px;
+  background: #f3f4f6;
+  color: #374151;
+  border-radius: 6px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: default;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.25);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease;
 }
 
 .role-tag:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+  background: #e5e7eb;
 }
 
 .role-tag.draggable {
@@ -149,8 +135,8 @@ body {
 .messages-container {
   flex: 1;
   overflow-y: auto;
-  padding: 24px;
-  background: #fafbfc;
+  padding: 20px 24px;
+  background: #f9fafb;
 }
 
 .empty-messages {
@@ -206,12 +192,12 @@ body {
 }
 
 .user-avatar {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #6366f1;
   color: #fff;
 }
 
 .ai-avatar {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: #8b5cf6;
   color: #fff;
 }
 
@@ -250,14 +236,13 @@ body {
 }
 
 .message-text {
-  padding: 14px 18px;
+  padding: 12px 16px;
   background-color: #fff;
-  border-radius: 16px;
+  border-radius: 12px;
   line-height: 1.6;
   word-wrap: break-word;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  color: #1a1a1a;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  color: #1f2937;
 }
 
 .user-message .message-content {
@@ -265,14 +250,13 @@ body {
 }
 
 .user-message .message-text {
-  background: linear-gradient(135deg, #4a90e2 0%, #5ba3f5 100%);
+  background: #6366f1;
   color: #fff;
-  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.25);
 }
 
 .ai-message .message-text {
   background-color: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
 }
 
 .message:hover .message-text {
@@ -288,32 +272,30 @@ body {
 
 /* 输入区域 */
 .input-container {
-  padding: 20px 24px;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 16px 24px;
+  border-top: 1px solid #e5e7eb;
   background: #fff;
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .input-container textarea {
   width: 100%;
-  padding: 14px 16px;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: 10px;
+  padding: 12px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
   font-size: 14px;
   font-family: inherit;
   resize: none;
   min-height: 70px;
   max-height: 140px;
-  background-color: #fafbfc;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  color: #1a1a1a;
+  background-color: #fff;
+  transition: all 0.2s ease;
+  color: #1f2937;
 }
 
 .input-container textarea:focus {
   outline: none;
-  border-color: #4a90e2;
-  background-color: #fff;
-  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 .input-actions {
@@ -334,14 +316,16 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #4a90e2 0%, #5ba3f5 100%);
+  background: #6366f1;
   color: #fff;
-  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.25);
 }
 
 .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.35);
+  background: #5558e3;
+}
+
+.btn-primary:active {
+  transform: translateY(0);
 }
 
 .btn-primary:active {
@@ -356,21 +340,21 @@ body {
 
 /* 滚动条样式 */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background-color: #f1f1f1;
+  background-color: #f3f4f6;
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: #c1c1c1;
-  border-radius: 3px;
+  background-color: #d1d5db;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: #a8a8a8;
+  background-color: #9ca3af;
 }
 
 /* 响应式 */
@@ -451,18 +435,16 @@ body {
   display: flex;
   align-items: flex-start;
   padding: 14px 16px;
-  border: 2px solid rgba(168, 192, 255, 0.2);
-  border-radius: 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease;
   background-color: #fff;
 }
 
 .mode-option:hover {
-  border-color: #a8c0ff;
-  background: linear-gradient(135deg, rgba(168, 192, 255, 0.08) 0%, rgba(200, 224, 255, 0.08) 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(168, 192, 255, 0.15);
+  border-color: #6366f1;
+  background: #f9fafb;
 }
 
 .mode-option input[type="radio"] {
@@ -533,13 +515,13 @@ body {
 }
 
 .command-suggestion-item:hover {
-  background-color: #f5f9ff;
+  background-color: #f9fafb;
 }
 
 .command-name {
   font-size: 13px;
   font-weight: 600;
-  color: #2196F3;
+  color: #6366f1;
   margin-bottom: 2px;
 }
 
@@ -572,10 +554,10 @@ body {
 /* 角色顺序选择器 */
 .order-hint {
   font-size: 12px;
-  color: #666;
+  color: #6b7280;
   margin-bottom: 16px;
   padding: 8px 12px;
-  background-color: #f5f5f5;
+  background-color: #f3f4f6;
   border-radius: 6px;
 }
 
@@ -593,15 +575,15 @@ body {
   gap: 12px;
   padding: 10px 12px;
   background-color: #fff;
-  border: 2px solid #e0e0e0;
+  border: 2px solid #e5e7eb;
   border-radius: 8px;
   cursor: move;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 
 .role-order-item:hover {
-  border-color: #2196F3;
-  background-color: #f5f9ff;
+  border-color: #6366f1;
+  background-color: #f9fafb;
 }
 
 .role-order-item.dragging {
@@ -620,7 +602,7 @@ body {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background-color: #4CAF50;
+  background-color: #6366f1;
   color: #fff;
   display: flex;
   align-items: center;
@@ -649,7 +631,7 @@ body {
 .role-order-index {
   font-size: 14px;
   font-weight: 600;
-  color: #2196F3;
+  color: #6366f1;
   min-width: 24px;
   text-align: center;
 }
