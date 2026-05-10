@@ -34,6 +34,13 @@ async function init() {
   // 绑定事件
   bindEvents();
 
+  // 监听存储变化（实时更新UI）
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === 'local' && changes.conversations) {
+      handleStorageChange(changes.conversations);
+    }
+  });
+
   // 渲染界面
   render();
 }
@@ -95,11 +102,7 @@ function bindEvents() {
   const modeBadge = document.getElementById('modeBadge');
   if (modeBadge) {
     modeBadge.addEventListener('click', () => {
-      if (state.conversation.contextMode === 'full') {
-        showModeSelector();
-      } else {
-        showError('/mode 命令仅在完整上下文模式下可用');
-      }
+      showModeSelector();
     });
   }
 
@@ -107,13 +110,31 @@ function bindEvents() {
   elements.rolesTags.addEventListener('click', (e) => {
     const tag = e.target.closest('.role-tag.draggable');
     if (tag) {
-      if (state.conversation.contextMode === 'full') {
-        showModeSelector(true);
-      } else {
-        showError('顺序调整仅在完整上下文模式下可用');
-      }
+      showModeSelector(true);
     }
   });
+}
+
+async function handleStorageChange(change) {
+  console.log('[Chat] 检测到存储变化');
+
+  const newConversations = change.newValue || [];
+  const updatedConversation = newConversations.find(c => c.id === conversationId);
+
+  if (updatedConversation) {
+    const oldMessageCount = state.conversation?.messages?.length || 0;
+    const newMessageCount = updatedConversation?.messages?.length || 0;
+
+    console.log(`[Chat] 消息数变化: ${oldMessageCount} → ${newMessageCount}`);
+
+    state.conversation = updatedConversation;
+    renderMessages();
+
+    if (newMessageCount > oldMessageCount) {
+      console.log(`[Chat] 新增了 ${newMessageCount - oldMessageCount} 条消息`);
+      scrollToBottom();
+    }
+  }
 }
 
 function bindRoleClickEvents() {
@@ -157,7 +178,7 @@ function renderRolesTags() {
     return;
   }
 
-  const hasOrdering = state.conversation.sendMode && state.conversation.sendMode !== 'parallel';
+  const hasOrdering = state.conversation.sendMode && state.conversation.sendMode === 'sequential';
 
   elements.rolesTags.innerHTML = state.conversation.roleIds.map(roleId => {
     const role = state.roles.find(r => r.id === roleId);
@@ -174,13 +195,33 @@ function renderModeBadge() {
   const badge = document.getElementById('modeBadge');
   if (!badge) return;
 
-  const mode = state.conversation.sendMode || 'parallel';
-  const modeNames = { parallel: '并行', sequential: '顺序接龙', random: '随机接龙' };
-  const modeLabels = { parallel: '并行模式', sequential: '顺序模式（角色接龙）', random: '随机模式（角色接龙）' };
+  const contextMode = state.conversation.contextMode || 'self';
+  const sendMode = state.conversation.sendMode || 'parallel';
+  
+  const contextModeNames = { self: '独享', full: '共享' };
+  const sendModeNames = { parallel: '并行', sequential: '顺序接龙', random: '随机接龙' };
+  
+  let badgeText, badgeClass, badgeTitle;
 
-  badge.className = 'mode-badge mode-' + mode;
-  badge.textContent = modeNames[mode] || '并行';
-  badge.title = '当前模式: ' + (modeLabels[mode] || '并行模式') + '\n点击切换';
+  if (contextMode === 'self') {
+    badgeText = contextModeNames[contextMode];
+    badgeClass = 'mode-badge mode-context-self';
+    badgeTitle = '当前模式: 独享模式\n每个AI独立对话，互不干扰\n点击切换';
+  } else {
+    badgeText = `${contextModeNames[contextMode]} · ${sendModeNames[sendMode]}`;
+    badgeClass = 'mode-badge mode-context-full mode-' + sendMode;
+    
+    const sendModeLabels = { 
+      parallel: '并行模式', 
+      sequential: '顺序模式（角色接龙）', 
+      random: '随机模式（角色接龙）' 
+    };
+    badgeTitle = `当前模式: 共享模式 · ${sendModeLabels[sendMode]}\n点击切换`;
+  }
+
+  badge.className = badgeClass;
+  badge.textContent = badgeText;
+  badge.title = badgeTitle;
 }
 
 function renderMessages() {
@@ -315,20 +356,20 @@ async function handleClearCommand() {
 }
 
 async function handleModeCommand() {
-  const contextMode = state.conversation.contextMode;
-  
-  if (contextMode !== 'full') {
-    showError('/mode 命令仅在完整上下文模式下可用');
-    return;
-  }
-  
   showModeSelector();
 }
 
 function showModeSelector(focusOrder) {
-  const currentMode = state.conversation.sendMode || 'parallel';
+  const currentContextMode = state.conversation.contextMode || 'self';
+  const currentSendMode = state.conversation.sendMode || 'parallel';
   const currentOrder = state.conversation.roleOrder || state.conversation.roleIds || [];
-  const modeNames = {
+  
+  const contextModeNames = {
+    self: '独享模式',
+    full: '共享模式'
+  };
+  
+  const sendModeNames = {
     parallel: '并行模式',
     sequential: '顺序模式',
     random: '随机模式'
@@ -339,33 +380,58 @@ function showModeSelector(focusOrder) {
   modal.innerHTML = `
     <div class="modal-overlay">
       <div class="modal-content">
-        <h2>选择发送模式</h2>
-        <div class="mode-options">
-          <label class="mode-option">
-            <input type="radio" name="sendMode" value="parallel" ${currentMode === 'parallel' ? 'checked' : ''}>
-            <div class="mode-info">
-              <div class="mode-name">并行模式</div>
-              <div class="mode-desc">所有角色同时收到消息并独立响应</div>
-            </div>
-          </label>
-          <label class="mode-option">
-            <input type="radio" name="sendMode" value="sequential" ${currentMode === 'sequential' ? 'checked' : ''}>
-            <div class="mode-info">
-              <div class="mode-name">顺序模式（角色接龙）</div>
-              <div class="mode-desc">按角色顺序依次发送，每个角色能看到之前角色的回复</div>
-            </div>
-          </label>
-          <label class="mode-option">
-            <input type="radio" name="sendMode" value="random" ${currentMode === 'random' ? 'checked' : ''}>
-            <div class="mode-info">
-              <div class="mode-name">随机模式（角色接龙）</div>
-              <div class="mode-desc">随机顺序依次发送，每个角色能看到之前角色的回复</div>
-            </div>
-          </label>
+        <h2>会话模式设置</h2>
+        
+        <div class="mode-section">
+          <h3>上下文模式</h3>
+          <div class="mode-options">
+            <label class="mode-option">
+              <input type="radio" name="contextMode" value="self" ${currentContextMode === 'self' ? 'checked' : ''}>
+              <div class="mode-info">
+                <div class="mode-name">独享模式</div>
+                <div class="mode-desc">每个AI独立对话，互不干扰，使用各自的会话URL</div>
+              </div>
+            </label>
+            <label class="mode-option">
+              <input type="radio" name="contextMode" value="full" ${currentContextMode === 'full' ? 'checked' : ''}>
+              <div class="mode-info">
+                <div class="mode-name">共享模式</div>
+                <div class="mode-desc">所有对话历史都发送给每个AI，每次打开新会话</div>
+              </div>
+            </label>
+          </div>
         </div>
+        
+        <div class="mode-section" id="sendModeSection">
+          <h3>发送模式</h3>
+          <div class="mode-options">
+            <label class="mode-option">
+              <input type="radio" name="sendMode" value="parallel" ${currentSendMode === 'parallel' ? 'checked' : ''}>
+              <div class="mode-info">
+                <div class="mode-name">并行模式</div>
+                <div class="mode-desc">所有角色同时收到消息并独立响应</div>
+              </div>
+            </label>
+            <label class="mode-option">
+              <input type="radio" name="sendMode" value="sequential" ${currentSendMode === 'sequential' ? 'checked' : ''}>
+              <div class="mode-info">
+                <div class="mode-name">顺序模式（角色接龙）</div>
+                <div class="mode-desc">按角色顺序依次发送，每个角色能看到之前角色的回复</div>
+              </div>
+            </label>
+            <label class="mode-option">
+              <input type="radio" name="sendMode" value="random" ${currentSendMode === 'random' ? 'checked' : ''}>
+              <div class="mode-info">
+                <div class="mode-name">随机模式（角色接龙）</div>
+                <div class="mode-desc">随机顺序依次发送，每个角色能看到之前角色的回复</div>
+              </div>
+            </label>
+          </div>
+        </div>
+        
         <div class="mode-order-section" id="modeOrderSection">
           <h3>角色顺序</h3>
-          <p class="mode-order-hint">拖动角色卡片调整顺序（用于顺序/随机模式）</p>
+          <p class="mode-order-hint">拖动角色卡片调整顺序（用于顺序模式）</p>
           <div class="role-order-list" id="modeRoleOrderList">
             ${currentOrder.map((roleId, index) => {
               const role = state.roles.find(r => r.id === roleId);
@@ -384,6 +450,7 @@ function showModeSelector(focusOrder) {
             }).join('')}
           </div>
         </div>
+        
         <div class="modal-actions">
           <button class="btn btn-secondary" id="cancelModeBtn">取消</button>
           <button class="btn btn-primary" id="saveModeBtn">保存</button>
@@ -394,10 +461,38 @@ function showModeSelector(focusOrder) {
 
   document.body.appendChild(modal);
 
-  // 拖拽排序
-  let draggedItem = null;
+  const contextModeRadios = modal.querySelectorAll('input[name="contextMode"]');
+  const sendModeRadios = modal.querySelectorAll('input[name="sendMode"]');
+  const sendModeSection = modal.querySelector('#sendModeSection');
+  const orderSection = modal.querySelector('#modeOrderSection');
   const orderList = modal.querySelector('#modeRoleOrderList');
 
+  function updateSectionVisibility() {
+    const selectedContextMode = modal.querySelector('input[name="contextMode"]:checked').value;
+    const selectedSendMode = modal.querySelector('input[name="sendMode"]:checked').value;
+    
+    if (selectedContextMode === 'self') {
+      sendModeSection.style.display = 'none';
+      orderSection.style.display = 'none';
+    } else {
+      sendModeSection.style.display = 'block';
+      if (selectedSendMode === 'sequential') {
+        orderSection.style.display = 'block';
+      } else {
+        orderSection.style.display = 'none';
+      }
+    }
+  }
+
+  contextModeRadios.forEach(radio => {
+    radio.addEventListener('change', updateSectionVisibility);
+  });
+
+  sendModeRadios.forEach(radio => {
+    radio.addEventListener('change', updateSectionVisibility);
+  });
+
+  let draggedItem = null;
   orderList.addEventListener('dragstart', (e) => {
     if (e.target.classList.contains('role-order-item')) {
       draggedItem = e.target;
@@ -425,32 +520,14 @@ function showModeSelector(focusOrder) {
     }
   });
 
-  // 模式切换时高亮排序区域
-  modal.querySelectorAll('input[name="sendMode"]').forEach(radio => {
-    radio.addEventListener('change', () => {
-      const section = modal.querySelector('#modeOrderSection');
-      if (section) {
-        if (radio.value === 'parallel') {
-          section.style.opacity = '0.4';
-          section.style.pointerEvents = 'none';
-        } else {
-          section.style.opacity = '1';
-          section.style.pointerEvents = '';
-        }
+  updateSectionVisibility();
+
+  if (focusOrder && currentContextMode === 'full') {
+    setTimeout(() => {
+      if (orderSection.style.display !== 'none') {
+        orderSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
-    });
-  });
-
-  // 初始化排序区域可见性
-  const initEvent = new Event('change');
-  modal.querySelector('input[name="sendMode"]:checked').dispatchEvent(initEvent);
-
-  // 如果是从角色标签打开的，滚动到排序区域
-  if (focusOrder) {
-    const section = modal.querySelector('#modeOrderSection');
-    if (section) {
-      setTimeout(() => section.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
-    }
+    }, 100);
   }
 
   document.getElementById('cancelModeBtn').addEventListener('click', () => {
@@ -458,25 +535,41 @@ function showModeSelector(focusOrder) {
   });
 
   document.getElementById('saveModeBtn').addEventListener('click', async () => {
-    const selectedMode = modal.querySelector('input[name="sendMode"]:checked').value;
+    const selectedContextMode = modal.querySelector('input[name="contextMode"]:checked').value;
+    const selectedSendMode = modal.querySelector('input[name="sendMode"]:checked').value;
     const items = orderList.querySelectorAll('.role-order-item');
     const newOrder = Array.from(items).map(item => item.getAttribute('data-role-id'));
+
+    const updates = {
+      contextMode: selectedContextMode
+    };
+
+    if (selectedContextMode === 'full') {
+      updates.sendMode = selectedSendMode;
+      if (selectedSendMode === 'sequential') {
+        updates.roleOrder = newOrder;
+      } else {
+        updates.roleOrder = null;
+      }
+    } else {
+      updates.sendMode = 'parallel';
+    }
 
     try {
       const updatedConversation = await chrome.runtime.sendMessage({
         action: 'updateConversation',
         conversationId,
-        updates: {
-          sendMode: selectedMode,
-          roleOrder: newOrder
-        }
+        updates
       });
 
       if (updatedConversation) {
         state.conversation = updatedConversation;
         render();
-        console.log('[Chat] 发送模式已更新为:', modeNames[selectedMode]);
-        console.log('[Chat] 角色顺序已更新:', newOrder);
+        console.log('[Chat] 上下文模式已更新为:', contextModeNames[selectedContextMode]);
+        if (selectedContextMode === 'full') {
+          console.log('[Chat] 发送模式已更新为:', sendModeNames[selectedSendMode]);
+          console.log('[Chat] 角色顺序已更新:', newOrder);
+        }
       }
 
       document.body.removeChild(modal);
@@ -623,7 +716,7 @@ function showError(message) {
 
 const availableCommands = [
   { name: '/clear', description: '清除所有会话内容和重置角色会话URL' },
-  { name: '/mode', description: '切换发送模式和调整角色顺序' }
+  { name: '/mode', description: '切换上下文模式和发送模式，调整角色顺序' }
 ];
 
 function showCommandSuggestions(filter = '') {

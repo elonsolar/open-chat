@@ -165,9 +165,9 @@ function renderConversations() {
 
     // 上下文模式标签
     const contextModeLabel = conv.contextMode === 'full'
-      ? '<span style="display: inline-block; padding: 2px 6px; background: #e3f2fd; color: #1976d2; border-radius: 4px; font-size: 10px; margin-left: 6px;">完整上下文</span>'
+      ? '<span style="display: inline-block; padding: 2px 6px; background: #e3f2fd; color: #1976d2; border-radius: 4px; font-size: 10px; margin-left: 6px;">共享</span>'
       : conv.contextMode
-        ? '<span style="display: inline-block; padding: 2px 6px; background: #e8f5e9; color: #2e7d32; border-radius: 4px; font-size: 10px; margin-left: 6px;">AI自保持</span>'
+        ? '<span style="display: inline-block; padding: 2px 6px; background: #e8f5e9; color: #2e7d32; border-radius: 4px; font-size: 10px; margin-left: 6px;">独享</span>'
         : '';
 
     return `
@@ -223,16 +223,6 @@ function renderRoles() {
       openai: 'ChatGPT'
     };
 
-    // 会话URL显示
-    let conversationUrlHtml = '';
-    if (role.conversationUrl) {
-      conversationUrlHtml = `<div class="conversation-url" title="${escapeHtml(role.conversationUrl)}">
-        <span style="display: inline-block; padding: 2px 6px; background: #f3e5f5; color: #7b1fa2; border-radius: 4px; font-size: 10px; margin-top: 6px;">
-          🔗 已绑定会话
-        </span>
-      </div>`;
-    }
-
     return `
       <div class="role-item" data-id="${role.id}">
         <div class="role-header">
@@ -246,7 +236,6 @@ function renderRoles() {
         <div class="role-info">
           <div>提供商: ${providerNames[role.provider] || role.provider}</div>
           <div>模型: ${escapeHtml(role.model)}</div>
-          ${conversationUrlHtml}
         </div>
       </div>
     `;

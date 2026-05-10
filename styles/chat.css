@@ -57,6 +57,18 @@ body {
   opacity: 0.8;
 }
 
+.mode-badge.mode-context-self {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #90caf9;
+}
+
+.mode-badge.mode-context-full {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #a5d6a7;
+}
+
 .mode-badge.mode-parallel {
   background-color: #e8f5e9;
   color: #2e7d32;
@@ -370,6 +382,17 @@ body {
   font-size: 18px;
   margin-bottom: 20px;
   color: #333;
+}
+
+.mode-section {
+  margin-bottom: 20px;
+}
+
+.mode-section h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
 }
 
 .mode-options {

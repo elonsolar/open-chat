@@ -25,7 +25,7 @@ class StorageManager {
     return result.settings || {
       wsUrl: 'ws://localhost:8080',
       wsEnabled: false,
-      contextMode: 'self', // 'self' = AI自保持, 'full' = 完整上下文
+      contextMode: 'self', // 'self' = 独享, 'full' = 共享
       floatWindow: true // 使用浮动窗口
     };
   }
@@ -73,15 +73,8 @@ class TabManager {
             await this.sleep(1000);
             return exactTab;
           } else {
-            console.log(`[TabManager] ⚠️ 未找到目标URL标签页，尝试查找任意${platform}标签页...`);
-            // 回退方案：查找该平台的任意标签页
-            const anyTab = await this.findPlatformTab(platform);
-            if (anyTab) {
-              console.log(`[TabManager] ✓ 找到${platform}标签页，导航到目标URL: ${targetUrl}`);
-              await chrome.tabs.update(anyTab.id, { url: targetUrl, active: false });
-              await this.waitForTabReady(anyTab.id);
-              return anyTab;
-            }
+            console.log(`[TabManager] ⚠️ 未找到目标URL标签页，将创建新标签页`);
+            // 不再回退到查找任意标签页，直接创建新标签页
           }
         } else {
           // 没有指定目标URL，查找该平台的任意标签页
@@ -351,12 +344,12 @@ class TabManager {
           }, 180000);
         });
 
-        // 在消息中包含messageId
-        message.messageId = messageId;
-
-        console.log(`[TabManager] 发送消息到content-script, messageId: ${messageId}`);
-        // 发送消息到content-script（会立刻返回）
-        await chrome.tabs.sendMessage(tab.id, message);
+        // 向content script发送消息
+        console.log(`[TabManager] 发送消息到标签页 ${tab.id}`);
+        await chrome.tabs.sendMessage(tab.id, {
+          ...message,
+          messageId: messageId
+        });
 
         console.log(`[TabManager] ⏳ 等待AI响应（messageId: ${messageId}）`);
 
@@ -450,6 +443,7 @@ class TabManager {
 class ConversationManager {
   constructor(tabManager) {
     this.tabManager = tabManager;
+    this.messageQueues = new Map(); // conversationId -> Promise
   }
 
   async createConversation(name, roleIds, contextMode = null) {
@@ -460,6 +454,7 @@ class ConversationManager {
       name: name || `会话 ${conversations.length + 1}`,
       roleIds: roleIds || [],
       contextMode: contextMode || null, // 会话级别的上下文模式
+      roleUrls: {}, // 会话级别的角色URL映射（每个会话独立）
       messages: [],
       createdAt: Date.now(),
       updatedAt: Date.now()
@@ -496,6 +491,7 @@ class ConversationManager {
 
     if (conversation) {
       conversation.messages = [];
+      conversation.roleUrls = {}; // 清空消息时也清空角色URL
       conversation.updatedAt = Date.now();
       await StorageManager.saveConversations(conversations);
       return conversation;
@@ -505,24 +501,40 @@ class ConversationManager {
   }
 
   async addMessage(conversationId, roleId, content, isUser = false) {
-    const conversations = await StorageManager.getConversations();
-    const conversation = conversations.find(c => c.id === conversationId);
+    const queueKey = conversationId;
 
-    if (conversation) {
-      const message = {
-        id: this.generateId(),
-        roleId,
-        content,
-        isUser,
-        timestamp: Date.now()
-      };
-
-      conversation.messages.push(message);
-      conversation.updatedAt = Date.now();
-
-      await StorageManager.saveConversations(conversations);
-      return message;
+    if (!this.messageQueues.has(queueKey)) {
+      this.messageQueues.set(queueKey, Promise.resolve());
     }
+
+    const queue = this.messageQueues.get(queueKey);
+
+    const newQueue = queue.then(async () => {
+      const conversations = await StorageManager.getConversations();
+      const conversation = conversations.find(c => c.id === conversationId);
+
+      if (conversation) {
+        const message = {
+          id: this.generateId(),
+          roleId,
+          content,
+          isUser,
+          timestamp: Date.now()
+        };
+
+        conversation.messages.push(message);
+        conversation.updatedAt = Date.now();
+
+        await StorageManager.saveConversations(conversations);
+        return message;
+      }
+
+      return null;
+    });
+
+    this.messageQueues.set(queueKey, newQueue);
+
+    return newQueue;
   }
 
   async getConversation(conversationId) {
@@ -620,7 +632,8 @@ class AIMessageManager {
     // 使用会话的发送模式，如果没有则使用默认并行模式
     const sendMode = conversation.sendMode || 'parallel';
 
-    console.log(`[AIMessageManager] 上下文模式: ${contextMode} (来源: ${conversation.contextMode ? '会话' : '全局设置'}), 浮动窗口: ${useFloatWindow}, 发送模式: ${sendMode}`);
+    const contextModeNames = { self: '独享', full: '共享' };
+    console.log(`[AIMessageManager] 上下文模式: ${contextModeNames[contextMode]} (${contextMode}) (来源: ${conversation.contextMode ? '会话' : '全局设置'}), 浮动窗口: ${useFloatWindow}, 发送模式: ${sendMode}`);
 
     // 如果使用浮动窗口，显示用户消息
     if (useFloatWindow) {
@@ -722,26 +735,36 @@ class AIMessageManager {
     try {
       console.log(`[AIMessageManager] ========== 发送到 ${role.provider} (${role.name}) ==========`);
       console.log(`[AIMessageManager] roleId: ${roleId}, provider: ${role.provider}`);
-      console.log(`[AIMessageManager] role.conversationUrl: ${role.conversationUrl || 'none'}`);
+      console.log(`[AIMessageManager] 会话ID: ${conversationId}`);
 
       let messageToSend = userMessage;
       let forceNewTab = false;
       let targetUrl = null;
 
-      if (contextMode === 'self' && role.conversationUrl) {
-        targetUrl = role.conversationUrl;
-        console.log(`[AIMessageManager] 使用保存的会话URL: ${targetUrl}`);
+      // 独享模式：优先使用会话中保存的URL
+      if (contextMode === 'self') {
+        if (conversation.roleUrls && conversation.roleUrls[roleId]) {
+          // 会话中已保存该角色的URL，使用它
+          targetUrl = conversation.roleUrls[roleId];
+          console.log(`[AIMessageManager] 独享模式：使用会话中保存的URL: ${targetUrl}`);
+        } else {
+          // 第一次给该角色发消息：强制打开新标签页
+          forceNewTab = true;
+          console.log(`[AIMessageManager] 独享模式：首次发送，强制打开新标签页`);
+        }
       }
 
+      // 共享模式：发送完整历史并打开新标签页
       if (contextMode === 'full') {
         messageToSend = this.formatConversationWithHistory(conversation, role.id, includeAllHistory, roles);
         forceNewTab = true;
+        console.log(`[AIMessageManager] 共享模式：发送完整历史 (${messageToSend.length} 字符)，强制打开新标签页`);
       }
 
       console.log(`[AIMessageManager] forceNewTab: ${forceNewTab}, targetUrl: ${targetUrl || 'none'}`);
       console.log(`[AIMessageManager] messageToSend 长度: ${messageToSend.length}`);
 
-      // 非完整上下文模式才单独添加systemPrompt（完整模式下已内嵌到格式中）
+      // 非共享模式才单独添加systemPrompt（共享模式下已内嵌到格式中）
       if (contextMode !== 'full' && role.systemPrompt) {
         messageToSend = `${role.systemPrompt}\n\n${messageToSend}`;
         console.log(`[AIMessageManager] 添加了systemPrompt，新长度: ${messageToSend.length}`);
@@ -758,14 +781,19 @@ class AIMessageManager {
       console.log(`[AIMessageManager] response.conversationUrl:`, response?.conversationUrl || 'none');
 
       if (response && response.success) {
-        // 每次都更新会话URL（支持用户手动切换会话的情况）
+        // 更新会话中保存的角色URL（每个会话独立）
         if (response.conversationUrl) {
-          if (role.conversationUrl !== response.conversationUrl) {
-            console.log(`[AIMessageManager] 💾 更新会话URL到角色 ${role.name}: ${response.conversationUrl}`);
-            role.conversationUrl = response.conversationUrl;
-            await StorageManager.saveRoles(roles);
+          if (!conversation.roleUrls) {
+            conversation.roleUrls = {};
+          }
+
+          const oldUrl = conversation.roleUrls[roleId];
+          if (oldUrl !== response.conversationUrl) {
+            console.log(`[AIMessageManager] 💾 更新会话 ${conversationId} 中角色 ${role.name} 的URL: ${response.conversationUrl}`);
+            conversation.roleUrls[roleId] = response.conversationUrl;
+            await this.conversationManager.updateConversation(conversationId, { roleUrls: conversation.roleUrls });
           } else {
-            console.log(`[AIMessageManager] ✓ 会话URL未变化，跳过更新: ${response.conversationUrl}`);
+            console.log(`[AIMessageManager] ✓ 会话中角色URL未变化，跳过更新: ${response.conversationUrl}`);
           }
         }
         console.log(`[AIMessageManager] 💾 保存 ${role.name} 的消息到conversation...`);
@@ -853,7 +881,7 @@ class AIMessageManager {
     }
   }
 
-  // 格式化对话历史（完整上下文模式）
+  // 格式化对话历史（共享模式）
   formatConversationWithHistory(conversation, roleId, includeAllHistory = false, roles = []) {
     const roleMessages = includeAllHistory
       ? conversation.messages
@@ -899,7 +927,7 @@ class AIMessageManager {
     }
   }
 
-  // 清除会话内容和重置角色URL
+  // 清除会话内容（包括消息和角色URL）
   async clearConversation(conversationId) {
     console.log('[AIMessageManager] ========== clearConversation ==========');
     console.log('[AIMessageManager] conversationId:', conversationId);
@@ -910,29 +938,11 @@ class AIMessageManager {
         throw new Error('会话不存在');
       }
 
-      console.log('[AIMessageManager] roleIds:', conversation.roleIds);
+      console.log('[AIMessageManager] 清除会话消息和角色URL（会话独立）');
 
-      // 重置所有关联角色的 conversationUrl
-      const roles = await StorageManager.getRoles();
-      let updatedRoles = false;
-
-      for (const roleId of conversation.roleIds) {
-        const role = roles.find(r => r.id === roleId);
-        if (role && role.conversationUrl) {
-          console.log(`[AIMessageManager] 重置角色 ${role.name} 的 conversationUrl`);
-          role.conversationUrl = null;
-          updatedRoles = true;
-        }
-      }
-
-      if (updatedRoles) {
-        await StorageManager.saveRoles(roles);
-        console.log('[AIMessageManager] 已保存角色更新');
-      }
-
-      // 清除会话的所有消息
+      // 清除会话的所有消息和角色URL（每个会话独立管理）
       const updatedConversation = await this.conversationManager.clearConversationMessages(conversationId);
-      console.log('[AIMessageManager] 已清除会话消息');
+      console.log('[AIMessageManager] 已清除会话消息和角色URL');
 
       return updatedConversation;
     } catch (error) {

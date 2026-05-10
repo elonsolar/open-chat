@@ -100,12 +100,12 @@
         <div class="form-group">
           <label for="contextMode">上下文模式</label>
           <select id="contextMode">
-            <option value="self">AI自保持（推荐）</option>
-            <option value="full">完整上下文</option>
+            <option value="self">独享（推荐）</option>
+            <option value="full">共享</option>
           </select>
           <small style="color: #666; font-size: 11px; display: block; margin-top: 4px;">
-            AI自保持：每个AI维护自己的上下文<br>
-            完整上下文：每次发送全部历史消息
+            独享：每个AI独立对话，互不干扰，使用各自的会话URL<br>
+            共享：所有对话历史都发送给每个AI，每次打开新会话
           </small>
         </div>
       </div>
