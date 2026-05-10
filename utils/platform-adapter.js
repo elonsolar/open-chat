@@ -165,7 +165,7 @@ class AIPlatformAdapter {
       // 取最后一个AI消息（最新的）
       const lastAIMessage = aiMessages[aiMessages.length - 1];
 
-        // DeepSeek特殊处理：只提取 ds-markdown 下的内容（真正的AI回复）
+      // DeepSeek特殊处理：只提取 ds-markdown 下的内容（真正的AI回复）
       if (this.platform === 'deepseek') {
         // 克隆节点以避免修改原始DOM
         const messageClone = lastAIMessage.cloneNode(true);
@@ -194,32 +194,50 @@ class AIPlatformAdapter {
           }
         }
 
-        // 提取所有 ds-markdown-paragraph 的内容
-        const paragraphs = markdownElement.querySelectorAll('p');
-        console.log(`[${this.platform}] 找到段落数: ${paragraphs.length}`);
+        // 优先使用 innerText 而不是只提取段落
+        // innerText 会包含所有文本内容，包括代码块、列表等
+        const allText = markdownElement.innerText || markdownElement.textContent;
 
-        if (paragraphs.length === 0) {
-          // 尝试获取 markdown 内的全部文本
-          const allText = markdownElement.innerText || markdownElement.textContent;
-          if (allText && allText.trim().length > 10) {
-            console.log(`[${this.platform}] 使用innerText备用方案`);
-            return { found: true, content: allText.trim() };
+        // 如果文本太短（比如只有"[Pasted ~3 lines]"），可能内容在其他元素中
+        if (!allText || allText.trim().length < 20) {
+          console.log(`[${this.platform}] innerText太短 (${allText?.length || 0}字符)，尝试备用方法`);
+
+          // 备用方法：提取所有段落
+          const paragraphs = markdownElement.querySelectorAll('p');
+          console.log(`[${this.platform}] 找到段落数: ${paragraphs.length}`);
+
+          if (paragraphs.length > 0) {
+            const paragraphText = Array.from(paragraphs)
+              .map(p => p.textContent?.trim())
+              .filter(text => text && text.length > 0)
+              .join('\n\n');
+
+            if (paragraphText.length > 10) {
+              console.log(`[${this.platform}] 使用段落提取，长度: ${paragraphText.length}`);
+              return { found: true, content: paragraphText };
+            }
           }
+
+          // 尝试查找所有可能的文本容器
+          const textContainers = markdownElement.querySelectorAll('div, pre, code, span');
+          let combinedText = '';
+          textContainers.forEach(container => {
+            const text = container.textContent?.trim();
+            if (text && text.length > 10 && !text.includes('[Pasted')) {
+              combinedText += (combinedText ? '\n\n' : '') + text;
+            }
+          });
+
+          if (combinedText.length > 10) {
+            console.log(`[${this.platform}] 使用容器提取，长度: ${combinedText.length}`);
+            return { found: true, content: combinedText };
+          }
+
           return { found: false, content: '' };
         }
 
-        // 合并所有段落
-        const text = Array.from(paragraphs)
-          .map(p => p.textContent?.trim())
-          .filter(text => text && text.length > 0)
-          .join('\n\n');
-
-        if (!text) {
-          return { found: false, content: '' };
-        }
-
-        console.log(`[${this.platform}] 提取了 ${paragraphs.length} 个段落，长度: ${text.length}`);
-        return { found: true, content: text };
+        console.log(`[${this.platform}] 使用innerText提取，长度: ${allText.trim().length}`);
+        return { found: true, content: allText.trim() };
       }
 
       // DeepSeek特殊处理：只提取 ds-markdown 下的内容（真正的AI回复）
