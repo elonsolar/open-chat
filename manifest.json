@@ -23,33 +23,23 @@
       "matches": [
         "https://chat.deepseek.com/*",
         "https://www.deepseek.com/*",
-        "https://deepseek.com/*"
-      ],
-      "js": ["utils/platform-adapter.js", "utils/content-script.js"],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": [
+        "https://deepseek.com/*",
         "https://www.doubao.com/*",
-        "https://doubao.com/*"
-      ],
-      "js": ["utils/platform-adapter.js", "utils/content-script.js"],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": [
+        "https://doubao.com/*",
         "https://www.qianwen.com/*",
-        "https://qianwen.com/*"
-      ],
-      "js": ["utils/platform-adapter.js", "utils/content-script.js"],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": [
+        "https://qianwen.com/*",
         "https://chatgpt.com/*",
         "https://chat.openai.com/*"
       ],
-      "js": ["utils/platform-adapter.js", "utils/content-script.js"],
+      "js": [
+        "utils/platforms/base-adapter.js",
+        "utils/platforms/deepseek-adapter.js",
+        "utils/platforms/doubao-adapter.js",
+        "utils/platforms/qianwen-adapter.js",
+        "utils/platforms/openai-adapter.js",
+        "utils/platform-adapter.js",
+        "utils/content-script.js"
+      ],
       "run_at": "document_idle"
     },
     {
@@ -71,6 +61,14 @@
   ],
   "side_panel": {
     "default_path": "sidepanel/sidepanel.html"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
   },
   "icons": {
     "16": "icons/icon16.png",

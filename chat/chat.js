@@ -6,7 +6,8 @@ const conversationId = urlParams.get('id');
 const state = {
   conversation: null,
   roles: [],
-  isLoading: false
+  isLoading: false,
+  isWaitingResponse: false
 };
 
 // DOM元素
@@ -52,6 +53,13 @@ function initElements() {
   elements.messageInput = document.getElementById('messageInput');
   elements.sendBtn = document.getElementById('sendBtn');
   elements.modeBadge = document.getElementById('modeBadge');
+
+  // 创建滚动到底部按钮
+  elements.scrollBottomBtn = document.createElement('button');
+  elements.scrollBottomBtn.className = 'scroll-bottom-btn';
+  elements.scrollBottomBtn.innerHTML = '↓';
+  elements.scrollBottomBtn.title = '滚动到底部';
+  elements.messagesContainer.appendChild(elements.scrollBottomBtn);
 }
 
 async function loadData() {
@@ -113,6 +121,19 @@ function bindEvents() {
       showModeSelector(true);
     }
   });
+
+  // 滚动到底部按钮
+  elements.scrollBottomBtn.addEventListener('click', () => {
+    scrollToBottom();
+    elements.scrollBottomBtn.classList.remove('visible');
+  });
+
+  // 监听消息容器滚动
+  elements.messagesContainer.addEventListener('scroll', () => {
+    const { scrollTop, scrollHeight, clientHeight } = elements.messagesContainer;
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+    elements.scrollBottomBtn.classList.toggle('visible', !isNearBottom);
+  });
 }
 
 async function handleStorageChange(change) {
@@ -172,6 +193,13 @@ function render() {
   renderMessages();
 }
 
+const providerColors = {
+  deepseek: '#4f46e5',
+  doubao: '#0891b2',
+  qianwen: '#7c3aed',
+  openai: '#059669'
+};
+
 function renderRolesTags() {
   if (!state.conversation.roleIds || state.conversation.roleIds.length === 0) {
     elements.rolesTags.innerHTML = '<span class="role-tag">未选择角色</span>';
@@ -184,8 +212,10 @@ function renderRolesTags() {
     const role = state.roles.find(r => r.id === roleId);
     if (!role) return '';
     const roleIndex = (state.conversation.roleOrder || state.conversation.roleIds).indexOf(roleId);
+    const color = providerColors[role.provider] || '#666';
     return `<span class="role-tag${hasOrdering ? ' draggable' : ''}" data-role-id="${roleId}" title="${hasOrdering ? '点击调整顺序' : ''}">
       ${hasOrdering ? `<span class="role-tag-drag-handle">#${roleIndex + 1}</span>` : ''}
+      <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};margin-right:2px;"></span>
       ${escapeHtml(role.name)}
     </span>`;
   }).join('');
@@ -226,7 +256,13 @@ function renderModeBadge() {
 
 function renderMessages() {
   if (!state.conversation.messages || state.conversation.messages.length === 0) {
-    elements.messagesContainer.innerHTML = '<div class="empty-messages">暂无消息，开始对话吧</div>';
+    elements.messagesContainer.innerHTML = `
+      <div class="empty-messages">
+        <div class="empty-messages-icon">💬</div>
+        <h2>开始对话</h2>
+        <p>在下方输入消息，所有角色将同时收到并回复</p>
+      </div>
+    `;
     return;
   }
 
@@ -250,14 +286,15 @@ function renderMessages() {
     } else {
       const clickableClass = provider ? 'clickable' : '';
       const providerAttr = provider ? `data-provider="${provider}"` : '';
+      const color = providerColors[provider] || '#666';
 
       return `
         <div class="message ai-message">
-          <div class="message-avatar ai-avatar ${clickableClass}" ${providerAttr}>${escapeHtml(displayName.charAt(0))}</div>
+          <div class="message-avatar ai-avatar ${clickableClass}" ${providerAttr} style="background:linear-gradient(135deg, ${color}, ${color}cc);">${escapeHtml(displayName.charAt(0))}</div>
           <div class="message-content">
             <div class="message-role ${clickableClass}" ${providerAttr}>
               ${escapeHtml(displayName)}
-              ${providerName ? `<span class="provider-badge">${escapeHtml(providerName)}</span>` : ''}
+              ${providerName ? `<span class="provider-badge" style="background:linear-gradient(135deg, ${color}, ${color}cc);">${escapeHtml(providerName)}</span>` : ''}
             </div>
             <div class="message-text">${formatMessage(msg.content)}</div>
             <div class="message-time">${formatTime(msg.timestamp)}</div>
@@ -289,16 +326,13 @@ async function sendMessage() {
 
   state.isLoading = true;
   elements.sendBtn.disabled = true;
-  elements.sendBtn.textContent = '发送中...';
+  elements.sendBtn.innerHTML = '<span style="opacity:0.7;">发送中…</span>';
 
   try {
-    // 显示用户消息（立即）
     addTempMessage(content, true);
-
-    // 清空输入框
     elements.messageInput.value = '';
+    showThinkingIndicator();
 
-    // 发送到后台处理
     const updatedConversation = await sendMessageToBackend(conversationId, content);
 
     if (updatedConversation) {
@@ -310,8 +344,33 @@ async function sendMessage() {
     showError('发送消息失败: ' + error.message);
   } finally {
     state.isLoading = false;
+    hideThinkingIndicator();
     elements.sendBtn.disabled = false;
     elements.sendBtn.textContent = '发送';
+    scrollToBottom();
+  }
+}
+
+function showThinkingIndicator() {
+  hideThinkingIndicator();
+  const indicator = document.createElement('div');
+  indicator.className = 'thinking-indicator';
+  indicator.id = 'thinking-indicator';
+  indicator.innerHTML = `
+    <div class="thinking-dots">
+      <div class="thinking-dot"></div>
+      <div class="thinking-dot"></div>
+      <div class="thinking-dot"></div>
+    </div>
+  `;
+  elements.messagesContainer.appendChild(indicator);
+  scrollToBottom();
+}
+
+function hideThinkingIndicator() {
+  const existing = document.getElementById('thinking-indicator');
+  if (existing) {
+    existing.remove();
   }
 }
 
@@ -433,15 +492,19 @@ function showModeSelector(focusOrder) {
             ${currentOrder.map((roleId, index) => {
               const role = state.roles.find(r => r.id === roleId);
               if (!role) return '';
+              const color = providerColors[role.provider] || '#667eea';
               return `
                 <div class="role-order-item" draggable="true" data-role-id="${roleId}">
                   <div class="role-order-handle">⋮⋮</div>
-                  <div class="role-order-avatar">${escapeHtml(role.name.charAt(0))}</div>
+                  <div class="role-order-avatar" style="background:linear-gradient(135deg, ${color}, ${color}cc);">${escapeHtml(role.name.charAt(0))}</div>
                   <div class="role-order-info">
                     <div class="role-order-name">${escapeHtml(role.name)}</div>
-                    <div class="role-order-provider">${getProviderDisplayName(role.provider)}</div>
+                    <div class="role-order-provider">
+                      <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${color};margin-right:4px;"></span>
+                      ${getProviderDisplayName(role.provider)}
+                    </div>
                   </div>
-                  <div class="role-order-index">${index + 1}</div>
+                  <div class="role-order-index" style="color:${color};">${index + 1}</div>
                 </div>
               `;
             }).join('')}
@@ -690,9 +753,9 @@ function formatMessage(content) {
     }
 
     // 添加代码块
-    const lang = match[1] || '';
+    const lang = match[1] || 'code';
     const code = match[2];
-    result.push(`<pre><code class="language-${lang}">${escapeHtml(code)}</code></pre>`);
+    result.push(`<pre data-lang="${escapeHtml(lang)}"><code class="language-${escapeHtml(lang)}">${escapeHtml(code)}</code></pre>`);
 
     lastIndex = match.index + match[0].length;
   }

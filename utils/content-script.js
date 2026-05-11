@@ -4,6 +4,36 @@
 let adapter = null;
 let currentPlatform = null;
 
+// 带重试的消息发送（解决background service worker休眠问题）
+async function sendAiResponseWithRetry(message, maxRetries = 3) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const result = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage(message, (response) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else {
+            resolve(response);
+          }
+        });
+        // 5秒超时
+        setTimeout(() => reject(new Error('sendMessage超时')), 5000);
+      });
+
+      console.log(`[AI Plugin] ✅ aiResponse已发送 (第${attempt}次尝试)`);
+      return result;
+    } catch (error) {
+      console.warn(`[AI Plugin] ⚠️ 第${attempt}次发送aiResponse失败:`, error.message);
+      if (attempt < maxRetries) {
+        // 等待后重试（唤醒service worker）
+        await new Promise(r => setTimeout(r, 1000 * attempt));
+      } else {
+        console.error(`[AI Plugin] ❌ 发送aiResponse最终失败，已重试${maxRetries}次`);
+      }
+    }
+  }
+}
+
 // 初始化
 function init() {
   console.log('[AI Plugin] ========== 开始初始化 ==========');
@@ -95,39 +125,27 @@ async function handleMessage(request, sender, sendResponse) {
         // 立刻返回"已接收"，避免超时
         sendResponse({ success: true, status: 'processing', messageId });
 
-        // 异步处理，完成后通知background
+        // 异步处理，完成后通知background（带重试）
         (async () => {
           try {
             const response = await adapter.sendMessage(request.content);
             console.log('[AI Plugin] ✅ 消息发送成功，通知background');
             console.log('[AI Plugin] 发送aiResponse, messageId:', messageId);
 
-            // 通过chrome.runtime通知background
-            chrome.runtime.sendMessage({
+            await sendAiResponseWithRetry({
               type: 'aiResponse',
               platform: currentPlatform,
               messageId: messageId,
               content: response
-            }, (response) => {
-              if (chrome.runtime.lastError) {
-                console.error('[AI Plugin] ❌ 发送aiResponse失败:', chrome.runtime.lastError);
-              } else {
-                console.log('[AI Plugin] ✅ aiResponse已发送，background确认收到');
-              }
             });
           } catch (error) {
             console.error('[AI Plugin] ❌ 消息发送失败:', error);
 
-            // 通知background错误
-            chrome.runtime.sendMessage({
+            await sendAiResponseWithRetry({
               type: 'aiResponse',
               platform: currentPlatform,
               messageId: messageId,
               error: error.message
-            }, (response) => {
-              if (chrome.runtime.lastError) {
-                console.error('[AI Plugin] ❌ 发送错误响应失败:', chrome.runtime.lastError);
-              }
             });
           }
         })();

@@ -188,7 +188,25 @@ class TabManager {
           break;
         }
       } catch (pingError) {
-        if (i < 4) {
+        if (i === 0) {
+          try {
+            await chrome.scripting.executeScript({
+              target: { tabId: tab.id },
+              files: [
+                'utils/platforms/base-adapter.js',
+                'utils/platforms/deepseek-adapter.js',
+                'utils/platforms/doubao-adapter.js',
+                'utils/platforms/qianwen-adapter.js',
+                'utils/platforms/openai-adapter.js',
+                'utils/platform-adapter.js',
+                'utils/content-script.js'
+              ]
+            });
+            await this.sleep(3000);
+          } catch (injectError) {
+            console.warn(`注入content script到${platform}失败:`, injectError.message);
+          }
+        } else {
           await this.sleep(2000);
         }
       }

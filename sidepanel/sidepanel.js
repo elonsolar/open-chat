@@ -161,23 +161,27 @@ function renderConversations() {
     }).join(', ');
 
     const lastMessage = conv.messages[conv.messages.length - 1];
-    const preview = lastMessage ? lastMessage.content.substring(0, 50) + '...' : '暂无消息';
+    const preview = lastMessage ? lastMessage.content.substring(0, 60) + '...' : '暂无消息';
+    const msgCount = conv.messages?.length || 0;
 
     // 上下文模式标签
     const contextModeLabel = conv.contextMode === 'full'
-      ? '<span style="display: inline-block; padding: 2px 6px; background: #e3f2fd; color: #1976d2; border-radius: 4px; font-size: 10px; margin-left: 6px;">共享</span>'
-      : conv.contextMode
-        ? '<span style="display: inline-block; padding: 2px 6px; background: #e8f5e9; color: #2e7d32; border-radius: 4px; font-size: 10px; margin-left: 6px;">独享</span>'
-        : '';
+      ? '<span class="conversation-mode-tag full">共享</span>'
+      : '<span class="conversation-mode-tag self">独享</span>';
 
     return `
       <div class="conversation-item" data-id="${conv.id}">
         <div class="conversation-header">
-          <h3>${escapeHtml(conv.name)}${contextModeLabel}</h3>
+          <h3>${escapeHtml(conv.name)}</h3>
           <div class="conversation-actions">
             <button class="edit-btn" data-id="${conv.id}">编辑</button>
             <button class="delete-btn" data-id="${conv.id}">&times;</button>
           </div>
+        </div>
+        <div class="conversation-meta">
+          ${contextModeLabel}
+          <span class="conversation-message-count">💬 ${msgCount}</span>
+          <span class="conversation-time">${formatTime(conv.updatedAt || conv.createdAt)}</span>
         </div>
         <div class="conversation-roles">角色: ${roles || '未选择'}</div>
         <div class="conversation-preview">${escapeHtml(preview)}</div>
@@ -223,19 +227,29 @@ function renderRoles() {
       openai: 'ChatGPT'
     };
 
+    const providerColors = {
+      deepseek: '#4f46e5',
+      doubao: '#0891b2',
+      qianwen: '#7c3aed',
+      openai: '#059669'
+    };
+
     return `
       <div class="role-item" data-id="${role.id}">
         <div class="role-header">
-          <h3>${escapeHtml(role.name)}</h3>
+          <h3>
+            <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:${providerColors[role.provider] || '#666'};color:#fff;font-size:12px;font-weight:700;margin-right:6px;flex-shrink:0;">${escapeHtml(role.name.charAt(0))}</span>
+            ${escapeHtml(role.name)}
+          </h3>
           <div class="role-actions">
-            <button class="edit-btn" data-id="${role.id}">编辑</button>
             <button class="test-btn" data-id="${role.id}" data-provider="${role.provider}">测试</button>
+            <button class="edit-btn" data-id="${role.id}">编辑</button>
             <button class="delete-btn" data-id="${role.id}">&times;</button>
           </div>
         </div>
         <div class="role-info">
-          <div>提供商: ${providerNames[role.provider] || role.provider}</div>
-          <div>模型: ${escapeHtml(role.model)}</div>
+          <div><span style="font-weight:500;color:#333;">提供商:</span> ${providerNames[role.provider] || role.provider}</div>
+          <div><span style="font-weight:500;color:#333;">模型:</span> ${escapeHtml(role.model)}</div>
         </div>
       </div>
     `;
