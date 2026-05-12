@@ -126,14 +126,88 @@ class DoubaoAdapter extends BasePlatformAdapter {
       const codeText = (codeEl || block).textContent?.trim() || '';
 
       if (codeText.length > 0) {
-        const markdownCode = document.createTextNode(`\n\`\`\`${lang}\n${codeText}\n\`\`\`\n`);
-        block.replaceWith(markdownCode);
+        const markdownCode = `\`\`\`${lang}\n${codeText}\n\`\`\``;
+        block.replaceWith(document.createTextNode(markdownCode));
       } else {
         block.remove();
       }
     });
 
     return clonedElement;
+  }
+
+  extractTextWithNewlines(node) {
+    const blockTags = new Set(['P', 'DIV', 'BR', 'LI', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'PRE', 'BLOCKQUOTE', 'UL', 'OL']);
+    const headingTags = { 'H1': '# ', 'H2': '## ', 'H3': '### ', 'H4': '#### ', 'H5': '##### ', 'H6': '###### ' };
+    let result = '';
+
+    const extractTable = (tableNode) => {
+      const rows = [];
+      const tableRows = tableNode.querySelectorAll('tr');
+      tableRows.forEach(tr => {
+        const cells = [];
+        tr.querySelectorAll('th, td').forEach(cell => {
+          cells.push(cell.textContent.trim().replace(/\|/g, '\\|'));
+        });
+        rows.push(cells);
+      });
+
+      if (rows.length === 0) return '';
+
+      const maxCols = Math.max(...rows.map(r => r.length));
+      let table = '\n';
+
+      rows.forEach((row, i) => {
+        while (row.length < maxCols) row.push('');
+        table += '| ' + row.join(' | ') + ' |\n';
+        if (i === 0) {
+          table += '| ' + row.map(() => '---').join(' | ') + ' |\n';
+        }
+      });
+
+      return table + '\n';
+    };
+
+    const walk = (node, inBlock) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        result += node.textContent;
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const isBlock = blockTags.has(node.tagName);
+        const isHeading = headingTags[node.tagName];
+
+        if (node.tagName === 'BR') {
+          result += '\n';
+        } else if (node.tagName === 'TABLE') {
+          result += extractTable(node);
+        } else if (isHeading) {
+          if (result.length > 0 && !result.endsWith('\n')) {
+            result += '\n';
+          }
+          result += isHeading;
+          for (let child of node.childNodes) {
+            walk(child, true);
+          }
+          if (!result.endsWith('\n')) {
+            result += '\n';
+          }
+        } else {
+          if (isBlock && inBlock && result.length > 0 && !result.endsWith('\n')) {
+            result += '\n';
+          }
+
+          for (let child of node.childNodes) {
+            walk(child, isBlock || inBlock);
+          }
+
+          if (isBlock && !result.endsWith('\n')) {
+            result += '\n';
+          }
+        }
+      }
+    };
+
+    walk(node, false);
+    return result;
   }
 
   async waitForAIResponse() {
@@ -161,10 +235,10 @@ class DoubaoAdapter extends BasePlatformAdapter {
         const buttons = formattedElement.querySelectorAll('button');
         buttons.forEach(btn => btn.remove());
 
-        // 获取纯文本内容
-        let rawText = (formattedElement.innerText || formattedElement.textContent || '').trim();
+        // 使用改进的文本提取函数
+        let rawText = this.extractTextWithNewlines(formattedElement).trim();
 
-        if (!rawText || rawText.length < 5) return null;
+        if (!rawText || rawText.length < 10) return null;
 
         // 检查是否包含结束标记
         const hasEndMarker = rawText.includes('[[<<>>]]');
