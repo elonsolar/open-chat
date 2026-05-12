@@ -47,6 +47,20 @@ const PROVIDERS = {
       'https://chatgpt.com/*',
       'https://chat.openai.com/*'
     ]
+  },
+  kimi: {
+    id: 'kimi',
+    name: 'Kimi',
+    baseUrl: 'https://kimi.moonshot.cn/',
+    domain: 'moonshot.cn',
+    defaultModel: 'kimi-chat',
+    color: '#6366f1',
+    urlPatterns: [
+      'https://kimi.moonshot.cn/*',
+      'https://www.kimi.moonshot.cn/*',
+      'https://www.kimi.com/*',
+      'https://kimi.com/*'
+    ]
   }
 };
 
