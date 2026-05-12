@@ -731,21 +731,27 @@ function escapeHtml(text) {
 function formatMessage(content) {
   if (!content) return '';
 
-  // 使用 marked.js 渲染 markdown
+  // 检查是否是 HTML（包含 HTML 标签）
+  const isHtml = /<[a-z][\s\S]*>/i.test(content);
+  
+  if (isHtml) {
+    // 直接返回 HTML，但做一些清理
+    return content;
+  }
+
+  // 如果是 markdown，使用 marked.js 渲染
   if (typeof marked !== 'undefined' && marked.parse) {
     try {
-      // 配置 marked
       marked.setOptions({
-        breaks: true,  // 支持换行符
-        gfm: true,     // 支持 GitHub Flavored Markdown
+        breaks: true,
+        gfm: true,
         headerIds: false,
         mangle: false
       });
       
-      const html = marked.parse(content);
-      return html;
+      return marked.parse(content);
     } catch (error) {
-      console.warn('[Chat] marked.js 渲染失败，使用简单格式化:', error);
+      console.warn('[Chat] marked.js 渲染失败:', error);
     }
   }
 

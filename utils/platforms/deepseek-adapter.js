@@ -118,46 +118,24 @@ class DeepSeekAdapter extends BasePlatformAdapter {
         const mainContent = lastMessage.querySelector('.ds-assistant-message-main-content');
         if (!mainContent) return null;
 
-        const clonedContent = mainContent.cloneNode(true);
+        // 直接使用 HTML，保留原始格式
+        let rawHtml = mainContent.innerHTML;
         
-        // 使用 Turndown 将 HTML 转换为 markdown
-        try {
-          const turndownService = new TurndownService({
-            headingStyle: 'atx',
-            codeBlockStyle: 'fenced',
-            fence: '```',
-            bulletListMarker: '-',
-            emDelimiter: '*',
-            strongDelimiter: '**'
-          });
-          
-          // 添加代码块规则
-          turndownService.addRule('codeBlock', {
-            filter: function (node) {
-              return node.nodeName === 'PRE' && node.querySelector('code');
-            },
-            replacement: function (content, node) {
-              const code = node.querySelector('code');
-              const lang = (code.className || '').match(/language-(\w+)/)?.[1] || '';
-              return `\n\n\`\`\`${lang}\n${code.textContent.trim()}\n\`\`\`\n\n`;
-            }
-          });
-          
-          const markdown = turndownService.turndown(clonedContent);
-          
-          if (!markdown || markdown.length < 10) return null;
+        if (!rawHtml || rawHtml.length < 50) return null;
 
-          const thinkKeywords = ['思考中', 'Thinking', '正在思考', '思考内容'];
-          const hasThinkKeyword = thinkKeywords.some(keyword => markdown.includes(keyword));
-          if (hasThinkKeyword) return null;
+        const thinkKeywords = ['思考中', 'Thinking', '正在思考', '思考内容'];
+        const hasThinkKeyword = thinkKeywords.some(keyword => rawHtml.includes(keyword));
+        if (hasThinkKeyword) return null;
 
-          return markdown;
-        } catch (error) {
-          console.error(`[${this.platform}] Turndown 转换失败:`, error);
-          // 降级到简单文本提取
-          const simpleText = clonedContent.textContent?.trim() || '';
-          return simpleText.length > 10 ? simpleText : null;
-        }
+        // 清理 HTML，移除 DeepSeek 特定的类名和属性
+        rawHtml = rawHtml
+          .replace(/class="[^"]*"/g, '')  // 移除 class 属性
+          .replace(/<span\s*>/g, '')       // 移除空 span 标签
+          .replace(/<\/span>/g, '')
+          .replace(/\s+/g, ' ')           // 压缩空白
+          .trim();
+
+        return rawHtml;
       };
 
       const cleanup = (content) => {
