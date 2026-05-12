@@ -175,14 +175,6 @@ class QianwenAdapter extends BasePlatformAdapter {
           }
         });
 
-        // 在每个段落后添加换行符
-        const paragraphs = clone.querySelectorAll('.qk-md-paragraph');
-        paragraphs.forEach((p, index) => {
-          if (index < paragraphs.length - 1) {
-            p.appendChild(document.createTextNode('\n\n'));
-          }
-        });
-
         const removeSelectors = [
           '[class*="video-note"]',
           '[class*="card_video"]',
@@ -196,7 +188,81 @@ class QianwenAdapter extends BasePlatformAdapter {
           clone.querySelectorAll(sel).forEach(el => el.remove());
         });
 
-        let rawText = (clone.innerText || clone.textContent || '').trim();
+        const extractTextWithNewlines = (node) => {
+          const blockTags = new Set(['P', 'DIV', 'BR', 'LI', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'PRE', 'BLOCKQUOTE', 'UL', 'OL', 'TD', 'TH']);
+          const headingTags = { 'H1': '# ', 'H2': '## ', 'H3': '### ', 'H4': '#### ', 'H5': '##### ', 'H6': '###### ' };
+          let result = '';
+          
+          const extractTable = (tableNode) => {
+            const rows = [];
+            const tableRows = tableNode.querySelectorAll('tr');
+            tableRows.forEach(tr => {
+              const cells = [];
+              tr.querySelectorAll('th, td').forEach(cell => {
+                cells.push(cell.textContent.trim().replace(/\|/g, '\\|'));
+              });
+              rows.push(cells);
+            });
+            
+            if (rows.length === 0) return '';
+            
+            const maxCols = Math.max(...rows.map(r => r.length));
+            let table = '\n';
+            
+            rows.forEach((row, i) => {
+              while (row.length < maxCols) row.push('');
+              table += '| ' + row.join(' | ') + ' |\n';
+              if (i === 0) {
+                table += '| ' + row.map(() => '---').join(' | ') + ' |\n';
+              }
+            });
+            
+            return table + '\n';
+          };
+          
+          const walk = (node, inBlock) => {
+            if (node.nodeType === Node.TEXT_NODE) {
+              result += node.textContent;
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+              const isBlock = blockTags.has(node.tagName);
+              const isHeading = headingTags[node.tagName];
+              
+              if (node.tagName === 'BR') {
+                result += '\n';
+              } else if (node.tagName === 'TABLE') {
+                result += extractTable(node);
+              } else if (isHeading) {
+                if (result.length > 0 && !result.endsWith('\n')) {
+                  result += '\n';
+                }
+                result += isHeading;
+                for (let child of node.childNodes) {
+                  walk(child, true);
+                }
+                if (!result.endsWith('\n')) {
+                  result += '\n';
+                }
+              } else {
+                if (isBlock && inBlock && result.length > 0 && !result.endsWith('\n')) {
+                  result += '\n';
+                }
+                
+                for (let child of node.childNodes) {
+                  walk(child, isBlock || inBlock);
+                }
+                
+                if (isBlock && !result.endsWith('\n')) {
+                  result += '\n';
+                }
+              }
+            }
+          };
+          
+          walk(node, false);
+          return result;
+        };
+
+        let rawText = extractTextWithNewlines(clone).trim();
 
         if (!rawText || rawText.length < 10) return null;
 
