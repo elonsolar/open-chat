@@ -731,35 +731,6 @@ function escapeHtml(text) {
 function formatMessage(content) {
   if (!content) return '';
 
-  // 检查是否是 HTML（包含 HTML 标签）
-  const isHtml = /<[a-z][\s\S]*>/i.test(content);
-  
-  if (isHtml) {
-    // 直接返回 HTML，但做一些清理
-    return content;
-  }
-
-  // 如果是 markdown，使用 marked.js 渲染
-  if (typeof marked !== 'undefined' && marked.parse) {
-    try {
-      marked.setOptions({
-        breaks: true,
-        gfm: true,
-        headerIds: false,
-        mangle: false
-      });
-      
-      return marked.parse(content);
-    } catch (error) {
-      console.warn('[Chat] marked.js 渲染失败:', error);
-    }
-  }
-
-  // 降级到简单格式化
-  return formatSimpleMarkdown(content);
-}
-
-function formatSimpleMarkdown(content) {
   // 先处理代码块，避免内部被处理
   const codeBlocks = [];
   const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/g;

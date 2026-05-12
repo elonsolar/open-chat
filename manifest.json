@@ -36,7 +36,6 @@
         "https://kimi.com/*"
       ],
       "js": [
-        "libs/turndown.min.js",
         "utils/platforms/base-adapter.js",
         "utils/platforms/deepseek-adapter.js",
         "utils/platforms/doubao-adapter.js",
@@ -86,7 +85,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["libs/marked.min.js", "libs/turndown.min.js"],
+      "resources": ["libs/marked.min.js"],
       "matches": ["<all_urls>"]
     }
   ]

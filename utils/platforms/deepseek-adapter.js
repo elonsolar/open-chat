@@ -118,24 +118,110 @@ class DeepSeekAdapter extends BasePlatformAdapter {
         const mainContent = lastMessage.querySelector('.ds-assistant-message-main-content');
         if (!mainContent) return null;
 
-        // 直接使用 HTML，保留原始格式
-        let rawHtml = mainContent.innerHTML;
+        const clonedContent = mainContent.cloneNode(true);
+        const codeBlocks = clonedContent.querySelectorAll('.md-code-block');
         
-        if (!rawHtml || rawHtml.length < 50) return null;
+        codeBlocks.forEach(block => {
+          const pre = block.querySelector('pre');
+          const codeEl = pre?.querySelector('code');
+          const codeText = (codeEl || pre)?.textContent?.trim() || '';
+          
+          if (codeText.length > 0) {
+            let lang = '';
+            if (codeEl) {
+              const langMatch = (codeEl.className || '').match(/language-(\w+)/);
+              lang = langMatch ? langMatch[1] : '';
+            }
+            const markdownCode = `\`\`\`${lang}\n${codeText}\n\`\`\``;
+            block.replaceWith(document.createTextNode(markdownCode));
+          } else {
+            block.remove();
+          }
+        });
+
+        const extractTextWithNewlines = (node) => {
+          const blockTags = new Set(['P', 'DIV', 'BR', 'LI', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'PRE', 'BLOCKQUOTE', 'UL', 'OL']);
+          const headingTags = { 'H1': '# ', 'H2': '## ', 'H3': '### ', 'H4': '#### ', 'H5': '##### ', 'H6': '###### ' };
+          let result = '';
+          
+          const extractTable = (tableNode) => {
+            const rows = [];
+            const tableRows = tableNode.querySelectorAll('tr');
+            tableRows.forEach(tr => {
+              const cells = [];
+              tr.querySelectorAll('th, td').forEach(cell => {
+                cells.push(cell.textContent.trim().replace(/\|/g, '\\|'));
+              });
+              rows.push(cells);
+            });
+            
+            if (rows.length === 0) return '';
+            
+            const maxCols = Math.max(...rows.map(r => r.length));
+            let table = '\n';
+            
+            rows.forEach((row, i) => {
+              while (row.length < maxCols) row.push('');
+              table += '| ' + row.join(' | ') + ' |\n';
+              if (i === 0) {
+                table += '| ' + row.map(() => '---').join(' | ') + ' |\n';
+              }
+            });
+            
+            return table + '\n';
+          };
+          
+          const walk = (node, inBlock) => {
+            if (node.nodeType === Node.TEXT_NODE) {
+              result += node.textContent;
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+              const isBlock = blockTags.has(node.tagName);
+              const isHeading = headingTags[node.tagName];
+              
+              if (node.tagName === 'BR') {
+                result += '\n';
+              } else if (node.tagName === 'TABLE') {
+                result += extractTable(node);
+              } else if (isHeading) {
+                if (result.length > 0 && !result.endsWith('\n')) {
+                  result += '\n';
+                }
+                result += isHeading;
+                for (let child of node.childNodes) {
+                  walk(child, true);
+                }
+                if (!result.endsWith('\n')) {
+                  result += '\n';
+                }
+              } else {
+                if (isBlock && inBlock && result.length > 0 && !result.endsWith('\n')) {
+                  result += '\n';
+                }
+                
+                for (let child of node.childNodes) {
+                  walk(child, isBlock || inBlock);
+                }
+                
+                if (isBlock && !result.endsWith('\n')) {
+                  result += '\n';
+                }
+              }
+            }
+          };
+          
+          walk(node, false);
+          return result;
+        };
+
+        let rawText = extractTextWithNewlines(clonedContent).trim();
+
+        if (!rawText || rawText.length < 10) return null;
 
         const thinkKeywords = ['思考中', 'Thinking', '正在思考', '思考内容'];
-        const hasThinkKeyword = thinkKeywords.some(keyword => rawHtml.includes(keyword));
+        const hasThinkKeyword = thinkKeywords.some(keyword => rawText.includes(keyword));
         if (hasThinkKeyword) return null;
 
-        // 清理 HTML，移除 DeepSeek 特定的类名和属性
-        rawHtml = rawHtml
-          .replace(/class="[^"]*"/g, '')  // 移除 class 属性
-          .replace(/<span\s*>/g, '')       // 移除空 span 标签
-          .replace(/<\/span>/g, '')
-          .replace(/\s+/g, ' ')           // 压缩空白
-          .trim();
-
-        return rawHtml;
+        return rawText;
       };
 
       const cleanup = (content) => {
@@ -183,7 +269,6 @@ class DeepSeekAdapter extends BasePlatformAdapter {
       }, 180000);
     });
   }
-
 }
 
 window.DeepSeekAdapter = DeepSeekAdapter;
