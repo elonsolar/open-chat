@@ -731,6 +731,29 @@ function escapeHtml(text) {
 function formatMessage(content) {
   if (!content) return '';
 
+  // 使用 marked.js 渲染 markdown
+  if (typeof marked !== 'undefined' && marked.parse) {
+    try {
+      // 配置 marked
+      marked.setOptions({
+        breaks: true,  // 支持换行符
+        gfm: true,     // 支持 GitHub Flavored Markdown
+        headerIds: false,
+        mangle: false
+      });
+      
+      const html = marked.parse(content);
+      return html;
+    } catch (error) {
+      console.warn('[Chat] marked.js 渲染失败，使用简单格式化:', error);
+    }
+  }
+
+  // 降级到简单格式化
+  return formatSimpleMarkdown(content);
+}
+
+function formatSimpleMarkdown(content) {
   // 先处理代码块，避免内部被处理
   const codeBlocks = [];
   const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/g;

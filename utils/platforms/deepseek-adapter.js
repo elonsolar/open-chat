@@ -102,6 +102,9 @@ class DeepSeekAdapter extends BasePlatformAdapter {
   async waitForAIResponse() {
     console.log(`[${this.platform}] ========== 开始等待 AI 回复 ==========`);
 
+    // 加载 Turndown 库
+    await this.loadTurndown();
+
     return new Promise((resolve, reject) => {
       const startTime = Date.now();
       let lastContent = '';
@@ -119,109 +122,45 @@ class DeepSeekAdapter extends BasePlatformAdapter {
         if (!mainContent) return null;
 
         const clonedContent = mainContent.cloneNode(true);
-        const codeBlocks = clonedContent.querySelectorAll('.md-code-block');
         
-        codeBlocks.forEach(block => {
-          const pre = block.querySelector('pre');
-          const codeEl = pre?.querySelector('code');
-          const codeText = (codeEl || pre)?.textContent?.trim() || '';
+        // 使用 Turndown 将 HTML 转换为 markdown
+        try {
+          const turndownService = new TurndownService({
+            headingStyle: 'atx',
+            codeBlockStyle: 'fenced',
+            fence: '```',
+            bulletListMarker: '-',
+            emDelimiter: '*',
+            strongDelimiter: '**'
+          });
           
-          if (codeText.length > 0) {
-            let lang = '';
-            if (codeEl) {
-              const langMatch = (codeEl.className || '').match(/language-(\w+)/);
-              lang = langMatch ? langMatch[1] : '';
+          // 添加代码块规则
+          turndownService.addRule('codeBlock', {
+            filter: function (node) {
+              return node.nodeName === 'PRE' && node.querySelector('code');
+            },
+            replacement: function (content, node) {
+              const code = node.querySelector('code');
+              const lang = (code.className || '').match(/language-(\w+)/)?.[1] || '';
+              return `\n\n\`\`\`${lang}\n${code.textContent.trim()}\n\`\`\`\n\n`;
             }
-            const markdownCode = `\`\`\`${lang}\n${codeText}\n\`\`\``;
-            block.replaceWith(document.createTextNode(markdownCode));
-          } else {
-            block.remove();
-          }
-        });
-
-        const extractTextWithNewlines = (node) => {
-          const blockTags = new Set(['P', 'DIV', 'BR', 'LI', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'PRE', 'BLOCKQUOTE', 'UL', 'OL']);
-          const headingTags = { 'H1': '# ', 'H2': '## ', 'H3': '### ', 'H4': '#### ', 'H5': '##### ', 'H6': '###### ' };
-          let result = '';
+          });
           
-          const extractTable = (tableNode) => {
-            const rows = [];
-            const tableRows = tableNode.querySelectorAll('tr');
-            tableRows.forEach(tr => {
-              const cells = [];
-              tr.querySelectorAll('th, td').forEach(cell => {
-                cells.push(cell.textContent.trim().replace(/\|/g, '\\|'));
-              });
-              rows.push(cells);
-            });
-            
-            if (rows.length === 0) return '';
-            
-            const maxCols = Math.max(...rows.map(r => r.length));
-            let table = '\n';
-            
-            rows.forEach((row, i) => {
-              while (row.length < maxCols) row.push('');
-              table += '| ' + row.join(' | ') + ' |\n';
-              if (i === 0) {
-                table += '| ' + row.map(() => '---').join(' | ') + ' |\n';
-              }
-            });
-            
-            return table + '\n';
-          };
+          const markdown = turndownService.turndown(clonedContent);
           
-          const walk = (node, inBlock) => {
-            if (node.nodeType === Node.TEXT_NODE) {
-              result += node.textContent;
-            } else if (node.nodeType === Node.ELEMENT_NODE) {
-              const isBlock = blockTags.has(node.tagName);
-              const isHeading = headingTags[node.tagName];
-              
-              if (node.tagName === 'BR') {
-                result += '\n';
-              } else if (node.tagName === 'TABLE') {
-                result += extractTable(node);
-              } else if (isHeading) {
-                if (result.length > 0 && !result.endsWith('\n')) {
-                  result += '\n';
-                }
-                result += isHeading;
-                for (let child of node.childNodes) {
-                  walk(child, true);
-                }
-                if (!result.endsWith('\n')) {
-                  result += '\n';
-                }
-              } else {
-                if (isBlock && inBlock && result.length > 0 && !result.endsWith('\n')) {
-                  result += '\n';
-                }
-                
-                for (let child of node.childNodes) {
-                  walk(child, isBlock || inBlock);
-                }
-                
-                if (isBlock && !result.endsWith('\n')) {
-                  result += '\n';
-                }
-              }
-            }
-          };
-          
-          walk(node, false);
-          return result;
-        };
+          if (!markdown || markdown.length < 10) return null;
 
-        let rawText = extractTextWithNewlines(clonedContent).trim();
+          const thinkKeywords = ['思考中', 'Thinking', '正在思考', '思考内容'];
+          const hasThinkKeyword = thinkKeywords.some(keyword => markdown.includes(keyword));
+          if (hasThinkKeyword) return null;
 
-        if (!rawText || rawText.length < 10) return null;
-
-        const thinkKeywords = ['思考中', 'Thinking', '正在思考', '思考内容'];
-        const hasThinkKeyword = thinkKeywords.some(keyword => rawText.includes(keyword));
-        if (hasThinkKeyword) return null;
-
-        return rawText;
+          return markdown;
+        } catch (error) {
+          console.error(`[${this.platform}] Turndown 转换失败:`, error);
+          // 降级到简单文本提取
+          const simpleText = clonedContent.textContent?.trim() || '';
+          return simpleText.length > 10 ? simpleText : null;
+        }
       };
 
       const cleanup = (content) => {
@@ -267,6 +206,26 @@ class DeepSeekAdapter extends BasePlatformAdapter {
           reject(new Error('等待AI回复超时 (180秒)'));
         }
       }, 180000);
+    });
+  }
+
+  async loadTurndown() {
+    if (typeof TurndownService !== 'undefined') {
+      return;
+    }
+    
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = chrome.runtime.getURL('libs/turndown.min.js');
+      script.onload = () => {
+        console.log(`[${this.platform}] ✓ Turndown 加载成功`);
+        resolve();
+      };
+      script.onerror = () => {
+        console.error(`[${this.platform}] ✗ Turndown 加载失败`);
+        reject(new Error('Turndown 加载失败'));
+      };
+      document.head.appendChild(script);
     });
   }
 }

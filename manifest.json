@@ -85,7 +85,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["libs/marked.min.js"],
+      "resources": ["libs/marked.min.js", "libs/turndown.min.js"],
       "matches": ["<all_urls>"]
     }
   ]
