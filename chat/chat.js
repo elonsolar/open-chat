@@ -731,42 +731,66 @@ function escapeHtml(text) {
 function formatMessage(content) {
   if (!content) return '';
 
-  // 处理markdown格式的代码块
+  // 先处理代码块，避免内部被处理
+  const codeBlocks = [];
   const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/g;
-  let result = [];
-  let lastIndex = 0;
-  let match;
+  let contentWithoutCode = content.replace(codeBlockRegex, (match, lang, code) => {
+    codeBlocks.push({ lang, code });
+    return `__CODEBLOCK_${codeBlocks.length - 1}__`;
+  });
 
-  while ((match = codeBlockRegex.exec(content)) !== null) {
-    // 添加代码块之前的文本
-    const beforeText = content.substring(lastIndex, match.index);
-    if (beforeText.trim()) {
-      const processedBefore = escapeHtml(beforeText)
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        .replace(/\n/g, '<br>');
-      result.push(processedBefore);
-    }
+  // 处理表格
+  const tableRegex = /\n(\|.+\|)\n(\|[\s\-:|]+\|)\n((?:\|.+\|\n?)*)/g;
+  contentWithoutCode = contentWithoutCode.replace(tableRegex, (match, headerRow, separatorRow, bodyRows) => {
+    const headers = headerRow.split('|').filter(cell => cell.trim()).map(cell => cell.trim());
+    const rows = bodyRows.trim().split('\n').map(row => 
+      row.split('|').filter(cell => cell.trim()).map(cell => cell.trim())
+    );
+    
+    let table = '<table><thead><tr>';
+    headers.forEach(header => {
+      table += `<th>${escapeHtml(header)}</th>`;
+    });
+    table += '</tr></thead><tbody>';
+    
+    rows.forEach(row => {
+      table += '<tr>';
+      row.forEach(cell => {
+        table += `<td>${escapeHtml(cell)}</td>`;
+      });
+      table += '</tr>';
+    });
+    
+    table += '</tbody></table>';
+    return table;
+  });
 
-    // 添加代码块
-    const lang = match[1] || 'code';
-    const code = match[2];
-    result.push(`<pre data-lang="${escapeHtml(lang)}"><code class="language-${escapeHtml(lang)}">${escapeHtml(code)}</code></pre>`);
+  // 处理标题
+  contentWithoutCode = contentWithoutCode
+    .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+    .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+    .replace(/^# (.*$)/gm, '<h1>$1</h1>');
 
-    lastIndex = match.index + match[0].length;
-  }
+  // 处理粗体、斜体
+  contentWithoutCode = contentWithoutCode
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>');
 
-  // 添加剩余的文本
-  const remainingText = content.substring(lastIndex);
-  if (remainingText.trim()) {
-    const processedRemaining = escapeHtml(remainingText)
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/\n/g, '<br>');
-    result.push(processedRemaining);
-  }
+  // 处理列表
+  contentWithoutCode = contentWithoutCode
+    .replace(/^\d+\.\s+(.*$)/gm, '<li class="ol-item">$1</li>')
+    .replace(/^[-\*]\s+(.*$)/gm, '<li class="ul-item">$1</li>');
 
-  return result.join('');
+  // 处理换行（非代码块区域，且不在表格内）
+  contentWithoutCode = contentWithoutCode.replace(/\n(?![<|])/g, '<br>');
+
+  // 恢复代码块
+  contentWithoutCode = contentWithoutCode.replace(/__CODEBLOCK_(\d+)__/g, (match, index) => {
+    const { lang, code } = codeBlocks[parseInt(index)];
+    return `<pre data-lang="${escapeHtml(lang)}"><code class="language-${escapeHtml(lang)}">${escapeHtml(code)}</code></pre>`;
+  });
+
+  return contentWithoutCode;
 }
 
 function formatTime(timestamp) {

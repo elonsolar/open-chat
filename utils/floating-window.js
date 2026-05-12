@@ -554,8 +554,18 @@ class FloatingWindow {
     // 转义HTML
     let formatted = this.escapeHtml(text);
 
-    // 代码块 ```code```
-    formatted = formatted.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+    // 先处理代码块 ```code```
+    const codeBlocks = [];
+    formatted = formatted.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
+      codeBlocks.push(`<pre><code>${this.escapeHtml(code)}</code></pre>`);
+      return `__CODEBLOCK_${codeBlocks.length - 1}__`;
+    });
+
+    // 标题 # ## ###
+    formatted = formatted
+      .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+      .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+      .replace(/^# (.*$)/gim, '<h1>$1</h1>');
 
     // 行内代码 `code`
     formatted = formatted.replace(/`([^`]+)`/g, '<code>$1</code>');
@@ -568,6 +578,15 @@ class FloatingWindow {
 
     // 链接 [text](url)
     formatted = formatted.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+
+    // 列表 - *
+    formatted = formatted.replace(/^\s*[-\*]\s+(.*$)/gim, '<li>$1</li>');
+
+    // 换行
+    formatted = formatted.replace(/\n/g, '<br>');
+
+    // 恢复代码块
+    formatted = formatted.replace(/__CODEBLOCK_(\d+)__/g, (match, index) => codeBlocks[parseInt(index)]);
 
     return formatted;
   }

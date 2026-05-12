@@ -991,3 +991,104 @@ body {
 .message-text pre code {
   color: #cdd6f4;
 }
+
+/* 消息内容标题样式 */
+.message-text h1,
+.message-text h2,
+.message-text h3 {
+  margin: 16px 0 8px 0;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--text-primary);
+}
+
+.message-text h1 {
+  font-size: 20px;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 8px;
+}
+
+.message-text h2 {
+  font-size: 18px;
+  color: var(--primary);
+}
+
+.message-text h3 {
+  font-size: 16px;
+  color: #666;
+}
+
+/* 列表样式 */
+.message-text ul,
+.message-text ol {
+  margin: 12px 0;
+  padding-left: 24px;
+}
+
+.message-text li {
+  margin: 6px 0;
+  line-height: 1.7;
+}
+
+.message-text li::marker {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* 段落样式 */
+.message-text p {
+  margin: 8px 0;
+  line-height: 1.7;
+}
+
+/* 引用样式 */
+.message-text blockquote {
+  border-left: 3px solid var(--primary);
+  padding-left: 12px;
+  margin: 12px 0;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* 链接样式 */
+.message-text a {
+  color: var(--primary);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.message-text a:hover {
+  border-bottom-color: var(--primary);
+}
+
+/* 表格样式 */
+.message-text table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 13px;
+}
+
+.message-text th,
+.message-text td {
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.message-text th {
+  background: var(--bg-secondary);
+  font-weight: 600;
+}
+
+.message-text tr:nth-child(even) {
+  background: var(--bg-tertiary);
+}
+
+/* 水平分割线 */
+.message-text hr {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: 16px 0;
+}
