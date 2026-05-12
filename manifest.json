@@ -36,6 +36,7 @@
         "https://kimi.com/*"
       ],
       "js": [
+        "libs/turndown.min.js",
         "utils/platforms/base-adapter.js",
         "utils/platforms/deepseek-adapter.js",
         "utils/platforms/doubao-adapter.js",

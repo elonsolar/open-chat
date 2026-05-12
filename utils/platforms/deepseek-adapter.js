@@ -102,9 +102,6 @@ class DeepSeekAdapter extends BasePlatformAdapter {
   async waitForAIResponse() {
     console.log(`[${this.platform}] ========== 开始等待 AI 回复 ==========`);
 
-    // 加载 Turndown 库
-    await this.loadTurndown();
-
     return new Promise((resolve, reject) => {
       const startTime = Date.now();
       let lastContent = '';
@@ -209,25 +206,6 @@ class DeepSeekAdapter extends BasePlatformAdapter {
     });
   }
 
-  async loadTurndown() {
-    if (typeof TurndownService !== 'undefined') {
-      return;
-    }
-    
-    return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = chrome.runtime.getURL('libs/turndown.min.js');
-      script.onload = () => {
-        console.log(`[${this.platform}] ✓ Turndown 加载成功`);
-        resolve();
-      };
-      script.onerror = () => {
-        console.error(`[${this.platform}] ✗ Turndown 加载失败`);
-        reject(new Error('Turndown 加载失败'));
-      };
-      document.head.appendChild(script);
-    });
-  }
 }
 
 window.DeepSeekAdapter = DeepSeekAdapter;
