@@ -33,6 +33,21 @@ function initElements() {
   elements.roleList = document.getElementById('roleList');
   elements.newConversationModal = document.getElementById('newConversationModal');
   elements.newRoleModal = document.getElementById('newRoleModal');
+
+  initProviderSelect();
+}
+
+function initProviderSelect() {
+  const providerSelect = document.getElementById('provider');
+  if (providerSelect && PROVIDERS) {
+    providerSelect.innerHTML = '';
+    Object.values(PROVIDERS).forEach(provider => {
+      const option = document.createElement('option');
+      option.value = provider.id;
+      option.textContent = provider.name;
+      providerSelect.appendChild(option);
+    });
+  }
 }
 
 async function loadData() {
@@ -102,15 +117,9 @@ function bindEvents() {
     providerSelect.addEventListener('change', (e) => {
       const modelInput = document.getElementById('model');
       if (modelInput) {
-        const defaultModels = {
-          deepseek: 'deepseek-chat',
-          doubao: 'doubao-pro',
-          qianwen: 'qwen-plus',
-          openai: 'gpt-4'
-        };
-        const selectedModel = defaultModels[e.target.value];
-        if (selectedModel) {
-          modelInput.value = selectedModel;
+        const provider = PROVIDERS[e.target.value];
+        if (provider && provider.defaultModel) {
+          modelInput.value = provider.defaultModel;
         }
       }
     });
@@ -220,25 +229,15 @@ function renderRoles() {
   }
 
   elements.roleList.innerHTML = state.roles.map(role => {
-    const providerNames = {
-      deepseek: 'DeepSeek',
-      doubao: '豆包',
-      qianwen: '千问',
-      openai: 'ChatGPT'
-    };
-
-    const providerColors = {
-      deepseek: '#4f46e5',
-      doubao: '#0891b2',
-      qianwen: '#7c3aed',
-      openai: '#059669'
-    };
+    const provider = PROVIDERS[role.provider];
+    const providerName = provider ? provider.name : role.provider;
+    const providerColor = provider ? provider.color : '#666';
 
     return `
       <div class="role-item" data-id="${role.id}">
         <div class="role-header">
           <h3>
-            <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:${providerColors[role.provider] || '#666'};color:#fff;font-size:12px;font-weight:700;margin-right:6px;flex-shrink:0;">${escapeHtml(role.name.charAt(0))}</span>
+            <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:${providerColor};color:#fff;font-size:12px;font-weight:700;margin-right:6px;flex-shrink:0;">${escapeHtml(role.name.charAt(0))}</span>
             ${escapeHtml(role.name)}
           </h3>
           <div class="role-actions">
@@ -248,7 +247,7 @@ function renderRoles() {
           </div>
         </div>
         <div class="role-info">
-          <div><span style="font-weight:500;color:#333;">提供商:</span> ${providerNames[role.provider] || role.provider}</div>
+          <div><span style="font-weight:500;color:#333;">提供商:</span> ${providerName}</div>
           <div><span style="font-weight:500;color:#333;">模型:</span> ${escapeHtml(role.model)}</div>
         </div>
       </div>
@@ -397,13 +396,8 @@ async function createRole() {
     hideNewRoleModal();
   } else {
     if (!model) {
-      const defaultModels = {
-        deepseek: 'deepseek-chat',
-        doubao: 'doubao-pro',
-        qianwen: 'qwen-plus',
-        openai: 'gpt-4'
-      };
-      model = defaultModels[provider] || 'default';
+      const providerConfig = PROVIDERS[provider];
+      model = providerConfig ? providerConfig.defaultModel : 'default';
     }
 
     const role = await sendMessage({

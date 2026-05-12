@@ -193,13 +193,6 @@ function render() {
   renderMessages();
 }
 
-const providerColors = {
-  deepseek: '#4f46e5',
-  doubao: '#0891b2',
-  qianwen: '#7c3aed',
-  openai: '#059669'
-};
-
 function renderRolesTags() {
   if (!state.conversation.roleIds || state.conversation.roleIds.length === 0) {
     elements.rolesTags.innerHTML = '<span class="role-tag">未选择角色</span>';
@@ -212,7 +205,8 @@ function renderRolesTags() {
     const role = state.roles.find(r => r.id === roleId);
     if (!role) return '';
     const roleIndex = (state.conversation.roleOrder || state.conversation.roleIds).indexOf(roleId);
-    const color = providerColors[role.provider] || '#666';
+    const provider = PROVIDERS[role.provider];
+    const color = provider ? provider.color : '#666';
     return `<span class="role-tag${hasOrdering ? ' draggable' : ''}" data-role-id="${roleId}" title="${hasOrdering ? '点击调整顺序' : ''}">
       ${hasOrdering ? `<span class="role-tag-drag-handle">#${roleIndex + 1}</span>` : ''}
       <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};margin-right:2px;"></span>
@@ -286,7 +280,8 @@ function renderMessages() {
     } else {
       const clickableClass = provider ? 'clickable' : '';
       const providerAttr = provider ? `data-provider="${provider}"` : '';
-      const color = providerColors[provider] || '#666';
+      const providerConfig = PROVIDERS ? PROVIDERS[provider] : null;
+      const color = providerConfig ? providerConfig.color : '#666';
 
       return `
         <div class="message ai-message">
@@ -492,7 +487,8 @@ function showModeSelector(focusOrder) {
             ${currentOrder.map((roleId, index) => {
               const role = state.roles.find(r => r.id === roleId);
               if (!role) return '';
-              const color = providerColors[role.provider] || '#667eea';
+              const providerConfig = PROVIDERS ? PROVIDERS[role.provider] : null;
+              const color = providerConfig ? providerConfig.color : '#667eea';
               return `
                 <div class="role-order-item" draggable="true" data-role-id="${roleId}">
                   <div class="role-order-handle">⋮⋮</div>
@@ -779,13 +775,8 @@ function formatTime(timestamp) {
 }
 
 function getProviderDisplayName(provider) {
-  const names = {
-    deepseek: 'DeepSeek',
-    doubao: '豆包',
-    qianwen: '千问',
-    openai: 'ChatGPT'
-  };
-  return names[provider] || provider;
+  const providerConfig = PROVIDERS[provider];
+  return providerConfig ? providerConfig.name : provider;
 }
 
 function scrollToBottom() {

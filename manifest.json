@@ -37,7 +37,6 @@
         "utils/platforms/doubao-adapter.js",
         "utils/platforms/qianwen-adapter.js",
         "utils/platforms/openai-adapter.js",
-        "utils/platform-adapter.js",
         "utils/content-script.js"
       ],
       "run_at": "document_idle"

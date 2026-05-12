@@ -11,93 +11,31 @@ class DeepSeekAdapter extends BasePlatformAdapter {
     });
   }
 
-  countAIMessages() {
-    const messages = document.querySelectorAll('.ds-message');
-    const allMessages = Array.from(messages);
-    const aiMessages = allMessages.filter((_, index) => index % 2 === 1);
-    console.log(`[${this.platform}] 消息统计: 总数=${allMessages.length}, AI=${aiMessages.length}`);
-    return aiMessages.length;
+  sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  checkForNewContent() {
-    try {
-      const messageElements = document.querySelectorAll('.ds-message');
-
-      if (messageElements.length === 0) {
-        console.log(`[${this.platform}] 未找到消息元素`);
-        return { found: false, content: '' };
-      }
-
-      console.log(`[${this.platform}] 找到 ${messageElements.length} 个消息元素`);
-
-      const messages = Array.from(messageElements);
-      let aiMessages;
-
-      const markdown = messages[0]?.querySelector('.ds-markdown');
-      if (messages[0]?.hasAttribute('data-message-id')) {
-        aiMessages = messages.filter((_, index) => index % 2 === 1);
-      } else {
-        aiMessages = messages.filter(msg => {
-          const md = msg.querySelector('.ds-markdown');
-          if (md) {
-            const text = md.textContent || '';
-            return !text.trim().startsWith('User:') && !text.trim().startsWith('用户:');
-          }
-          return false;
-        });
-      }
-
-      console.log(`[${this.platform}] 找到 ${aiMessages.length} 个AI消息`);
-
-      if (aiMessages.length === 0) {
-        console.log(`[${this.platform}] 没有找到AI消息`);
-        return { found: false, content: '' };
-      }
-
-      const lastAIMessage = aiMessages[aiMessages.length - 1];
-
-      const markdownElements = lastAIMessage.querySelectorAll('.ds-markdown');
-      const markdownElement = markdownElements.length > 0 ? markdownElements[markdownElements.length - 1] : null;
-
-      if (!markdownElement) {
-        console.log(`[${this.platform}] 未找到 .ds-markdown 元素`);
-        return { found: false, content: '' };
-      }
-
-      const allText = this.extractContentWithCode(markdownElement);
-
-      if (!allText || allText.length < 10) {
-        console.log(`[${this.platform}] 内容太短 (${allText?.length || 0}字符)，可能还在思考中`);
-        return { found: false, content: '' };
-      }
-
-      const thinkKeywords = ['思考中', 'Thinking', '正在思考', '思考内容'];
-      const hasThinkKeyword = thinkKeywords.some(keyword => allText.includes(keyword));
-
-      if (hasThinkKeyword) {
-        console.log(`[${this.platform}] 检测到思考关键词，还未生成真正回复`);
-        return { found: false, content: '' };
-      }
-
-      console.log(`[${this.platform}] ✓ 成功提取真实回复内容，长度: ${allText.length}`);
-      console.log(`[${this.platform}] 内容末尾: "${allText.slice(-50)}"`);
-      console.log(`[${this.platform}] 是否包含结束标记: ${allText.includes('[[<<>>]]')}`);
-      return { found: true, content: allText };
-
-    } catch (e) {
-      console.warn(`[${this.platform}] 检查新内容时出错:`, e);
-      return { found: false, content: '' };
+  async waitForElement(selector, timeout = 10000) {
+    const startTime = Date.now();
+    while (Date.now() - startTime < timeout) {
+      const element = document.querySelector(selector);
+      if (element) return element;
+      await this.sleep(100);
     }
+    throw new Error(`元素未找到: ${selector}`);
   }
 
-  async fillInput(inputBox, content) {
-    inputBox.value = content;
-  }
+  async sendMessage(content) {
+    console.log(`[${this.platform}] ========== 开始发送消息 ==========`);
+    console.log(`[${this.platform}] 消息内容:`, content);
 
-  async submitMessage(inputBox, content) {
+    const inputBox = await this.waitForElement('textarea', 10000);
+    console.log(`[${this.platform}] ✓ 找到输入框`);
+    
+    inputBox.focus();
+
     const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
     nativeInputValueSetter.call(inputBox, content);
-
     inputBox.dispatchEvent(new Event('input', { bubbles: true }));
     await this.sleep(500);
 
@@ -109,7 +47,6 @@ class DeepSeekAdapter extends BasePlatformAdapter {
       bubbles: true,
       cancelable: true
     });
-
     inputBox.dispatchEvent(enterEvent);
 
     if (content.includes('\n')) {
@@ -124,45 +61,139 @@ class DeepSeekAdapter extends BasePlatformAdapter {
       });
       inputBox.dispatchEvent(shiftEnterEvent);
     }
-
-    console.log(`[${this.platform}] DeepSeek消息已发送，等待回复...`);
   }
 
-  getConversationHistory() {
+  async processSendMessage(content, messageId) {
+    console.log(`[${this.platform}] ========== processSendMessage ==========`);
+    console.log(`[${this.platform}] content:`, content);
+    console.log(`[${this.platform}] messageId:`, messageId);
+
+    window.isSendingMessage = true;
+    console.log(`[${this.platform}] ✓ 已设置 isSendingMessage = true`);
+
     try {
-      const messages = document.querySelectorAll('.ds-message');
-      console.log(`[${this.platform}] 找到 .ds-message 元素: ${messages.length} 个`);
+      await this.sendMessage(content);
+      console.log(`[${this.platform}] ✓ 消息已发送到输入框`);
 
-      Array.from(messages).forEach((msg, idx) => {
-        const markdown = msg.querySelector('.ds-markdown');
-        const text = markdown ? (markdown.innerText || markdown.textContent || '') : '';
-        console.log(`[${this.platform}] 消息[${idx}]: 包含ds-markdown=${!!markdown}, 内容长度=${text.length}, 预览="${text.substring(0, 50)}"`);
+      const response = await this.waitForAIResponse();
+      console.log(`[${this.platform}] ✓ 收到 AI 回复，长度:`, response?.length || 0);
+
+      chrome.runtime.sendMessage({
+        type: 'aiResponse',
+        platform: this.platform,
+        messageId: messageId,
+        content: response,
+        conversationUrl: window.location.href
       });
-
-      this.conversationHistory = Array.from(messages).map((msg, idx) => {
-        const isUser = idx % 2 === 0;
-        const markdown = msg.querySelector('.ds-markdown');
-        const content = markdown ? (markdown.innerText || markdown.textContent || '') : '';
-
-        return {
-          index: idx,
-          isUser,
-          content: content || '',
-          timestamp: Date.now(),
-          element: msg
-        };
-      });
-
-      const userMessages = this.conversationHistory.filter(msg => msg.isUser);
-      const aiMessages = this.conversationHistory.filter(msg => !msg.isUser);
-
-      console.log(`[${this.platform}] 会话历史: 总共${this.conversationHistory.length}条消息 (用户:${userMessages.length}条, AI:${aiMessages.length}条)`);
-
-      return this.conversationHistory;
+      console.log(`[${this.platform}] ✓ 已发送 aiResponse 消息到 background`);
     } catch (error) {
-      console.error(`[${this.platform}] 获取会话历史失败:`, error);
-      return [];
+      chrome.runtime.sendMessage({
+        type: 'aiResponse',
+        platform: this.platform,
+        messageId: messageId,
+        error: error.message
+      });
+    } finally {
+      window.isSendingMessage = false;
+      console.log(`[${this.platform}] ✓ 消息处理完成，已清除 isSendingMessage 标记`);
     }
+  }
+
+  async waitForAIResponse() {
+    console.log(`[${this.platform}] ========== 开始等待 AI 回复 ==========`);
+
+    return new Promise((resolve, reject) => {
+      const startTime = Date.now();
+      let lastContent = '';
+      let observer = null;
+      let timeoutHandle = null;
+
+      const checkNewMessage = (mutations) => {
+        console.log(`[${this.platform}] MutationObserver 触发`);
+        const messages = document.querySelectorAll('.ds-message');
+        if (messages.length === 0) return null;
+
+        const lastMessage = messages[messages.length - 1];
+
+        const mainContent = lastMessage.querySelector('.ds-assistant-message-main-content');
+        if (!mainContent) return null;
+
+        const clonedContent = mainContent.cloneNode(true);
+        const codeBlocks = clonedContent.querySelectorAll('.md-code-block');
+        
+        codeBlocks.forEach(block => {
+          const pre = block.querySelector('pre');
+          const codeEl = pre?.querySelector('code');
+          const codeText = (codeEl || pre)?.textContent?.trim() || '';
+          
+          if (codeText.length > 0) {
+            let lang = '';
+            if (codeEl) {
+              const langMatch = (codeEl.className || '').match(/language-(\w+)/);
+              lang = langMatch ? langMatch[1] : '';
+            }
+            const markdownCode = `\`\`\`${lang}\n${codeText}\n\`\`\``;
+            block.replaceWith(document.createTextNode(markdownCode));
+          } else {
+            block.remove();
+          }
+        });
+
+        let rawText = (clonedContent.innerText || clonedContent.textContent || '').trim();
+
+        if (!rawText || rawText.length < 10) return null;
+
+        const thinkKeywords = ['思考中', 'Thinking', '正在思考', '思考内容'];
+        const hasThinkKeyword = thinkKeywords.some(keyword => rawText.includes(keyword));
+        if (hasThinkKeyword) return null;
+
+        return rawText;
+      };
+
+      const cleanup = (content) => {
+        console.log(`[${this.platform}] ========== cleanup 被调用 ==========`);
+        console.log(`[${this.platform}] 原始内容长度:`, content?.length || 0);
+        if (observer) observer.disconnect();
+        if (timeoutHandle) clearTimeout(timeoutHandle);
+
+        const finalContent = content.replace(/\[\[<<>>\]\]/g, '').trim();
+        console.log(`[${this.platform}] 清理后内容长度:`, finalContent?.length || 0);
+        resolve(finalContent);
+      };
+
+      observer = new MutationObserver((mutations) => {
+        const content = checkNewMessage(mutations);
+        if (content && content !== lastContent) {
+          lastContent = content;
+
+          if (content.includes('[[<<>>]]')) {
+            // 检测到结束标记后，等待 DOM 稳定再读取完整内容
+            setTimeout(() => {
+              const finalContent = checkNewMessage(mutations);
+              if (finalContent && finalContent.includes('[[<<>>]]')) {
+                cleanup(finalContent);
+              } else {
+                cleanup(content);
+              }
+            }, 500);
+          }
+        }
+      });
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        characterData: true
+      });
+
+      timeoutHandle = setTimeout(() => {
+        if (lastContent.length > 0) {
+          cleanup(lastContent);
+        } else {
+          reject(new Error('等待AI回复超时 (180秒)'));
+        }
+      }, 180000);
+    });
   }
 }
 

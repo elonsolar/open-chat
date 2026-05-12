@@ -28,10 +28,8 @@ utils/platforms/            # Per-platform adapter classes
   doubao-adapter.js         #   DoubaoAdapter extends BasePlatformAdapter
   qianwen-adapter.js        #   QianwenAdapter extends BasePlatformAdapter
   openai-adapter.js         #   OpenAIAdapter extends BasePlatformAdapter
-utils/platform-adapter.js   # Factory: new AIPlatformAdapter(platform) → returns
-                            #   the correct subclass instance
-utils/content-script.js     # Bootstrap: detects platform, creates adapter,
-                            #   bridges chrome.runtime messages to/from adapter
+utils/content-script.js     # Bootstrap: detects platform, factory switch,
+                            #   creates adapter, bridges chrome.runtime messages
 utils/floating-window.js    # Injected on all non-AI-site pages
 utils/floating-content.js   #   (excluded by manifest exclude_matches)
 sidepanel/                  # Side panel UI (HTML + JS)
@@ -49,15 +47,12 @@ Defined in `manifest.json`. Scripts load in this exact sequence:
 3. `utils/platforms/doubao-adapter.js` — defines `DoubaoAdapter`, assigns to `window`
 4. `utils/platforms/qianwen-adapter.js` — defines `QianwenAdapter`, assigns to `window`
 5. `utils/platforms/openai-adapter.js` — defines `OpenAIAdapter`, assigns to `window`
-6. `utils/platform-adapter.js` — factory function, exposes `window.AIPlatformAdapter`
-7. `utils/content-script.js` — detects platform, calls `new AIPlatformAdapter(platform)`
-
-`background.js` has the same file list in `chrome.scripting.executeScript` for fallback injection.
+6. `utils/content-script.js` — detects platform, factory + bootstrap
 
 ## Key Architecture
 
 - **Platform adapters**: Each subclass overrides `countAIMessages()`, `checkForNewContent()`, `fillInput()`, `submitMessage()`, `getConversationHistory()`. Base class handles `waitForResponse()`, `sendMessage()`, `newChat()`, and utility methods.
-- **Adding a new platform**: Create `utils/platforms/<name>-adapter.js` extending `BasePlatformAdapter`, register in `utils/platform-adapter.js` factory, add URL matches in `manifest.json`, update `background.js` domain maps (4 locations: `openPlatformTab`, `findPlatformTab`, `sendToFloatWindow`, `chrome.tabs.onUpdated`), update `content-script.js` `detectPlatform()`.
+- **Adding a new platform**: Create `utils/platforms/<name>-adapter.js` extending `BasePlatformAdapter`, register in `content-script.js` `createPlatformAdapter()` switch, add URL matches in `manifest.json`, update `background.js` domain maps (4 locations: `openPlatformTab`, `findPlatformTab`, `sendToFloatWindow`, `chrome.tabs.onUpdated`), update `content-script.js` `detectPlatform()`.
 - **End-marker protocol**: `background.js` appends `\n\n重要：请在你的回复最后必须添加 [[<<>>]] 标记` to every message. Adapters watch for `[[<<>>]]` in DOM to detect response completion.
 - **Floating window**: Excluded from AI platform sites via `manifest.json` `exclude_matches`.
 - **Context modes**: `self` = separate tabs per role, `shared` = all roles see same history
@@ -65,7 +60,7 @@ Defined in `manifest.json`. Scripts load in this exact sequence:
 
 ## Common Gotchas
 
-- **Stale files on disk**: `utils/tab-manager.js`, `utils/storage.js`, `utils/platform-adapter.js.backup`, `utils/platform-adapter-new.js` are dead code — their logic was merged into `background.js` or replaced by the platform refactor.
+- **Stale files on disk**: `utils/tab-manager.js`, `utils/storage.js`, `utils/platform-adapter.js.backup`, `utils/platform-adapter-new.js`, `utils/platform-adapter.js` are dead code — their logic was merged into `background.js` or replaced by the platform refactor.
 - **Selectors break when AI sites update DOM**: Platform adapters use hardcoded CSS selectors. If message send/receive breaks, the platform adapter selectors need updating.
 - **SPA re-init**: `content-script.js` uses MutationObserver on `document.body` to detect URL changes and re-initialize. Skipped when `window.isSendingMessage === true`.
 - **Provider = platform string**: The UI "provider" dropdown value is passed directly as the `platform` argument — 1:1 mapping, no translation layer.

@@ -1,3 +1,5 @@
+importScripts('../config/providers.config.js');
+
 class StorageManager {
   static async getConversations() {
     const result = await chrome.storage.local.get('conversations');
@@ -38,17 +40,12 @@ class TabManager {
   }
 
   async openPlatformTab(platform, forceNew = false, targetUrl = null) {
-    const urls = {
-      deepseek: 'https://chat.deepseek.com/',
-      doubao: 'https://www.doubao.com/chat/',
-      qianwen: 'https://www.qianwen.com/',
-      openai: 'https://chatgpt.com/'
-    };
-
-    const url = urls[platform];
-    if (!url) {
+    const provider = PROVIDERS[platform];
+    if (!provider) {
       throw new Error(`不支持的平台: ${platform}`);
     }
+
+    const url = provider.baseUrl;
 
     if (!forceNew) {
       if (targetUrl) {
@@ -80,15 +77,10 @@ class TabManager {
   }
 
   async findPlatformTab(platform) {
-    const domains = {
-      deepseek: 'deepseek.com',
-      doubao: 'doubao.com',
-      qianwen: 'qianwen.com',
-      openai: 'chatgpt.com'
-    };
+    const provider = PROVIDERS[platform];
+    if (!provider) return null;
 
-    const domain = domains[platform];
-    if (!domain) return null;
+    const domain = provider.domain;
 
     const tabId = this.tabs.get(platform);
     if (tabId) {
@@ -198,7 +190,6 @@ class TabManager {
                 'utils/platforms/doubao-adapter.js',
                 'utils/platforms/qianwen-adapter.js',
                 'utils/platforms/openai-adapter.js',
-                'utils/platform-adapter.js',
                 'utils/content-script.js'
               ]
             });
@@ -262,7 +253,12 @@ class TabManager {
   }
 
   async sendMessage(platform, content, forceNewTab = false, targetUrl = null) {
-    return await this.sendToPlatform(platform, 'sendMessage', { content }, forceNewTab, targetUrl);
+    const response = await this.sendToPlatform(platform, 'sendMessage', { content }, forceNewTab, targetUrl);
+    return {
+      success: true,
+      content: response.content || response,
+      conversationUrl: response.conversationUrl
+    };
   }
 
   async getChatHistory(platform) {
@@ -762,7 +758,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       if (request.error) {
         pending.reject(new Error(request.error));
       } else {
-        pending.resolve(request.content);
+        pending.resolve({
+          content: request.content,
+          conversationUrl: request.conversationUrl
+        });
       }
 
       sendResponse({ status: 'received' });
@@ -905,15 +904,8 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url) {
     for (const [platform, storedTabId] of tabManager.tabs.entries()) {
       if (storedTabId === tabId) {
-        const domains = {
-          deepseek: 'deepseek.com',
-          doubao: 'doubao.com',
-          qianwen: 'qianwen.com',
-          openai: 'chatgpt.com'
-        };
-        const domain = domains[platform];
-
-        if (!tab.url.includes(domain)) {
+        const provider = PROVIDERS[platform];
+        if (provider && !tab.url.includes(provider.domain)) {
           tabManager.tabs.delete(platform);
         }
         break;
