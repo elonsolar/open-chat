@@ -26,7 +26,12 @@ class QianwenAdapter extends BasePlatformAdapter {
   }
 
   async sendMessage(content) {
+    console.log(`[${this.platform}] ========== 开始发送消息 ==========`);
+    console.log(`[${this.platform}] 消息内容:`, content);
+
     const editor = await this.waitForElement('div[contenteditable="true"][data-slate-editor="true"]', 10000);
+    console.log(`[${this.platform}] ✓ 找到编辑器`);
+    
     editor.focus();
     await this.sleep(200);
 
@@ -60,6 +65,7 @@ class QianwenAdapter extends BasePlatformAdapter {
 
     const sendButton = await this.waitForButton();
     sendButton.click();
+    console.log(`[${this.platform}] ✓ 已点击发送按钮`);
     await this.sleep(1000);
   }
 
@@ -74,10 +80,19 @@ class QianwenAdapter extends BasePlatformAdapter {
   }
 
   async processSendMessage(content, messageId) {
+    console.log(`[${this.platform}] ========== processSendMessage ==========`);
+    console.log(`[${this.platform}] content:`, content);
+    console.log(`[${this.platform}] messageId:`, messageId);
+
+    window.isSendingMessage = true;
+    console.log(`[${this.platform}] ✓ 已设置 isSendingMessage = true`);
+
     try {
       await this.sendMessage(content);
+      console.log(`[${this.platform}] ✓ 消息已发送到输入框`);
 
       const response = await this.waitForAIResponse();
+      console.log(`[${this.platform}] ✓ 收到 AI 回复，长度:`, response?.length || 0);
 
       chrome.runtime.sendMessage({
         type: 'aiResponse',
@@ -86,6 +101,7 @@ class QianwenAdapter extends BasePlatformAdapter {
         content: response,
         conversationUrl: window.location.href
       });
+      console.log(`[${this.platform}] ✓ 已发送 aiResponse 消息到 background`);
     } catch (error) {
       chrome.runtime.sendMessage({
         type: 'aiResponse',
@@ -93,84 +109,79 @@ class QianwenAdapter extends BasePlatformAdapter {
         messageId: messageId,
         error: error.message
       });
+    } finally {
+      window.isSendingMessage = false;
+      console.log(`[${this.platform}] ✓ 消息处理完成，已清除 isSendingMessage 标记`);
     }
   }
 
   async waitForAIResponse() {
+    console.log(`[${this.platform}] ========== 开始等待 AI 回复 ==========`);
+
     return new Promise((resolve, reject) => {
       const startTime = Date.now();
       let lastContent = '';
       let observer = null;
       let timeoutHandle = null;
 
-      const checkNewMessage = () => {
-        const messageElements = document.querySelectorAll('.answer-common-card');
+      const checkNewMessage = (mutations) => {
+        console.log(`[${this.platform}] MutationObserver 触发`);
+        const messageContainer = document.querySelector('.message-list-content-container');
+        if (!messageContainer) return null;
 
-        if (messageElements.length === 0) return null;
+        const chatRounds = messageContainer.querySelectorAll('.chat-round');
+        if (chatRounds.length === 0) return null;
 
-        let bestCard = null;
-        let bestLength = 0;
+        const lastRound = chatRounds[chatRounds.length - 1];
+        const answerCard = lastRound?.querySelector('.answer-common-card');
+        
+        if (!answerCard) return null;
+
+        const clonedMessage = answerCard.cloneNode(true);
+
         const thinkSelectors = [
-          '.thinking-content', '.think-process', '[class*="think"]',
+          '[data-card_name="deep_think"]', '.thinking-content', '.think-process', '[class*="think"]',
           '[class*="thought"]', '.qk-think', '.think-container', '.thinking', '.thought'
         ];
-
-        messageElements.forEach(card => {
-          const tempClone = card.cloneNode(true);
-          thinkSelectors.forEach(sel => tempClone.querySelectorAll(sel).forEach(el => el.remove()));
-          const md = tempClone.querySelector('.qk-markdown');
-          const len = (md?.textContent || '').length;
-          if (len > bestLength) {
-            bestLength = len;
-            bestCard = card;
-          }
-        });
-
-        if (!bestCard) {
-          bestCard = messageElements[messageElements.length - 1];
-        }
-
-        const clonedMessage = bestCard.cloneNode(true);
 
         thinkSelectors.forEach(selector => {
           const elements = clonedMessage.querySelectorAll(selector);
           elements.forEach(el => el.remove());
         });
 
-        const allMarkdownElements = clonedMessage.querySelectorAll('.qk-markdown');
-        let markdownElement = null;
+        const markdownElement = clonedMessage.querySelector('.qk-markdown');
 
-        if (allMarkdownElements.length > 1) {
-          markdownElement = allMarkdownElements[allMarkdownElements.length - 1];
-        } else if (allMarkdownElements.length === 1) {
-          markdownElement = allMarkdownElements[0];
-        }
-
-        if (!markdownElement) {
-          markdownElement = clonedMessage.querySelector('.answer-text');
-        }
-
-        if (!markdownElement) {
-          markdownElement = clonedMessage.querySelector('.answer-common-card');
-        }
-
-        if (!markdownElement) {
-          const allDivs = bestCard.querySelectorAll('div');
-          for (const div of allDivs) {
-            const className = div.className || '';
-            const text = div.innerText || '';
-            if ((className.includes('answer') || className.includes('markdown')) && text.trim().length > 20) {
-              markdownElement = div;
-              break;
-            }
-          }
-        }
-
-        if (!markdownElement) {
-          return null;
-        }
+        if (!markdownElement) return null;
 
         const clone = markdownElement.cloneNode(true);
+        
+        // 处理代码块
+        const codeBlocks = clone.querySelectorAll('pre');
+        
+        codeBlocks.forEach(block => {
+          const codeEl = block.querySelector('code');
+          const codeText = (codeEl || block)?.textContent?.trim() || '';
+          
+          if (codeText.length > 0) {
+            let lang = '';
+            if (codeEl) {
+              const langMatch = (codeEl.className || '').match(/language-(\w+)/);
+              lang = langMatch ? langMatch[1] : '';
+            }
+            const markdownCode = `\`\`\`${lang}\n${codeText}\n\`\`\``;
+            block.replaceWith(document.createTextNode(markdownCode));
+          } else {
+            block.remove();
+          }
+        });
+
+        // 在每个段落后添加换行符
+        const paragraphs = clone.querySelectorAll('.qk-md-paragraph');
+        paragraphs.forEach((p, index) => {
+          if (index < paragraphs.length - 1) {
+            p.appendChild(document.createTextNode('\n\n'));
+          }
+        });
 
         const removeSelectors = [
           '[class*="video-note"]',
@@ -185,82 +196,39 @@ class QianwenAdapter extends BasePlatformAdapter {
           clone.querySelectorAll(sel).forEach(el => el.remove());
         });
 
-        const preElements = clone.querySelectorAll('pre');
-        const codeBlocks = [];
-        preElements.forEach(pre => {
-          const codeEl = pre.querySelector('code');
-          const codeSource = codeEl || pre;
+        let rawText = (clone.innerText || clone.textContent || '').trim();
 
-          let codeText = '';
-          if (codeEl) {
-            const walker = document.createTreeWalker(codeEl, NodeFilter.SHOW_TEXT, null);
-            let node;
-            while (node = walker.nextNode()) {
-              let text = node.textContent;
-              text = text.replace(/^\d+ ?/, '');
-              codeText += text;
-            }
-            codeText = codeText.trim();
-          } else {
-            codeText = pre.textContent?.trim() || '';
-          }
+        if (!rawText || rawText.length < 10) return null;
 
-          if (codeText.length > 0) {
-            let lang = '';
-            const wrapper = pre.closest('[class*="code"]') || pre.parentElement;
-            const langSibling = wrapper?.parentElement?.querySelector('div:first-child');
-            if (langSibling) {
-              const langText = langSibling.textContent?.trim() || '';
-              const langMatch = langText.match(/^([a-z]+)/i);
-              lang = langMatch ? langMatch[1].toLowerCase() : '';
-            }
-            codeBlocks.push(`\`\`\`${lang}\n${codeText}\n\`\`\``);
-          }
-          pre.remove();
-        });
-
-        let rawText = (clone.innerText || '').trim();
-
-        if (codeBlocks.length > 0) {
-          rawText += '\n\n' + codeBlocks.join('\n\n');
-        }
-
-        const endMarker = '[[<<>>]]';
-        const hasMarker = rawText.includes(endMarker);
-        if (hasMarker) {
-          rawText = rawText.substring(0, rawText.indexOf(endMarker)).trim();
-        }
-
-        const finalText = rawText;
-
-        const isLikelyStreaming = codeBlocks.length === 0 && finalText.length < 1000 && !hasMarker;
-
-        if (isLikelyStreaming) {
-          return null;
-        }
-
-        if (!finalText || finalText.length < 5) {
-          return null;
-        }
-
-        return finalText;
+        return rawText;
       };
 
       const cleanup = (content) => {
+        console.log(`[${this.platform}] ========== cleanup 被调用 ==========`);
+        console.log(`[${this.platform}] 原始内容长度:`, content?.length || 0);
         if (observer) observer.disconnect();
         if (timeoutHandle) clearTimeout(timeoutHandle);
 
         const finalContent = content.replace(/\[\[<<>>\]\]/g, '').trim();
+        console.log(`[${this.platform}] 清理后内容长度:`, finalContent?.length || 0);
         resolve(finalContent);
       };
 
-      observer = new MutationObserver(() => {
-        const content = checkNewMessage();
+      observer = new MutationObserver((mutations) => {
+        const content = checkNewMessage(mutations);
         if (content && content !== lastContent) {
           lastContent = content;
 
           if (content.includes('[[<<>>]]')) {
-            cleanup(content);
+            // 检测到结束标记后，等待 DOM 稳定再读取完整内容
+            setTimeout(() => {
+              const finalContent = checkNewMessage(mutations);
+              if (finalContent && finalContent.includes('[[<<>>]]')) {
+                cleanup(finalContent);
+              } else {
+                cleanup(content);
+              }
+            }, 500);
           }
         }
       });
