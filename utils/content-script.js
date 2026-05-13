@@ -35,7 +35,6 @@ function createPlatformAdapter(platform) {
     case 'deepseek': return new DeepSeekAdapter();
     case 'doubao':   return new DoubaoAdapter();
     case 'qianwen':  return new QianwenAdapter();
-    case 'openai':   return new OpenAIAdapter();
     case 'kimi':     return new KimiAdapter();
     default:
       console.warn(`未知平台: ${platform}，使用doubao作为默认`);
@@ -84,8 +83,6 @@ function detectPlatform() {
     return 'doubao';
   } else if (hostname.includes('qianwen') || hostname.includes('aliyun')) {
     return 'qianwen';
-  } else if (hostname.includes('chatgpt') || hostname.includes('openai')) {
-    return 'openai';
   } else if (hostname.includes('kimi') || hostname.includes('moonshot')) {
     return 'kimi';
   }

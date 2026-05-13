@@ -201,7 +201,6 @@ class TabManager {
                 'utils/platforms/deepseek-adapter.js',
                 'utils/platforms/doubao-adapter.js',
                 'utils/platforms/qianwen-adapter.js',
-                'utils/platforms/openai-adapter.js',
                 'utils/platforms/kimi-adapter.js',
                 'utils/content-script.js'
               ]
@@ -711,7 +710,6 @@ class AIMessageManager {
           tab.url.includes('deepseek.com') ||
           tab.url.includes('doubao.com') ||
           tab.url.includes('qianwen.com') ||
-          tab.url.includes('chatgpt.com') ||
           tab.url.includes('moonshot.cn')
         );
 
@@ -1012,7 +1010,6 @@ async function injectFloatingWindowToAllTabs() {
         tab.url.includes('deepseek.com') ||
         tab.url.includes('doubao.com') ||
         tab.url.includes('qianwen.com') ||
-        tab.url.includes('chatgpt.com') ||
         tab.url.includes('moonshot.cn')
       );
 

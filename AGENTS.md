@@ -27,7 +27,7 @@ utils/platforms/            # Per-platform adapter classes
   deepseek-adapter.js       #   DeepSeekAdapter extends BasePlatformAdapter
   doubao-adapter.js         #   DoubaoAdapter extends BasePlatformAdapter
   qianwen-adapter.js        #   QianwenAdapter extends BasePlatformAdapter
-  openai-adapter.js         #   OpenAIAdapter extends BasePlatformAdapter
+  kimi-adapter.js           #   KimiAdapter extends BasePlatformAdapter
 utils/content-script.js     # Bootstrap: detects platform, factory switch,
                             #   creates adapter, bridges chrome.runtime messages
 utils/floating-window.js    # Injected on all non-AI-site pages
@@ -46,7 +46,7 @@ Defined in `manifest.json`. Scripts load in this exact sequence:
 2. `utils/platforms/deepseek-adapter.js` — defines `DeepSeekAdapter`, assigns to `window`
 3. `utils/platforms/doubao-adapter.js` — defines `DoubaoAdapter`, assigns to `window`
 4. `utils/platforms/qianwen-adapter.js` — defines `QianwenAdapter`, assigns to `window`
-5. `utils/platforms/openai-adapter.js` — defines `OpenAIAdapter`, assigns to `window`
+5. `utils/platforms/kimi-adapter.js` — defines `KimiAdapter`, assigns to `window`
 6. `utils/content-script.js` — detects platform, factory + bootstrap
 
 ## Key Architecture

@@ -125,7 +125,30 @@ function bindEvents() {
     if (tag) {
       showModeSelector(true);
     }
+
+    // 角色删除按钮
+    const removeBtn = e.target.closest('.role-tag-remove');
+    if (removeBtn) {
+      const tag = removeBtn.closest('.role-tag');
+      const roleId = tag.dataset.roleId;
+      removeRoleFromConversation(roleId);
+    }
   });
+
+  // 点击标题编辑会话名称
+  elements.chatTitle.addEventListener('click', () => {
+    if (!elements.chatTitle.classList.contains('editing')) {
+      enableTitleEditing();
+    }
+  });
+
+  // 添加角色按钮
+  const roleAddBtn = document.getElementById('roleAddBtn');
+  if (roleAddBtn) {
+    roleAddBtn.addEventListener('click', () => {
+      showAddRoleModal();
+    });
+  }
 
   // 滚动到底部按钮
   elements.scrollBottomBtn.addEventListener('click', () => {
@@ -256,7 +279,8 @@ function handleMessageListClick(e) {
     const messageEl = (header || expandBtn).closest('.platform-message');
     if (messageEl) {
       const messageId = messageEl.dataset.messageId;
-      toggleMessageExpand(messageId);
+      const roleId = messageEl.dataset.roleId;
+      toggleMessageExpand(messageId, roleId);
     }
   }
 }
@@ -314,6 +338,7 @@ function renderRolesTags() {
       ${hasOrdering ? `<span class="role-tag-drag-handle">#${roleIndex + 1}</span>` : ''}
       <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};margin-right:2px;"></span>
       ${escapeHtml(role.name)}
+      <span class="role-tag-remove" title="移除角色">×</span>
     </span>`;
   }).join('');
 }
@@ -1017,15 +1042,13 @@ function createPlatformWindow(role) {
   }
 
   windowElement.innerHTML = `
-    <div class="platform-window-header">
+    <div class="platform-window-header" title="点击展开/收起">
       <div class="platform-window-info">
         <div class="platform-window-indicator" style="background: ${provider.color};"></div>
         <div class="platform-window-name">${escapeHtml(role.name)}</div>
       </div>
       <div class="platform-window-actions">
-        <button class="platform-window-btn toggle-height" title="收缩/展开" data-action="toggleHeight">⬍</button>
         <button class="platform-window-btn open-tab" title="在标签页中打开" data-action="openTab">🔗</button>
-        <button class="platform-window-btn close" title="关闭窗口" data-action="close">×</button>
       </div>
     </div>
     <div class="platform-window-content">
@@ -1041,22 +1064,19 @@ function createPlatformWindow(role) {
     </div>
   `;
 
-  const closeBtn = windowElement.querySelector('[data-action="close"]');
-  if (closeBtn) {
-    closeBtn.addEventListener('click', () => closePlatformWindow(role.id));
-  }
-
-  const toggleHeightBtn = windowElement.querySelector('[data-action="toggleHeight"]');
-  if (toggleHeightBtn) {
-    toggleHeightBtn.addEventListener('click', () => togglePlatformWindowHeight(windowId));
+  const header = windowElement.querySelector('.platform-window-header');
+  if (header) {
+    header.addEventListener('click', () => togglePlatformWindowHeight(windowId));
   }
 
   const openTabBtn = windowElement.querySelector('[data-action="openTab"]');
   if (openTabBtn) {
-    openTabBtn.addEventListener('click', () => openPlatformConversation(role));
+    openTabBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openPlatformConversation(role);
+    });
   }
 
-  // 添加消息列表的事件委托
   const messageList = windowElement.querySelector('.platform-message-list');
   if (messageList) {
     messageList.addEventListener('click', handleMessageListClick);
@@ -1080,9 +1100,10 @@ function createMessageHTML(message, role) {
   const provider = PROVIDERS[role.provider];
   const isUser = message.isUser;
   const messageId = message.id;
+  const uniqueId = `${role.id}-${messageId}`;
 
   return `
-    <div class="platform-message ${isUser ? 'user-message' : 'ai-message'} collapsed" data-message-id="${messageId}">
+    <div class="platform-message ${isUser ? 'user-message' : 'ai-message'} collapsed" data-message-id="${messageId}" data-role-id="${role.id}" data-unique-id="${uniqueId}">
       <div class="platform-message-header" title="点击展开/收起">
         <div class="platform-message-avatar" style="background: ${isUser ? 'var(--primary)' : provider.color}">
           ${isUser ? '我' : escapeHtml(role.name.charAt(0))}
@@ -1090,10 +1111,10 @@ function createMessageHTML(message, role) {
         <div class="platform-message-time">${formatTime(message.timestamp)}</div>
         <div class="platform-message-hint">▼</div>
       </div>
-      <div class="platform-message-content" id="msg-content-${messageId}">
+      <div class="platform-message-content" id="msg-content-${uniqueId}">
         ${renderMessageContent(message.content)}
       </div>
-      <div class="platform-message-expand-btn" id="msg-expand-${messageId}">
+      <div class="platform-message-expand-btn" id="msg-expand-${uniqueId}">
         展开 ↓
       </div>
     </div>
@@ -1127,10 +1148,10 @@ function renderMessageContent(content) {
   return escapeHtml(content);
 }
 
-function toggleMessageExpand(messageId) {
-  const messageEl = document.querySelector(`.platform-message[data-message-id="${messageId}"]`);
+function toggleMessageExpand(messageId, roleId) {
+  const messageEl = document.querySelector(`.platform-message[data-message-id="${messageId}"][data-role-id="${roleId}"]`);
   if (!messageEl) {
-    console.warn('Message element not found:', messageId);
+    console.warn('Message element not found:', messageId, 'roleId:', roleId);
     return;
   }
 
@@ -1141,12 +1162,12 @@ function toggleMessageExpand(messageId) {
     messageEl.classList.remove('collapsed');
     messageEl.classList.add('expanded');
     if (expandBtn) expandBtn.textContent = '收起 ↑';
-    console.log('Message expanded:', messageId);
+    console.log('Message expanded:', messageId, 'roleId:', roleId);
   } else {
     messageEl.classList.remove('expanded');
     messageEl.classList.add('collapsed');
     if (expandBtn) expandBtn.textContent = '展开 ↓';
-    console.log('Message collapsed:', messageId);
+    console.log('Message collapsed:', messageId, 'roleId:', roleId);
   }
 }
 
@@ -1222,15 +1243,208 @@ function togglePlatformPanel() {
   console.log(`[PlatformPanel] 面板${isCollapsed ? '展开' : '收起'}`);
 }
 
-function closePlatformWindow(roleId) {
-  const windowElement = document.querySelector(`.platform-window[data-role-id="${roleId}"]`);
-  if (windowElement) {
-    windowElement.remove();
-    console.log(`[PlatformPanel] 关闭角色 ${roleId} 的窗口`);
+// ==================== 会话设置 ====================
+
+function enableTitleEditing() {
+  const currentName = state.conversation.name || '';
+
+  elements.chatTitle.classList.add('editing');
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'title-edit-input';
+  input.value = currentName;
+  input.placeholder = '输入会话名称';
+
+  elements.chatTitle.innerHTML = '';
+  elements.chatTitle.appendChild(input);
+  input.focus();
+  input.select();
+
+  const saveTitle = async () => {
+    const newName = input.value.trim();
+    if (!newName) {
+      input.focus();
+      return;
+    }
+
+    try {
+      const updatedConversation = await chrome.runtime.sendMessage({
+        action: 'updateConversation',
+        conversationId,
+        updates: { name: newName }
+      });
+
+      if (updatedConversation) {
+        state.conversation = updatedConversation;
+        elements.chatTitle.classList.remove('editing');
+        elements.chatTitle.textContent = newName;
+        console.log('[Chat] 会话名称已更新');
+      }
+    } catch (error) {
+      console.error('[Chat] 更新会话名称失败:', error);
+    }
+  };
+
+  const cancelEdit = () => {
+    elements.chatTitle.classList.remove('editing');
+    elements.chatTitle.textContent = currentName;
+  };
+
+  input.addEventListener('blur', () => {
+    if (input.value.trim() !== currentName) {
+      saveTitle();
+    } else {
+      cancelEdit();
+    }
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      input.blur();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      cancelEdit();
+    }
+  });
+
+  input.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+}
+
+function showAddRoleModal() {
+  const allRoles = state.roles || [];
+  const currentRoleIds = state.conversation.roleIds || [];
+
+  const availableRoles = allRoles.filter(role => !currentRoleIds.includes(role.id));
+
+  if (availableRoles.length === 0) {
+    alert('没有可添加的角色');
+    return;
   }
 
-  if (elements.platformWindows.children.length === 0) {
-    elements.platformWindows.innerHTML = '<div class="platform-empty">平台窗口将在此显示</div>';
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width: 500px;">
+      <h2>添加角色</h2>
+      <p style="margin-bottom: 16px; color: var(--text-secondary); font-size: 13px;">
+        选择要添加到会话的角色
+      </p>
+
+      <div class="role-selection-list">
+        ${availableRoles.map(role => {
+          const provider = PROVIDERS[role.provider];
+          const color = provider ? provider.color : '#666';
+          return `
+            <label class="role-selection-item">
+              <input type="checkbox" value="${role.id}" />
+              <div class="role-selection-avatar" style="background: linear-gradient(135deg, ${color}, ${color}cc);">
+                ${escapeHtml(role.name.charAt(0))}
+              </div>
+              <div class="role-selection-info">
+                <div class="role-selection-name">${escapeHtml(role.name)}</div>
+                <div class="role-selection-provider">
+                  <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${color};margin-right:4px;"></span>
+                  ${getProviderDisplayName(role.provider)}
+                </div>
+              </div>
+            </label>
+          `;
+        }).join('')}
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="cancelAddBtn">取消</button>
+        <button class="btn btn-primary" id="saveAddBtn">添加</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  const cancelBtn = document.getElementById('cancelAddBtn');
+  const saveBtn = document.getElementById('saveAddBtn');
+
+  cancelBtn.addEventListener('click', () => {
+    document.body.removeChild(modal);
+  });
+
+  saveBtn.addEventListener('click', async () => {
+    const checkboxes = modal.querySelectorAll('input[type="checkbox"]:checked');
+    const newRoleIds = Array.from(checkboxes).map(cb => cb.value);
+
+    if (newRoleIds.length === 0) {
+      alert('请至少选择一个角色');
+      return;
+    }
+
+    try {
+      const updatedRoleIds = [...currentRoleIds, ...newRoleIds];
+      const updates = { roleIds: updatedRoleIds };
+
+      if (state.conversation.sendMode === 'sequential') {
+        updates.roleOrder = updatedRoleIds;
+      }
+
+      const updatedConversation = await chrome.runtime.sendMessage({
+        action: 'updateConversation',
+        conversationId,
+        updates
+      });
+
+      if (updatedConversation) {
+        state.conversation = updatedConversation;
+        render();
+        initPlatformPanel();
+        console.log('[Chat] 角色已添加');
+      }
+
+      document.body.removeChild(modal);
+    } catch (error) {
+      console.error('[Chat] 添加角色失败:', error);
+      alert('添加失败: ' + error.message);
+    }
+  });
+}
+
+async function removeRoleFromConversation(roleId) {
+  if (!confirm('确定要移除该角色吗？')) {
+    return;
+  }
+
+  try {
+    const currentRoleIds = state.conversation.roleIds || [];
+
+    if (currentRoleIds.length <= 1) {
+      alert('至少需要保留一个角色');
+      return;
+    }
+
+    const updatedRoleIds = currentRoleIds.filter(id => id !== roleId);
+    const updates = { roleIds: updatedRoleIds };
+
+    if (state.conversation.sendMode === 'sequential') {
+      updates.roleOrder = updatedRoleIds;
+    }
+
+    const updatedConversation = await chrome.runtime.sendMessage({
+      action: 'updateConversation',
+      conversationId,
+      updates
+    });
+
+    if (updatedConversation) {
+      state.conversation = updatedConversation;
+      render();
+      initPlatformPanel();
+      console.log('[Chat] 角色已移除');
+    }
+  } catch (error) {
+    console.error('[Chat] 移除角色失败:', error);
+    alert('移除失败: ' + error.message);
   }
 }
 

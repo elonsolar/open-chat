@@ -1166,13 +1166,13 @@ body {
 
 .platform-toggle {
   position: absolute;
-  left: 0;
+  left: -16px;
   top: 50%;
   transform: translateY(-50%);
-  width: 20px;
-  height: 60px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #007aff 0%, #0056d6 100%);
+  color: #fff;
+  border: none;
   border-radius: 8px 0 0 8px;
   cursor: pointer;
   display: flex;
@@ -1180,26 +1180,20 @@ body {
   justify-content: center;
   z-index: 10;
   transition: all 0.2s ease;
-  box-shadow: -2px 0 8px rgba(0,0,0,0.08);
+  box-shadow: -4px 0 16px rgba(0,122,255,0.35);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .platform-toggle:hover {
-  background: var(--bg-secondary);
-  box-shadow: -2px 0 12px rgba(0,0,0,0.12);
+  background: linear-gradient(135deg, #0056d6 0%, #0044aa 100%);
+  box-shadow: -4px 0 20px rgba(0,122,255,0.45);
+  left: -20px;
 }
 
 .platform-panel.collapsed .platform-toggle {
   border-radius: 8px 0 0 8px;
-}
-
-.toggle-icon {
-  font-size: 10px;
-  color: var(--text-secondary);
-  transition: transform 0.3s ease;
-}
-
-.platform-panel.collapsed .toggle-icon {
-  transform: rotate(180deg);
 }
 
 .platform-windows {
@@ -1266,8 +1260,29 @@ body {
   padding: 12px 16px;
   background: linear-gradient(135deg, #fafafa, #f5f5f7);
   border-bottom: 1px solid var(--border-color);
-  cursor: move;
+  cursor: pointer;
   user-select: none;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.platform-window-header:hover {
+  background: linear-gradient(135deg, #f0f0f5, #ebebf0);
+}
+
+.platform-window-header::after {
+  content: '▼';
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  color: var(--text-tertiary);
+  transition: transform 0.3s ease;
+}
+
+.platform-window.collapsed-height .platform-window-header::after {
+  transform: translateY(-50%) rotate(-90deg);
 }
 
 .platform-window-info {
@@ -1294,7 +1309,9 @@ body {
 
 .platform-window-actions {
   display: flex;
-  gap: 2px;
+  gap: 4px;
+  position: relative;
+  z-index: 1;
 }
 
 .platform-window-btn {
@@ -1800,4 +1817,161 @@ body {
     width: 100%;
     max-width: 100%;
   }
+}
+
+/* 可编辑标题 */
+.editable-title {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  padding-right: 20px;
+}
+
+.editable-title:hover {
+  color: var(--primary);
+}
+
+.editable-title:hover::after {
+  content: '✏️';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  opacity: 0.5;
+}
+
+.editable-title.editing {
+  cursor: text;
+  padding-right: 0;
+}
+
+.editable-title.editing:hover {
+  color: var(--text-primary);
+}
+
+.editable-title.editing:hover::after {
+  content: none;
+}
+
+.title-edit-input {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid var(--primary);
+  border-radius: 4px;
+  font-size: 20px;
+  font-weight: 700;
+  font-family: inherit;
+  outline: none;
+  background: #fff;
+}
+
+/* 角色标签容器 */
+.roles-tags-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.role-add-btn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: 1px dashed var(--border-color);
+  background: transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.role-add-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--bg-secondary);
+}
+
+/* 角色标签删除按钮 */
+.role-tag-remove {
+  display: none;
+  margin-left: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-tertiary);
+  transition: all 0.2s ease;
+}
+
+.role-tag:hover .role-tag-remove {
+  display: inline;
+}
+
+.role-tag-remove:hover {
+  color: var(--danger);
+}
+
+/* 角色选择列表 */
+.role-selection-list {
+  max-height: 400px;
+  overflow-y: auto;
+  margin-bottom: 20px;
+  padding: 4px;
+}
+
+.role-selection-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.role-selection-item:hover {
+  background: var(--bg-secondary);
+  border-color: var(--primary);
+}
+
+.role-selection-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.role-selection-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.role-selection-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.role-selection-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.role-selection-provider {
+  font-size: 12px;
+  color: var(--text-secondary);
 }

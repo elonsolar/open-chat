@@ -22,7 +22,7 @@
       {
         "id": "remove_xframe_options",
         "enabled": true,
-        "path": "rules.json"
+        "path": "rules/remove-frame-options.json"
       }
     ]
   },
@@ -39,8 +39,6 @@
         "https://doubao.com/*",
         "https://www.qianwen.com/*",
         "https://qianwen.com/*",
-        "https://chatgpt.com/*",
-        "https://chat.openai.com/*",
         "https://kimi.moonshot.cn/*",
         "https://www.kimi.moonshot.cn/*",
         "https://www.kimi.com/*",
@@ -51,7 +49,6 @@
         "utils/platforms/deepseek-adapter.js",
         "utils/platforms/doubao-adapter.js",
         "utils/platforms/qianwen-adapter.js",
-        "utils/platforms/openai-adapter.js",
         "utils/platforms/kimi-adapter.js",
         "utils/content-script.js"
       ],
@@ -69,8 +66,6 @@
         "https://doubao.com/*",
         "https://www.qianwen.com/*",
         "https://qianwen.com/*",
-        "https://chatgpt.com/*",
-        "https://chat.openai.com/*",
         "https://kimi.moonshot.cn/*",
         "https://www.kimi.moonshot.cn/*",
         "https://www.kimi.com/*",

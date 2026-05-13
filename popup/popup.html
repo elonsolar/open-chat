@@ -13,119 +13,359 @@
 
     body {
       width: 400px;
-      padding: 16px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      min-height: 500px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans SC', sans-serif;
+      background: linear-gradient(135deg, #f5f5f7 0%, #e8e8ed 100%);
+      color: #1d1d1f;
+      overflow-x: hidden;
+    }
+
+    .container {
+      padding: 0;
+      animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .header {
+      background: linear-gradient(180deg, #fff 0%, #fafafa 100%);
+      padding: 24px 20px 20px;
+      border-bottom: 1px solid #e8e8ed;
+      position: relative;
+    }
+
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .logo-section {
+      position: relative;
+      z-index: 1;
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
+    }
+
+    .logo-icon {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 12px;
+      background: linear-gradient(135deg, #007aff 0%, #0056d6 100%);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      box-shadow: 0 4px 16px rgba(0,122,255,0.3);
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-6px); }
     }
 
     .header h1 {
-      font-size: 18px;
-      color: #333;
+      font-size: 22px;
+      font-weight: 700;
+      color: #1d1d1f;
+      margin-bottom: 6px;
+      letter-spacing: -0.3px;
+    }
+
+    .tagline {
+      font-size: 13px;
+      color: #86868b;
+      font-weight: 500;
+    }
+
+    .platform-badges {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .platform-badge {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    .badge-deepseek { background: linear-gradient(135deg, #4f46e5, #4338ca); }
+    .badge-doubao { background: linear-gradient(135deg, #0891b2, #0e7490); }
+    .badge-qianwen { background: linear-gradient(135deg, #7c3aed, #6d28d9); }
+    .badge-kimi { background: linear-gradient(135deg, #6366f1, #4f46e5); }
+
+    .content {
+      padding: 20px;
     }
 
     .quick-actions {
       display: flex;
       flex-direction: column;
       gap: 12px;
+      margin-bottom: 20px;
     }
 
     .btn {
-      padding: 12px 20px;
+      width: 100%;
+      padding: 14px 20px;
       border: none;
-      border-radius: 8px;
+      border-radius: 14px;
       font-size: 14px;
+      font-weight: 600;
       cursor: pointer;
-      transition: background-color 0.2s;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .btn:hover::before {
+      left: 100%;
     }
 
     .btn-primary {
-      background-color: #4CAF50;
-      color: white;
+      background: linear-gradient(135deg, #007aff 0%, #0056d6 100%);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(0,122,255,0.35);
     }
 
     .btn-primary:hover {
-      background-color: #45a049;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(0,122,255,0.45);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0) scale(0.98);
     }
 
     .btn-secondary {
-      background-color: #2196F3;
-      color: white;
+      background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+      color: #1d1d1f;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      border: 1px solid rgba(0,0,0,0.06);
     }
 
     .btn-secondary:hover {
-      background-color: #0b7dda;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
     }
 
-    .status {
-      margin-top: 20px;
-      padding: 12px;
-      background-color: #f5f5f5;
-      border-radius: 8px;
+    .btn-icon {
+      font-size: 18px;
+    }
+
+    .tips-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      border: 1px solid #e8e8ed;
+    }
+
+    .tips-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #1d1d1f;
+      margin-bottom: 12px;
+    }
+
+    .tips-icon {
+      font-size: 16px;
+    }
+
+    .tips-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .tips-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
       font-size: 12px;
-      color: #666;
+      color: #6b6b6b;
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+
+    .tips-list li:last-child {
+      margin-bottom: 0;
+    }
+
+    .tips-number {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      background: linear-gradient(135deg, #007aff 0%, #0056d6 100%);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .status-card {
+      background: #e8f5e9;
+      border: 1px solid #c8e6c9;
+      border-radius: 12px;
+      padding: 12px 16px;
+      text-align: center;
+      font-size: 12px;
+      color: #2e7d32;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: #34c759;
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.1); }
+    }
+
+    .footer {
+      padding: 16px 20px;
       text-align: center;
     }
 
-    .status.connected {
-      background-color: #e8f5e9;
-      color: #2e7d32;
+    .footer-text {
+      font-size: 11px;
+      color: #86868b;
+      font-weight: 500;
     }
 
-    .status.disconnected {
-      background-color: #ffebee;
-      color: #c62828;
+    .footer-link {
+      color: #007aff;
+      text-decoration: none;
+      font-weight: 600;
     }
 
-    .tips-box {
-      margin: 16px 0;
-      padding: 12px;
-      background-color: #e3f2fd;
-      border-left: 4px solid #2196F3;
-      border-radius: 6px;
-    }
-
-    .tips-box h3 {
-      margin: 0 0 8px 0;
-      color: #1976d2;
-    }
-
-    .tips-box ol {
-      margin: 0;
-      padding-left: 20px;
-    }
-
-    .tips-box li {
-      margin-bottom: 4px;
-      line-height: 1.4;
+    .footer-link:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
 <body>
-  <div class="header">
-    <h1>Free AI</h1>
-    <p style="font-size: 12px; color: #666; margin-top: 8px;">通过操作AI网页版实现免费对话</p>
-  </div>
+  <div class="container">
+    <div class="header">
+      <div class="logo-section">
+        <div class="logo-icon">🤖</div>
+        <h1>Free AI</h1>
+        <p class="tagline">免费多模型AI对话助手</p>
+      </div>
+      <div class="platform-badges">
+        <span class="platform-badge badge-deepseek">DeepSeek</span>
+        <span class="platform-badge badge-doubao">豆包</span>
+        <span class="platform-badge badge-qianwen">千问</span>
+        <span class="platform-badge badge-kimi">Kimi</span>
+      </div>
+    </div>
 
-  <div class="quick-actions">
-    <button class="btn btn-primary" id="openSidePanelBtn">📱 打开侧边栏</button>
-    <button class="btn btn-secondary" id="newChatBtn">💬 快速新建对话</button>
-  </div>
+    <div class="content">
+      <div class="quick-actions">
+        <button class="btn btn-primary" id="openSidePanelBtn">
+          <span class="btn-icon">📱</span>
+          <span>打开侧边栏</span>
+        </button>
+        <button class="btn btn-secondary" id="newChatBtn">
+          <span class="btn-icon">💬</span>
+          <span>快速新建对话</span>
+        </button>
+      </div>
 
-  <div class="tips-box">
-    <h3 style="font-size: 14px; margin-bottom: 8px;">⚡ 快速开始</h3>
-    <ol style="font-size: 12px; color: #666; padding-left: 20px; margin: 0;">
-      <li>先登录AI网站（如DeepSeek）</li>
-      <li>在侧边栏创建角色并测试</li>
-      <li>创建会话并选择角色</li>
-      <li>开始对话</li>
-    </ol>
-  </div>
+      <div class="tips-card">
+        <div class="tips-title">
+          <span class="tips-icon">⚡</span>
+          <span>快速开始</span>
+        </div>
+        <ul class="tips-list">
+          <li>
+            <span class="tips-number">1</span>
+            <span>先登录AI网站（如DeepSeek）</span>
+          </li>
+          <li>
+            <span class="tips-number">2</span>
+            <span>在侧边栏创建角色并测试</span>
+          </li>
+          <li>
+            <span class="tips-number">3</span>
+            <span>创建会话并选择角色</span>
+          </li>
+          <li>
+            <span class="tips-number">4</span>
+            <span>开始对话，享受多模型AI体验</span>
+          </li>
+        </ul>
+      </div>
 
-  <div class="status" id="status">检查中...</div>
+      <div class="status-card" id="status">
+        <span class="status-dot"></span>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p class="footer-text">
+        Made with ❤️ · <a href="https://github.com/elonsolar/free-ai" class="footer-link" target="_blank">GitHub</a>
+      </p>
+    </div>
+  </div>
 
   <script src="popup.js"></script>
 </body>

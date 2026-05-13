@@ -32,10 +32,32 @@ document.getElementById('openSidePanelBtn').addEventListener('click', async () =
 // 新建对话
 document.getElementById('newChatBtn').addEventListener('click', async () => {
   try {
+    const now = new Date();
+    const timeString = now.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    }).replace(/\//g, '-').replace(/,\s*/g, ' ');
+
+    let allRoleIds = [];
+
+    try {
+      const roles = await chrome.runtime.sendMessage({ action: 'getRoles' });
+      if (roles && roles.length > 0) {
+        allRoleIds = roles.map(role => role.id);
+      }
+    } catch (error) {
+      console.warn('获取角色列表失败，使用空角色列表:', error);
+    }
+
     const response = await chrome.runtime.sendMessage({
       action: 'createConversation',
-      name: '新对话',
-      roleIds: []
+      name: timeString,
+      roleIds: allRoleIds
     });
 
     if (response && response.id) {
@@ -52,6 +74,6 @@ document.getElementById('newChatBtn').addEventListener('click', async () => {
 // 检查连接状态
 chrome.runtime.sendMessage({ action: 'getSettings' }, (settings) => {
   const statusEl = document.getElementById('status');
-  statusEl.textContent = '设置已移至侧边栏';
+  statusEl.textContent = '';
   statusEl.className = 'status connected';
 });

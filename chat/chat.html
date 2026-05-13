@@ -13,11 +13,14 @@
       <!-- 顶部信息栏 -->
       <div class="chat-header">
         <div class="chat-header-top">
-          <h1 id="chatTitle">会话</h1>
+          <h1 id="chatTitle" class="editable-title" title="点击编辑会话名称">会话</h1>
           <span class="mode-badge" id="modeBadge" title="点击切换发送模式"></span>
         </div>
         <div class="chat-info">
-          <div class="roles-tags" id="rolesTags"></div>
+          <div class="roles-tags-wrapper">
+            <div class="roles-tags" id="rolesTags"></div>
+            <button class="role-add-btn" id="roleAddBtn" title="添加角色">+</button>
+          </div>
         </div>
       </div>
 
@@ -38,9 +41,7 @@
     <!-- 右侧平台面板 -->
     <div class="platform-panel" id="platformPanel">
       <div class="platform-resizer" id="platformResizer" title="拖拽调整宽度"></div>
-      <button class="platform-toggle" id="platformToggle" title="切换平台面板">
-        <span class="toggle-icon">◀</span>
-      </button>
+      <button class="platform-toggle" id="platformToggle" title="切换平台面板">🤖 AI面板</button>
       <div class="platform-windows" id="platformWindows">
         <div class="platform-empty">平台窗口将在此显示</div>
       </div>

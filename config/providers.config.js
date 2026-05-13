@@ -36,18 +36,6 @@ const PROVIDERS = {
       'https://qianwen.com/*'
     ]
   },
-  openai: {
-    id: 'openai',
-    name: 'ChatGPT',
-    baseUrl: 'https://chatgpt.com/',
-    domain: 'chatgpt.com',
-    defaultModel: 'gpt-4',
-    color: '#059669',
-    urlPatterns: [
-      'https://chatgpt.com/*',
-      'https://chat.openai.com/*'
-    ]
-  },
   kimi: {
     id: 'kimi',
     name: 'Kimi',
