@@ -462,13 +462,15 @@ async function sendMessage() {
       state.conversation = updatedConversation;
       renderMessages();
 
-      // 通知 background.js 开始监控响应
-      chrome.runtime.sendMessage({
-        action: 'startResponsePolling',
-        conversationId: conversationId
-      }).catch(error => {
-        console.error('[Chat] 启动监控失败:', error);
-      });
+      // 延迟3秒后通知 background.js 开始监控响应
+      setTimeout(() => {
+        chrome.runtime.sendMessage({
+          action: 'startResponsePolling',
+          conversationId: conversationId
+        }).catch(error => {
+          console.error('[Chat] 启动监控失败:', error);
+        });
+      }, 3000);
     }
   } catch (error) {
     console.error('发送消息失败:', error);
@@ -1005,6 +1007,11 @@ function initPlatformPanel() {
 
   console.log('[PlatformPanel] 初始化平台面板');
   createPlatformWindows();
+  
+  // 默认收起平台面板
+  if (elements.platformPanel && !elements.platformPanel.classList.contains('collapsed')) {
+    elements.platformPanel.classList.add('collapsed');
+  }
 }
 
 function createPlatformWindows() {
@@ -1038,7 +1045,7 @@ function createPlatformWindow(role) {
 
   const windowId = `platform-window-${role.id}`;
   const windowElement = document.createElement('div');
-  windowElement.className = 'platform-window';
+  windowElement.className = 'platform-window collapsed-height';
   windowElement.id = windowId;
   windowElement.dataset.roleId = role.id;
   windowElement.dataset.provider = role.provider;
@@ -1054,6 +1061,7 @@ function createPlatformWindow(role) {
       <div class="platform-window-info">
         <div class="platform-window-indicator" style="background: ${provider.color};"></div>
         <div class="platform-window-name">${escapeHtml(role.name)}</div>
+        <div class="platform-window-provider">${escapeHtml(provider.name)}</div>
       </div>
       <div class="platform-window-actions">
         <button class="platform-window-btn open-tab" title="在标签页中打开" data-action="openTab">🔗</button>

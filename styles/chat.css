@@ -1122,7 +1122,7 @@ body {
 
 .platform-panel {
   width: 600px;
-  min-width: 400px;
+  min-width: 500px;
   max-width: 90vw;
   background: var(--bg-primary);
   border-left: 1px solid var(--border-color);
@@ -1166,10 +1166,10 @@ body {
 
 .platform-toggle {
   position: absolute;
-  left: -16px;
+  left: -20px;
   top: 50%;
   transform: translateY(-50%);
-  padding: 10px 16px;
+  padding: 16px 8px;
   background: linear-gradient(135deg, #007aff 0%, #0056d6 100%);
   color: #fff;
   border: none;
@@ -1181,9 +1181,18 @@ body {
   z-index: 10;
   transition: all 0.2s ease;
   box-shadow: -4px 0 16px rgba(0,122,255,0.35);
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
   white-space: nowrap;
+}
+
+.toggle-icon {
+  display: inline-block;
+  transition: transform 0.3s ease;
+}
+
+.platform-panel.collapsed .toggle-icon {
+  transform: rotate(180deg);
 }
 
 .platform-toggle:hover {
@@ -1203,6 +1212,7 @@ body {
   display: flex;
   flex-direction: column;
   transition: opacity 0.3s ease;
+  gap: 16px;
 }
 
 .platform-empty {
@@ -1227,7 +1237,9 @@ body {
   box-shadow: var(--shadow-sm);
   transition: all 0.2s ease;
   margin-bottom: 0;
-  max-height: none;
+  max-height: calc(100vh - 40px);
+  min-height: 0;
+  flex-shrink: 0;
 }
 
 .platform-window:hover {
@@ -1236,7 +1248,7 @@ body {
 }
 
 .platform-window + .platform-window {
-  margin-top: 12px;
+  margin-top: 0;
 }
 
 .platform-window.expanded {
@@ -1258,12 +1270,14 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
+  min-height: 48px;
   background: linear-gradient(135deg, #fafafa, #f5f5f7);
   border-bottom: 1px solid var(--border-color);
   cursor: pointer;
   user-select: none;
   transition: all 0.2s ease;
   position: relative;
+  flex-shrink: 0;
 }
 
 .platform-window-header:hover {
@@ -1290,6 +1304,7 @@ body {
   align-items: center;
   gap: 10px;
   flex: 1;
+  min-width: 0;
 }
 
 .platform-window-indicator {
@@ -1305,13 +1320,34 @@ body {
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 60px;
+}
+
+.platform-window-provider {
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .platform-window-actions {
   display: flex;
-  gap: 4px;
+  gap: 8px;
   position: relative;
   z-index: 1;
+  margin-right: 20px;
+  flex-shrink: 0;
 }
 
 .platform-window-btn {
@@ -1342,12 +1378,13 @@ body {
 .platform-window-content {
   position: relative;
   min-height: 200px;
-  max-height: 500px;
+  max-height: calc(100vh - 200px);
   background: #fff;
   display: flex;
   flex-direction: column;
   transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, min-height 0.3s ease;
   overflow: hidden;
+  flex: 1;
 }
 
 .platform-window.collapsed-height .platform-window-content {
@@ -1355,6 +1392,8 @@ body {
   min-height: 0;
   opacity: 0;
   padding: 0;
+  border: none;
+  overflow: hidden;
 }
 
 .platform-window.expanded-height .platform-window-content {
@@ -1374,7 +1413,7 @@ body {
   padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .platform-message {
@@ -1384,8 +1423,9 @@ body {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
   transition: all 0.2s ease;
-  overflow: hidden;
+  overflow: visible;
   margin: 0;
+  width: 100%;
 }
 
 .platform-message:hover {
@@ -1449,21 +1489,24 @@ body {
   font-size: 13px;
   line-height: 1.6;
   color: var(--text-primary);
-  padding: 0 12px 12px 12px;
+  padding: 0 12px;
   max-height: 0;
   overflow: hidden;
   transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease;
+  word-wrap: break-word;
+  word-break: break-word;
+  min-height: 0;
 }
 
 .platform-message.expanded .platform-message-content {
-  max-height: 2000px;
-  padding: 8px 12px;
-  overflow-y: visible;
+  max-height: 5000px;
+  padding: 8px 12px 12px 12px;
+  overflow-y: auto;
 }
 
 .platform-message.collapsed .platform-message-content {
   max-height: 0;
-  padding: 0;
+  padding: 0 12px;
   overflow: hidden;
 }
 

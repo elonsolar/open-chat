@@ -614,7 +614,7 @@ class AIMessageManager {
 
       const conversationUrl = conversation.roleUrls?.[roleId];
       console.log(`[AIMessageManager] 角色 ${roleId} 通过后台标签页发送消息，会话URL: ${conversationUrl || '使用baseUrl'}`);
-      const response = await this.tabManager.sendMessage(role.provider, messageToSend, true, conversationUrl);
+      const response = await this.tabManager.sendMessage(role.provider, messageToSend, false, conversationUrl);
 
       if (response && response.success) {
           let content = response.content || '';
@@ -1040,19 +1040,22 @@ function startPolling(conversationId) {
           console.log(`[Background] 激活角色 ${role.name} (${role.provider}) 标签页`);
           const existingTab = await tabManager.findPlatformTab(role.provider);
           if (existingTab) {
-            await chrome.tabs.update(existingTab.id, { active: true });
+            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+            const currentActiveTab = tabs[0];
+            const isCurrentlyOnChatPage = currentActiveTab && currentActiveTab.url && currentActiveTab.url.includes('chat/chat.html');
 
-            setTimeout(async () => {
-              try {
-                const tabs = await chrome.tabs.query({});
-                const chatTab = tabs.find(tab => tab.url && tab.url.includes('chat/chat.html'));
-                if (chatTab) {
-                  await chrome.tabs.update(chatTab.id, { active: true });
-                }
-              } catch (e) {
-                console.warn('[Background] 切回chat页面失败:', e);
+            // 激活目标tab，不等待完成
+            chrome.tabs.update(existingTab.id, { active: true }).catch(() => {});
+
+            // 给Edge一点时间处理激活，然后切回
+            if (isCurrentlyOnChatPage) {
+              await new Promise(resolve => setTimeout(resolve, 100));
+              const allTabs = await chrome.tabs.query({});
+              const chatTab = allTabs.find(tab => tab.url && tab.url.includes('chat/chat.html'));
+              if (chatTab) {
+                chrome.tabs.update(chatTab.id, { active: true }).catch(() => {});
               }
-            }, 1);
+            }
           }
         } catch (error) {
           console.error(`[Background] 激活 ${role.name} 标签页失败:`, error);
