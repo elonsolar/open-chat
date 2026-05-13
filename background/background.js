@@ -73,6 +73,10 @@ class TabManager {
 
     this.tabs.set(platform, tab.id);
     await this.waitForTabReady(tab.id);
+
+    // 确保标签页保持后台状态
+    await chrome.tabs.update(tab.id, { active: false });
+
     return tab;
   }
 
@@ -169,6 +173,14 @@ class TabManager {
 
   async sendToPlatform(platform, messageType, data = {}, forceNewTab = false, targetUrl = null) {
     const tab = await this.openPlatformTab(platform, forceNewTab, targetUrl);
+
+    // 确保标签页保持后台状态
+    try {
+      await chrome.tabs.update(tab.id, { active: false });
+    } catch (e) {
+      // 标签页可能已关闭
+    }
+
     await this.sleep(3000);
 
     let pingSuccess = false;
@@ -238,6 +250,13 @@ class TabManager {
           ...message,
           messageId: messageId
         });
+
+        // 发送消息后确保标签页保持后台状态
+        try {
+          await chrome.tabs.update(tab.id, { active: false });
+        } catch (e) {
+          // 标签页可能已关闭，忽略
+        }
       } catch (sendError) {
         pendingResponses.delete(messageId);
         throw sendError;
@@ -288,6 +307,19 @@ class TabManager {
       const tab = await this.openPlatformTab(platform, true);
       await chrome.tabs.update(tab.id, { active: true });
       return true;
+    }
+  }
+
+  async openPlatformConversation(platform) {
+    const existingTab = await this.findPlatformTab(platform);
+
+    if (existingTab) {
+      await chrome.tabs.update(existingTab.id, { active: true });
+      return { success: true, tabId: existingTab.id };
+    } else {
+      const tab = await this.openPlatformTab(platform, true);
+      await chrome.tabs.update(tab.id, { active: true });
+      return { success: true, tabId: tab.id };
     }
   }
 
@@ -513,8 +545,6 @@ class AIMessageManager {
 
     try {
       let messageToSend = '';
-      let forceNewTab = false;
-      let targetUrl = null;
 
       if (contextMode === 'self') {
         const lastMessageId = conversation.roleLastMessageIds?.[roleId];
@@ -525,12 +555,6 @@ class AIMessageManager {
         }
 
         messageToSend = messagesToSend.map(msg => msg.content).join('\n\n');
-
-        if (conversation.roleUrls && conversation.roleUrls[roleId]) {
-          targetUrl = conversation.roleUrls[roleId];
-        } else {
-          forceNewTab = true;
-        }
 
         let fullPrompt = role.systemPrompt || '';
         if (additionalPrompt) {
@@ -585,61 +609,59 @@ class AIMessageManager {
         });
 
         messageToSend = messageToSend.trim() + '\n\n重要：请在你的回复最后必须添加 [[<<>>]] 标记，表示回复结束。';
-
-        if (conversation.roleUrls && conversation.roleUrls[roleId]) {
-          targetUrl = conversation.roleUrls[roleId];
-        } else {
-          forceNewTab = true;
-        }
       }
 
-      const response = await this.tabManager.sendMessage(role.provider, messageToSend, forceNewTab, targetUrl);
+      const conversationUrl = conversation.roleUrls?.[roleId];
+      console.log(`[AIMessageManager] 角色 ${roleId} 通过后台标签页发送消息，会话URL: ${conversationUrl || '使用baseUrl'}`);
+      const response = await this.tabManager.sendMessage(role.provider, messageToSend, true, conversationUrl);
 
       if (response && response.success) {
-        let content = response.content || '';
+          let content = response.content || '';
 
-        const endMarker = '[[<<>>]]';
-        if (content.endsWith(endMarker)) {
-          content = content.slice(0, -endMarker.length).trim();
+          const endMarker = '[[<<>>]]';
+          if (content.endsWith(endMarker)) {
+            content = content.slice(0, -endMarker.length).trim();
+          } else {
+            console.warn(`[AIMessageManager] ${role.name} 的回复可能不完整，缺少结束标记`);
+          }
+          if (response.conversationUrl) {
+            if (!conversation.roleUrls) {
+              conversation.roleUrls = {};
+            }
+
+            if (conversation.roleUrls[roleId] !== response.conversationUrl) {
+              conversation.roleUrls[roleId] = response.conversationUrl;
+              await this.conversationManager.updateConversation(conversationId, { roleUrls: conversation.roleUrls });
+            }
+          }
+
+          const savedMessage = await this.conversationManager.addMessage(conversationId, roleId, content, false);
+
+          if (savedMessage) {
+            if (!conversation.roleLastMessageIds) {
+              conversation.roleLastMessageIds = {};
+            }
+            conversation.roleLastMessageIds[roleId] = savedMessage.id;
+
+            await this.conversationManager.updateConversation(conversationId, {
+              roleLastMessageIds: conversation.roleLastMessageIds
+            });
+          }
+
+          if (useFloatWindow) {
+            await this.sendToFloatWindow('addMessage', {
+              role: nickname,
+              content: content,
+              isUser: false,
+              isError: false,
+              provider: role.provider
+            });
+          }
+
+          return true;
         } else {
-          console.warn(`[AIMessageManager] ${role.name} 的回复可能不完整，缺少结束标记`);
+          throw new Error('发送消息失败');
         }
-        if (response.conversationUrl) {
-          if (!conversation.roleUrls) {
-            conversation.roleUrls = {};
-          }
-
-          if (conversation.roleUrls[roleId] !== response.conversationUrl) {
-            conversation.roleUrls[roleId] = response.conversationUrl;
-            await this.conversationManager.updateConversation(conversationId, { roleUrls: conversation.roleUrls });
-          }
-        }
-
-        const savedMessage = await this.conversationManager.addMessage(conversationId, roleId, content, false);
-
-        if (savedMessage) {
-          if (!conversation.roleLastMessageIds) {
-            conversation.roleLastMessageIds = {};
-          }
-          conversation.roleLastMessageIds[roleId] = savedMessage.id;
-
-          await this.conversationManager.updateConversation(conversationId, {
-            roleLastMessageIds: conversation.roleLastMessageIds
-          });
-        }
-
-        if (useFloatWindow) {
-          await this.sendToFloatWindow('addMessage', {
-            role: nickname,
-            content: content,
-            isUser: false,
-            isError: false,
-            provider: role.provider
-          });
-        }
-
-        return true;
-      }
     } catch (error) {
       console.error(`发送到 ${role.provider} 失败:`, error);
     }
@@ -724,6 +746,40 @@ class AIMessageManager {
     } catch (error) {
       console.error(`在 ${provider} 创建新会话失败:`, error);
       return false;
+    }
+  }
+
+  async initRoleConversation(conversationId, roleId) {
+    const conversation = await this.conversationManager.getConversation(conversationId);
+    if (!conversation) {
+      throw new Error('会话不存在');
+    }
+
+    const roles = await StorageManager.getRoles();
+    const role = roles.find(r => r.id === roleId);
+    if (!role) {
+      throw new Error('角色不存在');
+    }
+
+    try {
+      const response = await this.tabManager.newChat(role.provider);
+      if (!response || !response.conversationUrl) {
+        throw new Error('创建会话失败');
+      }
+
+      if (!conversation.roleUrls) {
+        conversation.roleUrls = {};
+      }
+      conversation.roleUrls[roleId] = response.conversationUrl;
+
+      await this.conversationManager.updateConversation(conversationId, {
+        roleUrls: conversation.roleUrls
+      });
+
+      return await this.conversationManager.getConversation(conversationId);
+    } catch (error) {
+      console.error(`初始化角色 ${roleId} 会话失败:`, error);
+      throw error;
     }
   }
 
@@ -882,8 +938,31 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         .catch(error => sendResponse({ success: false, error: error.message }));
       return true;
 
+    case 'initRoleConversation':
+      aiMessageManager.initRoleConversation(request.conversationId, request.roleId)
+        .then(conversation => sendResponse(conversation))
+        .catch(error => sendResponse({ error: error.message }));
+      return true;
+
+    case 'openPlatformConversation':
+      tabManager.openPlatformConversation(request.provider)
+        .then(result => sendResponse(result))
+        .catch(error => sendResponse({ error: error.message }));
+      return true;
+
     default:
       sendResponse({ error: 'Unknown action' });
+  }
+});
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'pageReady') {
+    sendResponse({ status: 'ok' });
+  }
+
+  if (message.type === 'sendToIframe') {
+    sendResponse({ success: true });
+    return true;
   }
 });
 

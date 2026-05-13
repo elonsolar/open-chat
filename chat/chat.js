@@ -44,6 +44,9 @@ async function init() {
 
   // 渲染界面
   render();
+
+  // 初始化平台面板
+  initPlatformPanel();
 }
 
 function initElements() {
@@ -53,6 +56,8 @@ function initElements() {
   elements.messageInput = document.getElementById('messageInput');
   elements.sendBtn = document.getElementById('sendBtn');
   elements.modeBadge = document.getElementById('modeBadge');
+  elements.platformPanel = document.getElementById('platformPanel');
+  elements.platformWindows = document.getElementById('platformWindows');
 
   // 创建滚动到底部按钮
   elements.scrollBottomBtn = document.createElement('button');
@@ -134,6 +139,51 @@ function bindEvents() {
     const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
     elements.scrollBottomBtn.classList.toggle('visible', !isNearBottom);
   });
+
+  // 平台面板切换
+  const platformToggle = document.getElementById('platformToggle');
+  if (platformToggle) {
+    platformToggle.addEventListener('click', togglePlatformPanel);
+  }
+
+  // 平台面板拖拽调整大小
+  initPlatformResizer();
+}
+
+function initPlatformResizer() {
+  const resizer = document.getElementById('platformResizer');
+  const platformPanel = document.getElementById('platformPanel');
+  if (!resizer || !platformPanel) return;
+
+  let isResizing = false;
+  let startX = 0;
+  let startWidth = 0;
+
+  resizer.addEventListener('mousedown', (e) => {
+    isResizing = true;
+    startX = e.clientX;
+    startWidth = platformPanel.offsetWidth;
+    resizer.classList.add('resizing');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isResizing) return;
+
+    const deltaX = startX - e.clientX;
+    const newWidth = Math.max(400, Math.min(startWidth + deltaX, window.innerWidth * 0.9));
+    platformPanel.style.width = newWidth + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (isResizing) {
+      isResizing = false;
+      resizer.classList.remove('resizing');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+  });
 }
 
 async function handleStorageChange(change) {
@@ -151,9 +201,62 @@ async function handleStorageChange(change) {
     state.conversation = updatedConversation;
     renderMessages();
 
+    // 更新平台面板的消息列表
+    updatePlatformPanelMessages();
+
     if (newMessageCount > oldMessageCount) {
       console.log(`[Chat] 新增了 ${newMessageCount - oldMessageCount} 条消息`);
       scrollToBottom();
+    }
+  }
+}
+
+function updatePlatformPanelMessages() {
+  if (!state.conversation.roleIds || state.conversation.roleIds.length === 0) {
+    return;
+  }
+
+  state.conversation.roleIds.forEach(roleId => {
+    const role = state.roles.find(r => r.id === roleId);
+    if (!role) return;
+
+    const windowElement = document.querySelector(`.platform-window[data-role-id="${roleId}"]`);
+    if (!windowElement) return;
+
+    const messageList = windowElement.querySelector('.platform-message-list');
+    if (!messageList) return;
+
+    const roleMessages = getRoleMessages(roleId);
+
+    if (roleMessages.length > 0) {
+      messageList.innerHTML = roleMessages.map(msg => createMessageHTML(msg, role)).join('');
+    } else {
+      messageList.innerHTML = `
+        <div class="platform-conversation-empty">
+          <div class="platform-empty-icon">💬</div>
+          <div class="platform-empty-text">暂无消息</div>
+          <div class="platform-empty-hint">发送消息后会在此显示对话历史</div>
+        </div>
+      `;
+    }
+
+    // 重新绑定事件监听器
+    messageList.removeEventListener('click', handleMessageListClick);
+    messageList.addEventListener('click', handleMessageListClick);
+  });
+
+  console.log('[Chat] 平台面板消息已更新');
+}
+
+function handleMessageListClick(e) {
+  const header = e.target.closest('.platform-message-header');
+  const expandBtn = e.target.closest('.platform-message-expand-btn');
+
+  if (header || expandBtn) {
+    const messageEl = (header || expandBtn).closest('.platform-message');
+    if (messageEl) {
+      const messageId = messageEl.dataset.messageId;
+      toggleMessageExpand(messageId);
     }
   }
 }
@@ -856,6 +959,278 @@ function hideCommandSuggestions() {
   const existingSuggestions = document.getElementById('commandSuggestions');
   if (existingSuggestions) {
     existingSuggestions.remove();
+  }
+}
+
+// ==================== 平台面板管理 ====================
+
+function initPlatformPanel() {
+  if (!state.conversation || !state.conversation.roleIds) {
+    console.log('[PlatformPanel] 没有角色，跳过初始化');
+    return;
+  }
+
+  console.log('[PlatformPanel] 初始化平台面板');
+  createPlatformWindows();
+}
+
+function createPlatformWindows() {
+  if (!elements.platformWindows) return;
+
+  elements.platformWindows.innerHTML = '';
+
+  const roleIds = state.conversation.roleIds || [];
+  if (roleIds.length === 0) {
+    elements.platformWindows.innerHTML = '<div class="platform-empty">平台窗口将在此显示</div>';
+    return;
+  }
+
+  roleIds.forEach(roleId => {
+    const role = state.roles.find(r => r.id === roleId);
+    if (role) {
+      const windowElement = createPlatformWindow(role);
+      elements.platformWindows.appendChild(windowElement);
+    }
+  });
+
+  console.log(`[PlatformPanel] 创建了 ${elements.platformWindows.children.length} 个平台窗口`);
+}
+
+function createPlatformWindow(role) {
+  const provider = PROVIDERS[role.provider];
+  if (!provider) {
+    console.warn(`[PlatformPanel] 未找到角色 ${role.name} 的提供商配置`);
+    return null;
+  }
+
+  const windowId = `platform-window-${role.id}`;
+  const windowElement = document.createElement('div');
+  windowElement.className = 'platform-window';
+  windowElement.id = windowId;
+  windowElement.dataset.roleId = role.id;
+  windowElement.dataset.provider = role.provider;
+
+  const roleMessages = getRoleMessages(role.id);
+  console.log(`[PlatformPanel] 创建角色 ${role.name} 的窗口，消息数量:`, roleMessages.length);
+  if (roleMessages.length > 0) {
+    console.log(`[PlatformPanel] 消息数据:`, roleMessages);
+  }
+
+  windowElement.innerHTML = `
+    <div class="platform-window-header">
+      <div class="platform-window-info">
+        <div class="platform-window-indicator" style="background: ${provider.color};"></div>
+        <div class="platform-window-name">${escapeHtml(role.name)}</div>
+      </div>
+      <div class="platform-window-actions">
+        <button class="platform-window-btn toggle-height" title="收缩/展开" data-action="toggleHeight">⬍</button>
+        <button class="platform-window-btn open-tab" title="在标签页中打开" data-action="openTab">🔗</button>
+        <button class="platform-window-btn close" title="关闭窗口" data-action="close">×</button>
+      </div>
+    </div>
+    <div class="platform-window-content">
+      <div class="platform-message-list">
+        ${roleMessages.length > 0 ? roleMessages.map(msg => createMessageHTML(msg, role)).join('') : `
+          <div class="platform-conversation-empty">
+            <div class="platform-empty-icon">💬</div>
+            <div class="platform-empty-text">暂无消息</div>
+            <div class="platform-empty-hint">发送消息后会在此显示对话历史</div>
+          </div>
+        `}
+      </div>
+    </div>
+  `;
+
+  const closeBtn = windowElement.querySelector('[data-action="close"]');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => closePlatformWindow(role.id));
+  }
+
+  const toggleHeightBtn = windowElement.querySelector('[data-action="toggleHeight"]');
+  if (toggleHeightBtn) {
+    toggleHeightBtn.addEventListener('click', () => togglePlatformWindowHeight(windowId));
+  }
+
+  const openTabBtn = windowElement.querySelector('[data-action="openTab"]');
+  if (openTabBtn) {
+    openTabBtn.addEventListener('click', () => openPlatformConversation(role));
+  }
+
+  // 添加消息列表的事件委托
+  const messageList = windowElement.querySelector('.platform-message-list');
+  if (messageList) {
+    messageList.addEventListener('click', handleMessageListClick);
+  }
+
+  return windowElement;
+}
+
+function getRoleMessages(roleId) {
+  if (!state.conversation.messages || state.conversation.messages.length === 0) {
+    return [];
+  }
+
+  return state.conversation.messages.filter(msg => {
+    // 包含用户消息和该角色的AI回复
+    return msg.isUser || msg.roleId === roleId;
+  });
+}
+
+function createMessageHTML(message, role) {
+  const provider = PROVIDERS[role.provider];
+  const isUser = message.isUser;
+  const messageId = message.id;
+
+  return `
+    <div class="platform-message ${isUser ? 'user-message' : 'ai-message'} collapsed" data-message-id="${messageId}">
+      <div class="platform-message-header" title="点击展开/收起">
+        <div class="platform-message-avatar" style="background: ${isUser ? 'var(--primary)' : provider.color}">
+          ${isUser ? '我' : escapeHtml(role.name.charAt(0))}
+        </div>
+        <div class="platform-message-time">${formatTime(message.timestamp)}</div>
+        <div class="platform-message-hint">▼</div>
+      </div>
+      <div class="platform-message-content" id="msg-content-${messageId}">
+        ${renderMessageContent(message.content)}
+      </div>
+      <div class="platform-message-expand-btn" id="msg-expand-${messageId}">
+        展开 ↓
+      </div>
+    </div>
+  `;
+}
+
+function renderMessageContent(content) {
+  if (!content || content.trim() === '') {
+    console.warn('[renderMessageContent] 内容为空');
+    return '<span style="color: var(--text-tertiary); font-style: italic;">(空消息)</span>';
+  }
+
+  console.log('[renderMessageContent] 原始内容:', content.substring(0, 50), '长度:', content.length);
+
+  if (typeof marked !== 'undefined' && marked.parse) {
+    try {
+      const result = marked.parse(content);
+      console.log('[renderMessageContent] Markdown渲染成功，结果长度:', result.length);
+      if (!result || result.trim() === '') {
+        console.warn('[renderMessageContent] Markdown渲染结果为空，使用纯文本');
+        return escapeHtml(content);
+      }
+      return result;
+    } catch (e) {
+      console.error('[renderMessageContent] Markdown parse error:', e);
+      return escapeHtml(content);
+    }
+  }
+
+  console.log('[renderMessageContent] marked不可用，使用纯文本');
+  return escapeHtml(content);
+}
+
+function toggleMessageExpand(messageId) {
+  const messageEl = document.querySelector(`.platform-message[data-message-id="${messageId}"]`);
+  if (!messageEl) {
+    console.warn('Message element not found:', messageId);
+    return;
+  }
+
+  const expandBtn = messageEl.querySelector('.platform-message-expand-btn');
+  const isCollapsed = messageEl.classList.contains('collapsed');
+
+  if (isCollapsed) {
+    messageEl.classList.remove('collapsed');
+    messageEl.classList.add('expanded');
+    if (expandBtn) expandBtn.textContent = '收起 ↑';
+    console.log('Message expanded:', messageId);
+  } else {
+    messageEl.classList.remove('expanded');
+    messageEl.classList.add('collapsed');
+    if (expandBtn) expandBtn.textContent = '展开 ↓';
+    console.log('Message collapsed:', messageId);
+  }
+}
+
+function formatTime(timestamp) {
+  if (!timestamp) return '';
+  const date = new Date(timestamp);
+  return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+}
+
+function togglePlatformWindowHeight(windowId) {
+  const windowElement = document.getElementById(windowId);
+  if (!windowElement) {
+    console.warn('[togglePlatformWindowHeight] 窗口不存在:', windowId);
+    return;
+  }
+
+  const content = windowElement.querySelector('.platform-window-content');
+  if (!content) {
+    console.warn('[togglePlatformWindowHeight] 内容区不存在');
+    return;
+  }
+
+  const isCollapsed = windowElement.classList.contains('collapsed-height');
+
+  if (isCollapsed) {
+    // 展开
+    windowElement.classList.remove('collapsed-height');
+    windowElement.classList.add('expanded-height');
+    // 移除内联样式，让CSS控制
+    content.style.maxHeight = '';
+  } else {
+    // 收缩
+    windowElement.classList.remove('expanded-height');
+    windowElement.classList.add('collapsed-height');
+    content.style.maxHeight = '0';
+  }
+
+  console.log(`[PlatformPanel] 窗口 ${windowId} ${isCollapsed ? '展开' : '收缩'}`);
+}
+
+async function openPlatformConversation(role) {
+  console.log(`[PlatformPanel] 打开角色 ${role.name} 的平台会话`);
+  try {
+    const result = await chrome.runtime.sendMessage({
+      action: 'openPlatformConversation',
+      conversationId: conversationId,
+      roleId: role.id,
+      provider: role.provider
+    });
+    console.log(`[PlatformPanel] 打开平台会话成功:`, result);
+  } catch (error) {
+    console.error(`[PlatformPanel] 打开平台会话失败:`, error);
+    alert('打开失败：' + error.message);
+  }
+}
+
+async function refreshRoleConversation(roleId) {
+  console.log(`[PlatformPanel] 刷新角色 ${roleId} 的会话列表`);
+  createPlatformWindows();
+}
+
+function togglePlatformPanel() {
+  if (!elements.platformPanel) return;
+
+  const isCollapsed = elements.platformPanel.classList.contains('collapsed');
+  elements.platformPanel.classList.toggle('collapsed');
+
+  const toggleIcon = document.querySelector('.toggle-icon');
+  if (toggleIcon) {
+    toggleIcon.textContent = isCollapsed ? '◀' : '▶';
+  }
+
+  console.log(`[PlatformPanel] 面板${isCollapsed ? '展开' : '收起'}`);
+}
+
+function closePlatformWindow(roleId) {
+  const windowElement = document.querySelector(`.platform-window[data-role-id="${roleId}"]`);
+  if (windowElement) {
+    windowElement.remove();
+    console.log(`[PlatformPanel] 关闭角色 ${roleId} 的窗口`);
+  }
+
+  if (elements.platformWindows.children.length === 0) {
+    elements.platformWindows.innerHTML = '<div class="platform-empty">平台窗口将在此显示</div>';
   }
 }
 

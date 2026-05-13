@@ -113,7 +113,50 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
+  if (request.type === 'newChat') {
+    console.log('[AI Plugin] 执行新对话');
+
+    (async () => {
+      try {
+        if (currentAdapter && currentAdapter.newChat) {
+          await currentAdapter.newChat();
+          await new Promise(resolve => setTimeout(resolve, 1000));
+
+          const conversationUrl = window.location.href;
+          console.log('[AI Plugin] 新对话URL:', conversationUrl);
+          sendResponse({ success: true, conversationUrl });
+        } else {
+          sendResponse({ success: false, error: 'adapter未初始化或没有newChat方法' });
+        }
+      } catch (error) {
+        console.error('[AI Plugin] newChat失败:', error);
+        sendResponse({ success: false, error: error.message });
+      }
+    })();
+
+    return true;
+  }
+
   return false;
+});
+
+window.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'sendMessage') {
+    console.log('[AI Plugin] 从iframe收到消息:', event.data);
+
+    const { messageId, content } = event.data;
+
+    if (currentAdapter && currentAdapter.processSendMessage) {
+      currentAdapter.processSendMessage(content, messageId);
+    } else {
+      console.error('[AI Plugin] ❌ adapter 未初始化或没有 processSendMessage 方法');
+      chrome.runtime.sendMessage({
+        type: 'aiResponse',
+        messageId,
+        error: 'adapter未初始化'
+      });
+    }
+  }
 });
 
 console.log('[AI Plugin] ✓ 消息监听已启动');

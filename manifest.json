@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Free AI",
-  "version": "1.0.1",
+  "version": "1.1.4",
   "description": "集成多个大模型，支持角色管理和会话管理的AI对话助手",
   "permissions": [
     "storage",
@@ -9,12 +9,23 @@
     "activeTab",
     "webNavigation",
     "tabs",
-    "scripting"
+    "scripting",
+    "declarativeNetRequest",
+    "declarativeNetRequestWithHostAccess"
   ],
   "host_permissions": [
     "https://*/*",
     "http://localhost:*/*"
   ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "remove_xframe_options",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  },
   "background": {
     "service_worker": "background/background.js"
   },
@@ -86,6 +97,13 @@
   "web_accessible_resources": [
     {
       "resources": ["libs/marked.min.js"],
+      "matches": ["<all_urls>"]
+    },
+    {
+      "resources": [
+        "utils/platforms/*.js",
+        "utils/content-script.js"
+      ],
       "matches": ["<all_urls>"]
     }
   ]
