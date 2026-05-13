@@ -461,6 +461,14 @@ async function sendMessage() {
     if (updatedConversation) {
       state.conversation = updatedConversation;
       renderMessages();
+
+      // 通知 background.js 开始监控响应
+      chrome.runtime.sendMessage({
+        action: 'startResponsePolling',
+        conversationId: conversationId
+      }).catch(error => {
+        console.error('[Chat] 启动监控失败:', error);
+      });
     }
   } catch (error) {
     console.error('发送消息失败:', error);

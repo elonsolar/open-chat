@@ -518,16 +518,18 @@ class AIMessageManager {
 
     conversation = await this.conversationManager.getConversation(conversationId);
 
-    if (sendMode === 'sequential') {
-      await this.sendToRolesSequential(conversation, roles, contextMode, useFloatWindow, conversationId);
-    } else if (sendMode === 'random') {
-      await this.sendToRolesRandom(conversation, roles, contextMode, useFloatWindow, conversationId);
-    } else {
-      const sendPromises = conversation.roleIds.map(async (roleId) => {
-        return await this.sendMessageToRole(roleId, roles, conversation, contextMode, useFloatWindow, conversationId);
-      });
-      await Promise.allSettled(sendPromises);
-    }
+    (async () => {
+      if (sendMode === 'sequential') {
+        await this.sendToRolesSequential(conversation, roles, contextMode, useFloatWindow, conversationId);
+      } else if (sendMode === 'random') {
+        await this.sendToRolesRandom(conversation, roles, contextMode, useFloatWindow, conversationId);
+      } else {
+        const sendPromises = conversation.roleIds.map(async (roleId) => {
+          return await this.sendMessageToRole(roleId, roles, conversation, contextMode, useFloatWindow, conversationId);
+        });
+        await Promise.allSettled(sendPromises);
+      }
+    })();
 
     await new Promise(resolve => setTimeout(resolve, 500));
 
@@ -796,6 +798,7 @@ let conversationManager;
 let roleManager;
 let aiMessageManager;
 const pendingResponses = new Map();
+const pollingIntervals = new Map();
 
 async function init() {
   tabManager = new TabManager();
@@ -948,10 +951,127 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         .catch(error => sendResponse({ error: error.message }));
       return true;
 
+    case 'startResponsePolling':
+      startPolling(request.conversationId);
+      sendResponse({ success: true });
+      break;
+
     default:
       sendResponse({ error: 'Unknown action' });
   }
 });
+
+function startPolling(conversationId) {
+  stopPolling(conversationId);
+
+  console.log('[Background] 启动轮询监控会话:', conversationId);
+
+  pollingIntervals.set(conversationId, setInterval(async () => {
+    try {
+      const conversation = await conversationManager.getConversation(conversationId);
+      if (!conversation) {
+        console.log('[Background] 会话不存在，停止轮询');
+        stopPolling(conversationId);
+        return;
+      }
+
+      const roles = await StorageManager.getRoles();
+      const sendMode = conversation.sendMode || 'parallel';
+      let pendingRoleIds = [];
+
+      if (sendMode === 'parallel' || sendMode === 'random') {
+        const lastUserMessage = [...conversation.messages].reverse().find(m => m.isUser);
+        if (!lastUserMessage) {
+          console.log('[Background] 没有用户消息，停止轮询');
+          stopPolling(conversationId);
+          return;
+        }
+
+        const lastUserMessageIndex = conversation.messages.findIndex(m => m.id === lastUserMessage.id);
+
+        conversation.roleIds.forEach(roleId => {
+          const hasResponse = conversation.messages.some((msg, index) =>
+            !msg.isUser &&
+            msg.roleId === roleId &&
+            index > lastUserMessageIndex
+          );
+          if (!hasResponse) {
+            pendingRoleIds.push(roleId);
+          }
+        });
+      } else if (sendMode === 'sequential') {
+        const lastUserMessage = [...conversation.messages].reverse().find(m => m.isUser);
+        if (!lastUserMessage) {
+          console.log('[Background] 没有用户消息，停止轮询');
+          stopPolling(conversationId);
+          return;
+        }
+
+        const lastUserMessageIndex = conversation.messages.findIndex(m => m.id === lastUserMessage.id);
+
+        const roleOrder = conversation.roleOrder || conversation.roleIds;
+        for (const roleId of roleOrder) {
+          const hasResponse = conversation.messages.some((msg, index) =>
+            !msg.isUser &&
+            msg.roleId === roleId &&
+            index > lastUserMessageIndex
+          );
+
+          if (!hasResponse) {
+            pendingRoleIds = roleOrder.slice(roleOrder.indexOf(roleId));
+            break;
+          }
+        }
+      }
+
+      if (pendingRoleIds.length === 0) {
+        console.log('[Background] 所有角色已响应完成，停止轮询');
+        stopPolling(conversationId);
+        return;
+      }
+
+      console.log(`[Background] 检测到 ${pendingRoleIds.length} 个未响应角色`);
+
+      for (const roleId of pendingRoleIds) {
+        const role = roles.find(r => r.id === roleId);
+        if (!role) continue;
+
+        try {
+          console.log(`[Background] 激活角色 ${role.name} (${role.provider}) 标签页`);
+          const existingTab = await tabManager.findPlatformTab(role.provider);
+          if (existingTab) {
+            await chrome.tabs.update(existingTab.id, { active: true });
+
+            setTimeout(async () => {
+              try {
+                const tabs = await chrome.tabs.query({});
+                const chatTab = tabs.find(tab => tab.url && tab.url.includes('chat/chat.html'));
+                if (chatTab) {
+                  await chrome.tabs.update(chatTab.id, { active: true });
+                }
+              } catch (e) {
+                console.warn('[Background] 切回chat页面失败:', e);
+              }
+            }, 1);
+          }
+        } catch (error) {
+          console.error(`[Background] 激活 ${role.name} 标签页失败:`, error);
+        }
+      }
+    } catch (error) {
+      console.error('[Background] 轮询检查失败:', error);
+    }
+  }, 5000));
+}
+
+function stopPolling(conversationId) {
+  const interval = pollingIntervals.get(conversationId);
+  if (interval) {
+    clearInterval(interval);
+    pollingIntervals.delete(conversationId);
+    console.log('[Background] 停止轮询:', conversationId);
+  }
+}
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'pageReady') {
