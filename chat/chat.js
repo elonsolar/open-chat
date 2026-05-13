@@ -92,6 +92,9 @@ function bindEvents() {
   elements.messageInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
+      if (selectCandidateCommand()) {
+        return;
+      }
       sendMessage();
     } else if (e.key === 'Escape') {
       hideCommandSuggestions();
@@ -969,10 +972,11 @@ function showCommandSuggestions(filter = '') {
   const suggestionsDiv = document.createElement('div');
   suggestionsDiv.className = 'command-suggestions';
   suggestionsDiv.id = 'commandSuggestions';
+  suggestionsDiv.dataset.candidateIndex = '0';
 
   filteredCommands.forEach((cmd, index) => {
     const item = document.createElement('div');
-    item.className = 'command-suggestion-item';
+    item.className = 'command-suggestion-item' + (index === 0 ? ' candidate' : '');
     item.innerHTML = `
       <div class="command-name">${escapeHtml(cmd.name)}</div>
       <div class="command-desc">${escapeHtml(cmd.description)}</div>
@@ -988,6 +992,20 @@ function showCommandSuggestions(filter = '') {
   const inputContainer = elements.messageInput.parentElement;
   inputContainer.style.position = 'relative';
   inputContainer.appendChild(suggestionsDiv);
+}
+
+function selectCandidateCommand() {
+  const suggestionsDiv = document.getElementById('commandSuggestions');
+  if (!suggestionsDiv) return false;
+
+  const candidateItem = suggestionsDiv.querySelector('.command-suggestion-item.candidate');
+  if (!candidateItem) return false;
+
+  const commandName = candidateItem.querySelector('.command-name').textContent;
+  elements.messageInput.value = commandName + ' ';
+  hideCommandSuggestions();
+  elements.messageInput.focus();
+  return true;
 }
 
 function hideCommandSuggestions() {

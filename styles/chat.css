@@ -815,6 +815,15 @@ body {
   background-color: #f5f5f7;
 }
 
+.command-suggestion-item.candidate {
+  background: linear-gradient(135deg, #e8f0ff, #d4e4ff);
+  border-left: 3px solid var(--primary);
+}
+
+.command-suggestion-item.candidate .command-name {
+  color: var(--primary);
+}
+
 .command-name {
   font-size: 13px;
   font-weight: 600;
