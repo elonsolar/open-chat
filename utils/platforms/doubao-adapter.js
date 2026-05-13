@@ -9,7 +9,6 @@ class DoubaoAdapter extends BasePlatformAdapter {
       aiResponse: '[class*="flow-markdown-body"]',
       newChatButton: '[class*="new"]'
     });
-    this.messageCountBeforeSend = 0;
   }
 
   sleep(ms) {
@@ -36,19 +35,9 @@ class DoubaoAdapter extends BasePlatformAdapter {
     throw new Error('发送按钮未找到或已禁用');
   }
 
-  getAiMessages() {
-    const msgList = document.querySelector('[class*="message-list"]');
-    if (!msgList) return [];
-    return msgList.querySelectorAll('[class*="flow-markdown-body"]');
-  }
-
   async sendMessage(content) {
     console.log(`[${this.platform}] ========== 开始发送消息 ==========`);
     console.log(`[${this.platform}] 消息内容:`, content);
-
-    // 记录发送前的消息数量
-    this.messageCountBeforeSend = this.getAiMessages().length;
-    console.log(`[${this.platform}] 发送前 AI 消息数量: ${this.messageCountBeforeSend}`);
 
     const inputBox = await this.waitForElement('textarea.semi-input-textarea', 10000);
     console.log(`[${this.platform}] ✓ 找到输入框`);
@@ -217,38 +206,48 @@ class DoubaoAdapter extends BasePlatformAdapter {
       let lastContent = '';
       let observer = null;
       let timeoutHandle = null;
-      let checkInterval = null;
 
-      const checkNewMessage = () => {
-        const aiMessages = this.getAiMessages();
+      const checkNewMessage = (mutations) => {
+        console.log(`[${this.platform}] MutationObserver 触发`);
+        const msgList = document.querySelector('[class*="message-list"]');
+        if (!msgList) return null;
+
+        const aiMessages = msgList.querySelectorAll('[class*="flow-markdown-body"]');
         if (aiMessages.length === 0) return null;
 
-        // 只获取发送后出现的新消息
-        if (aiMessages.length <= this.messageCountBeforeSend) return null;
-
+        // 获取最后一个消息
         const lastAiMessage = aiMessages[aiMessages.length - 1];
+        if (!lastAiMessage) return null;
 
-        // 格式化代码块
-        const formattedElement = this.formatCodeBlocks(lastAiMessage);
+        const clonedMessage = lastAiMessage.cloneNode(true);
 
-        // 移除按钮等非内容元素
-        const buttons = formattedElement.querySelectorAll('button');
+        const thinkSelectors = [
+          '[class*="think"]',
+          '[class*="thought"]',
+          '.thinking',
+          '.thought'
+        ];
+
+        thinkSelectors.forEach(selector => {
+          const elements = clonedMessage.querySelectorAll(selector);
+          elements.forEach(el => el.remove());
+        });
+
+        const buttons = clonedMessage.querySelectorAll('button');
         buttons.forEach(btn => btn.remove());
 
-        // 使用改进的文本提取函数
+        const formattedElement = this.formatCodeBlocks(clonedMessage);
+
         let rawText = this.extractTextWithNewlines(formattedElement).trim();
+        console.log(`[${this.platform}] 提取文本长度: ${rawText.length}, 前50字符: ${rawText.substring(0, 50)}`);
 
         if (!rawText || rawText.length < 10) return null;
 
-        // 检查是否包含结束标记
-        const hasEndMarker = rawText.includes('[[<<>>]]');
-
-        // 检查是否正在思考中
         const thinkKeywords = ['思考中', 'Thinking', '正在思考', '思考内容'];
         const hasThinkKeyword = thinkKeywords.some(keyword => rawText.includes(keyword));
-        if (hasThinkKeyword && !hasEndMarker) return null;
+        if (hasThinkKeyword) return null;
 
-        return { text: rawText, hasEndMarker };
+        return rawText;
       };
 
       const cleanup = (content) => {
@@ -256,30 +255,25 @@ class DoubaoAdapter extends BasePlatformAdapter {
         console.log(`[${this.platform}] 原始内容长度:`, content?.length || 0);
         if (observer) observer.disconnect();
         if (timeoutHandle) clearTimeout(timeoutHandle);
-        if (checkInterval) clearInterval(checkInterval);
 
-        // 移除结束标记
         const finalContent = content.replace(/\[\[<<>>\]\]/g, '').trim();
         console.log(`[${this.platform}] 清理后内容长度:`, finalContent?.length || 0);
         resolve(finalContent);
       };
 
-      // 使用 MutationObserver 监听 DOM 变化
-      observer = new MutationObserver(() => {
-        const result = checkNewMessage();
-        if (result && result.text !== lastContent) {
-          lastContent = result.text;
-          console.log(`[${this.platform}] 检测到内容变化，长度:`, result.text.length);
+      observer = new MutationObserver((mutations) => {
+        const content = checkNewMessage(mutations);
+        if (content && content !== lastContent) {
+          lastContent = content;
 
-          if (result.hasEndMarker) {
-            console.log(`[${this.platform}] 检测到结束标记，等待 DOM 稳定...`);
+          if (content.includes('[[<<>>]]')) {
             // 检测到结束标记后，等待 DOM 稳定再读取完整内容
             setTimeout(() => {
-              const finalResult = checkNewMessage();
-              if (finalResult && finalResult.hasEndMarker) {
-                cleanup(finalResult.text);
+              const finalContent = checkNewMessage(mutations);
+              if (finalContent && finalContent.includes('[[<<>>]]')) {
+                cleanup(finalContent);
               } else {
-                cleanup(result.text);
+                cleanup(content);
               }
             }, 500);
           }
@@ -292,18 +286,7 @@ class DoubaoAdapter extends BasePlatformAdapter {
         characterData: true
       });
 
-      // 定期检查（作为备用机制）
-      checkInterval = setInterval(() => {
-        const result = checkNewMessage();
-        if (result && result.hasEndMarker && result.text !== lastContent) {
-          lastContent = result.text;
-          cleanup(result.text);
-        }
-      }, 1000);
-
-      // 超时处理
       timeoutHandle = setTimeout(() => {
-        console.log(`[${this.platform}] 等待超时，当前内容长度:`, lastContent.length);
         if (lastContent.length > 0) {
           cleanup(lastContent);
         } else {
