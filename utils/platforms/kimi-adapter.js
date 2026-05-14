@@ -131,10 +131,23 @@ class KimiAdapter extends BasePlatformAdapter {
     console.log(`[${this.platform}] ========== 开始等待 AI 回复 ==========`);
 
     return new Promise((resolve, reject) => {
-      const startTime = Date.now();
       let lastContent = '';
       let observer = null;
       let timeoutHandle = null;
+      const WATCHDOG_TIMEOUT = 10000;
+
+      const resetWatchdog = () => {
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+        }
+        timeoutHandle = setTimeout(() => {
+          if (lastContent.length > 0) {
+            cleanup(lastContent);
+          } else {
+            reject(new Error('等待AI回复超时 (30秒无响应)'));
+          }
+        }, WATCHDOG_TIMEOUT);
+      };
 
       const extractTextWithNewlines = (node) => {
         const blockTags = new Set(['P', 'DIV', 'BR', 'LI', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'PRE', 'BLOCKQUOTE', 'UL', 'OL', 'SEPARATOR']);
@@ -261,11 +274,16 @@ class KimiAdapter extends BasePlatformAdapter {
       };
 
       observer = new MutationObserver((mutations) => {
+        resetWatchdog();
         const content = checkNewMessage(mutations);
         if (content && content !== lastContent) {
           lastContent = content;
 
           if (content.includes('[[<<>>]]')) {
+            if (timeoutHandle) {
+              clearTimeout(timeoutHandle);
+              timeoutHandle = null;
+            }
             setTimeout(() => {
               const finalContent = checkNewMessage(mutations);
               if (finalContent && finalContent.includes('[[<<>>]]')) {
@@ -284,13 +302,7 @@ class KimiAdapter extends BasePlatformAdapter {
         characterData: true
       });
 
-      timeoutHandle = setTimeout(() => {
-        if (lastContent.length > 0) {
-          cleanup(lastContent);
-        } else {
-          reject(new Error('等待AI回复超时 (180秒)'));
-        }
-      }, 180000);
+      resetWatchdog();
     });
   }
 }

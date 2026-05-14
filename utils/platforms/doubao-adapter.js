@@ -209,6 +209,20 @@ class DoubaoAdapter extends BasePlatformAdapter {
       let lastContent = '';
       let observer = null;
       let timeoutHandle = null;
+      const WATCHDOG_TIMEOUT = 10000;
+
+      const resetWatchdog = () => {
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+        }
+        timeoutHandle = setTimeout(() => {
+          if (lastContent.length > 0) {
+            cleanup(lastContent);
+          } else {
+            reject(new Error('等待AI回复超时 (30秒无响应)'));
+          }
+        }, WATCHDOG_TIMEOUT);
+      };
 
       const checkNewMessage = (mutations) => {
         console.log(`[${this.platform}] MutationObserver 触发`);
@@ -265,12 +279,16 @@ class DoubaoAdapter extends BasePlatformAdapter {
       };
 
       observer = new MutationObserver((mutations) => {
+        resetWatchdog();
         const content = checkNewMessage(mutations);
         if (content && content !== lastContent) {
           lastContent = content;
 
           if (content.includes('[[<<>>]]')) {
-            // 检测到结束标记后，等待 DOM 稳定再读取完整内容
+            if (timeoutHandle) {
+              clearTimeout(timeoutHandle);
+              timeoutHandle = null;
+            }
             setTimeout(() => {
               const finalContent = checkNewMessage(mutations);
               if (finalContent && finalContent.includes('[[<<>>]]')) {
@@ -289,13 +307,7 @@ class DoubaoAdapter extends BasePlatformAdapter {
         characterData: true
       });
 
-      timeoutHandle = setTimeout(() => {
-        if (lastContent.length > 0) {
-          cleanup(lastContent);
-        } else {
-          reject(new Error('等待AI回复超时 (180秒)'));
-        }
-      }, 180000);
+      resetWatchdog();
     });
   }
 }

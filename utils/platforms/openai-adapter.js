@@ -85,10 +85,23 @@ class OpenAIAdapter extends BasePlatformAdapter {
 
   async waitForAIResponse() {
     return new Promise((resolve, reject) => {
-      const startTime = Date.now();
       let lastContent = '';
       let observer = null;
       let timeoutHandle = null;
+      const WATCHDOG_TIMEOUT = 10000;
+
+      const resetWatchdog = () => {
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+        }
+        timeoutHandle = setTimeout(() => {
+          if (lastContent.length > 0) {
+            cleanup(lastContent);
+          } else {
+            reject(new Error('等待AI回复超时 (30秒无响应)'));
+          }
+        }, WATCHDOG_TIMEOUT);
+      };
 
       const checkNewMessage = () => {
         let messageElements = document.querySelectorAll('[data-message-id]');
@@ -133,11 +146,16 @@ class OpenAIAdapter extends BasePlatformAdapter {
       };
 
       observer = new MutationObserver(() => {
+        resetWatchdog();
         const content = checkNewMessage();
         if (content && content !== lastContent) {
           lastContent = content;
 
           if (content.includes('[[<<>>]]')) {
+            if (timeoutHandle) {
+              clearTimeout(timeoutHandle);
+              timeoutHandle = null;
+            }
             cleanup(content);
           }
         }
@@ -149,13 +167,7 @@ class OpenAIAdapter extends BasePlatformAdapter {
         characterData: true
       });
 
-      timeoutHandle = setTimeout(() => {
-        if (lastContent.length > 0) {
-          cleanup(lastContent);
-        } else {
-          reject(new Error('等待AI回复超时 (180秒)'));
-        }
-      }, 180000);
+      resetWatchdog();
     });
   }
 }
