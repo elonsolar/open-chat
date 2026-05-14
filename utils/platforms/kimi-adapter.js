@@ -87,10 +87,11 @@ class KimiAdapter extends BasePlatformAdapter {
     await this.sleep(500);
   }
 
-  async processSendMessage(content, messageId) {
+  async processSendMessage(content, messageId, conversationId = null) {
     console.log(`[${this.platform}] ========== processSendMessage ==========`);
     console.log(`[${this.platform}] content:`, content);
     console.log(`[${this.platform}] messageId:`, messageId);
+    console.log(`[${this.platform}] conversationId:`, conversationId);
 
     window.isSendingMessage = true;
     console.log(`[${this.platform}] ✓ 已设置 isSendingMessage = true`);
@@ -107,6 +108,7 @@ class KimiAdapter extends BasePlatformAdapter {
         type: 'aiResponse',
         platform: this.platform,
         messageId: messageId,
+        conversationId: conversationId,
         content: response,
         conversationUrl: window.location.href
       });
@@ -116,6 +118,7 @@ class KimiAdapter extends BasePlatformAdapter {
         type: 'aiResponse',
         platform: this.platform,
         messageId: messageId,
+        conversationId: conversationId,
         error: error.message
       });
     } finally {

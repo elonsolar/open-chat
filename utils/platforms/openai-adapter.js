@@ -58,7 +58,7 @@ class OpenAIAdapter extends BasePlatformAdapter {
     }
   }
 
-  async processSendMessage(content, messageId) {
+  async processSendMessage(content, messageId, conversationId = null) {
     try {
       await this.sendMessage(content);
 
@@ -68,6 +68,7 @@ class OpenAIAdapter extends BasePlatformAdapter {
         type: 'aiResponse',
         platform: this.platform,
         messageId: messageId,
+        conversationId: conversationId,
         content: response,
         conversationUrl: window.location.href
       });
@@ -76,6 +77,7 @@ class OpenAIAdapter extends BasePlatformAdapter {
         type: 'aiResponse',
         platform: this.platform,
         messageId: messageId,
+        conversationId: conversationId,
         error: error.message
       });
     }

@@ -13,6 +13,7 @@ class WebSocketManager {
     this.messageQueue = [];
     this.tabManager = tabManagerRef;
     this.pendingResponses = pendingResponsesRef;
+    this.wsRequestQueue = new Map();
     this.reconnectTimeoutId = null;
     this.heartbeatIntervalId = null;
     this.heartbeatInterval = 30000;
@@ -208,17 +209,15 @@ class WebSocketManager {
 
   async handleChatRequest(message) {
     const { requestId, model, messages, tools } = message;
-    
+
     try {
       console.log('[WS] 处理聊天请求:', requestId, '会话名称:', model);
 
-      // 获取用户消息（最后一条消息）
       const userMessage = messages[messages.length - 1];
       if (!userMessage || userMessage.role !== 'user') {
         throw new Error('无效的消息格式：缺少用户消息');
       }
 
-      // model 参数实际是会话名称，查找会话
       const conversations = await StorageManager.getConversations();
       let conversation = conversations.find(c => c.name === model);
 
@@ -228,40 +227,47 @@ class WebSocketManager {
 
       console.log('[WS] 找到会话:', conversation.id, '角色:', conversation.roleIds);
 
-      // 检查会话是否有角色
       if (!conversation.roleIds || conversation.roleIds.length === 0) {
         throw new Error(`会话 "${model}" 没有配置角色。请在插件中为该会话添加角色。`);
       }
 
-      // 添加用户消息到会话
-      console.log('[WS] 添加消息到会话');
-      const processResult = await aiMessageManager.processUserMessage(
-        conversation.id,
+      const conversationId = conversation.id;
+
+      console.log('[WS] 将请求加入 wsRequestQueue, conversationId:', conversationId);
+      console.log('[WS] 当前队列大小:', this.wsRequestQueue.size);
+
+      const timeout = setTimeout(() => {
+        console.error('[WS] TIMEOUT 180秒超时, conversationId:', conversationId);
+        console.error('[WS] TIMEOUT 队列中的会话:', Array.from(this.wsRequestQueue.keys()));
+        this.wsRequestQueue.delete(conversationId);
+        stopPolling(conversationId);
+
+        this.send({
+          type: 'ai_response',
+          requestId: requestId,
+          content: `错误: 等待 AI 响应超时（180秒）`,
+          error: true,
+          timestamp: Date.now()
+        });
+      }, 180000);
+
+      this.wsRequestQueue.set(conversationId, {
+        requestId,
+        timeout,
+        conversationName: conversation.name
+      });
+
+      console.log('[WS] 发送消息到会话');
+      await aiMessageManager.processUserMessage(
+        conversationId,
         userMessage.content
       );
 
-      console.log('[WS] 消息已添加，开始等待响应');
-
-      // 等待所有角色响应
-      const responses = await this.collectConversationResponses(conversation.id);
-
-      // 合并所有响应
-      const combinedContent = this.combineResponses(responses);
-
-      this.send({
-        type: 'ai_response',
-        requestId: requestId,
-        content: combinedContent,
-        conversation_id: conversation.id,
-        conversation_name: conversation.name,
-        timestamp: Date.now()
-      });
-
-      console.log('[WS] 响应已发送');
+      console.log('[WS] 请求已发送，等待 aiResponse 事件触发');
 
     } catch (error) {
       console.error('[WS] 处理聊天请求失败:', error);
-      
+
       this.send({
         type: 'ai_response',
         requestId: requestId,
@@ -272,66 +278,22 @@ class WebSocketManager {
     }
   }
 
-  async collectConversationResponses(conversationId, timeout = 30000) {
-    const initialMessageCount = await this.getLastMessageCount(conversationId);
-    return new Promise((resolve, reject) => {
-      const startTime = Date.now();
-      const checkInterval = 500;
-      
-      const timer = setInterval(async () => {
-        try {
-          const conversation = await conversationManager.getConversation(conversationId);
-          const currentMessageCount = this.countMessagesAfter(conversation, initialMessageCount);
-          
-          // 检查是否超时
-          if (Date.now() - startTime > timeout) {
-            clearInterval(timer);
-            console.log('[WS] 收集响应超时');
-            resolve(this.extractResponses(conversation, initialMessageCount));
-            return;
-          }
+  combineResponses(responses) {
+    if (!responses || responses.length === 0) {
+      return '';
+    }
 
-          // 如果有新消息，认为响应完成
-          if (currentMessageCount > 0) {
-            // 等待一段时间确保所有响应都到达
-            await new Promise(r => setTimeout(r, 2000));
-            
-            clearInterval(timer);
-            const responses = this.extractResponses(conversation, initialMessageCount);
-            console.log('[WS] 收集到', responses.length, '条响应');
-            resolve(responses);
-          }
+    if (responses.length === 1) {
+      return responses[0].content;
+    }
 
-        } catch (error) {
-          clearInterval(timer);
-          reject(error);
-        }
-      }, checkInterval);
-    });
-  }
-
-  getLastMessageCount(conversationId) {
-    // 简化：返回当前消息数
-    return conversationManager.getConversation(conversationId)
-      .then(conv => conv.messages ? conv.messages.length : 0);
-  }
-
-  countMessagesAfter(conversation, initialCount) {
-    return conversation.messages ? conversation.messages.length - initialCount : 0;
-  }
-
-  extractResponses(conversation, initialCount) {
-    if (!conversation.messages) return [];
-    
-    return conversation.messages
-      .slice(initialCount)
-      .filter(msg => !msg.isUser)
-      .map(msg => ({
-        content: msg.content,
-        role: msg.roleId,
-        provider: msg.provider,
-        timestamp: msg.timestamp
-      }));
+    return responses.map((r, index) => {
+      const roles = StorageManager.getRoles().then(roles => {
+        const role = roles.find(r => r.id === r.roleId);
+        return role ? role.name : `角色 ${index + 1}`;
+      });
+      return `[${index + 1}] ${r.content}`;
+    }).join('\n\n');
   }
 
   combineResponses(responses) {
@@ -423,6 +385,7 @@ class TabManager {
       if (targetUrl) {
         const exactTab = await this.findTabByUrl(targetUrl);
         if (exactTab) {
+          console.log(`[TabManager] 复用已存在的标签页 (URL匹配): ${platform}`);
           await chrome.tabs.update(exactTab.id, { active: false });
           await this.sleep(1000);
           return exactTab;
@@ -430,6 +393,7 @@ class TabManager {
       } else {
         const existingTab = await this.findPlatformTab(platform);
         if (existingTab) {
+          console.log(`[TabManager] 复用已存在的标签页: ${platform}`);
           await chrome.tabs.update(existingTab.id, { active: false });
           await this.sleep(2000);
           return existingTab;
@@ -438,6 +402,7 @@ class TabManager {
     }
 
     const openUrl = targetUrl || url;
+    console.log(`[TabManager] 创建新标签页: ${platform} -> ${openUrl}`);
     const tab = await chrome.tabs.create({
       url: openUrl,
       active: false
@@ -602,9 +567,10 @@ class TabManager {
 
     if (messageType === 'sendMessage') {
       const messageId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${platform}`;
+      const conversationId = data.conversationId || null;
 
       const responsePromise = new Promise((resolve, reject) => {
-        pendingResponses.set(messageId, { resolve, reject });
+        pendingResponses.set(messageId, { resolve, reject, conversationId });
 
         setTimeout(() => {
           if (pendingResponses.has(messageId)) {
@@ -619,7 +585,8 @@ class TabManager {
       try {
         await chrome.tabs.sendMessage(tab.id, {
           ...message,
-          messageId: messageId
+          messageId: messageId,
+          conversationId: conversationId
         });
 
         // 发送消息后确保标签页保持后台状态
@@ -643,8 +610,8 @@ class TabManager {
     return await this.sendToPlatform(platform, 'newChat');
   }
 
-  async sendMessage(platform, content, forceNewTab = false, targetUrl = null) {
-    const response = await this.sendToPlatform(platform, 'sendMessage', { content }, forceNewTab, targetUrl);
+  async sendMessage(platform, content, forceNewTab = false, targetUrl = null, conversationId = null) {
+    const response = await this.sendToPlatform(platform, 'sendMessage', { content, conversationId }, forceNewTab, targetUrl);
     return {
       success: true,
       content: response.content || response,
@@ -891,19 +858,30 @@ class AIMessageManager {
     conversation = await this.conversationManager.getConversation(conversationId);
 
     (async () => {
-      if (sendMode === 'sequential') {
-        await this.sendToRolesSequential(conversation, roles, contextMode, useFloatWindow, conversationId);
-      } else if (sendMode === 'random') {
-        await this.sendToRolesRandom(conversation, roles, contextMode, useFloatWindow, conversationId);
-      } else {
-        const sendPromises = conversation.roleIds.map(async (roleId) => {
-          return await this.sendMessageToRole(roleId, roles, conversation, contextMode, useFloatWindow, conversationId);
-        });
-        await Promise.allSettled(sendPromises);
+      try {
+        console.log('[AIMessageManager] IIFE 开始发送消息, 会话:', conversationId, '角色数:', conversation.roleIds.length);
+        if (sendMode === 'sequential') {
+          await this.sendToRolesSequential(conversation, roles, contextMode, useFloatWindow, conversationId);
+        } else if (sendMode === 'random') {
+          await this.sendToRolesRandom(conversation, roles, contextMode, useFloatWindow, conversationId);
+        } else {
+          const sendPromises = conversation.roleIds.map(async (roleId) => {
+            return await this.sendMessageToRole(roleId, roles, conversation, contextMode, useFloatWindow, conversationId);
+          });
+          await Promise.allSettled(sendPromises);
+        }
+        console.log('[AIMessageManager] IIFE 所有消息发送完成');
+      } catch (error) {
+        console.error('[AIMessageManager] 发送消息到角色时出错:', error);
       }
     })();
 
     await new Promise(resolve => setTimeout(resolve, 500));
+
+    setTimeout(() => {
+      console.log(`[AIMessageManager] 启动轮询监控: ${conversationId}`);
+      startPolling(conversationId);
+    }, 2500);
 
     return await this.conversationManager.getConversation(conversationId);
   }
@@ -985,8 +963,9 @@ class AIMessageManager {
       }
 
       const conversationUrl = conversation.roleUrls?.[roleId];
-      console.log(`[AIMessageManager] 角色 ${roleId} 通过后台标签页发送消息，会话URL: ${conversationUrl || '使用baseUrl'}`);
-      const response = await this.tabManager.sendMessage(role.provider, messageToSend, false, conversationUrl);
+      console.log(`[AIMessageManager] 开始发送消息到角色 ${role.name} (${role.provider}), 会话URL: ${conversationUrl || '使用baseUrl'}`);
+      const response = await this.tabManager.sendMessage(role.provider, messageToSend, false, conversationUrl, conversationId);
+      console.log(`[AIMessageManager] 角色 ${role.name} 响应: ${response?.success ? '成功' : '失败'}`);
 
       if (response && response.success) {
           let content = response.content || '';
@@ -1207,6 +1186,85 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     } else {
       sendResponse({ status: 'no_matching_promise' });
     }
+
+    (async () => {
+      try {
+        const conversationId = request.conversationId;
+        console.log('[WS] aiResponse 收到, conversationId:', conversationId);
+
+        if (!conversationId) {
+          console.warn('[WS] aiResponse 缺少 conversationId');
+          return;
+        }
+
+        console.log('[WS] 等待 500ms 确保 addMessage 完成');
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        const conversation = await conversationManager.getConversation(conversationId);
+        if (!conversation) {
+          console.warn('[WS] aiResponse 会话不存在:', conversationId);
+          return;
+        }
+
+        const wsRequest = wsManager?.wsRequestQueue.get(conversationId);
+        if (!wsRequest) {
+          console.log('[WS] aiResponse 没有对应的 WebSocket 请求, conversationId:', conversationId);
+          console.log('[WS] wsRequestQueue 中的会话:', wsManager ? Array.from(wsManager.wsRequestQueue.keys()) : 'wsManager 不存在');
+          return;
+        }
+
+        console.log('[WS] 找到 WebSocket 请求, 会话:', wsRequest.conversationName);
+
+        const lastUserMessage = [...conversation.messages].reverse().find(m => m.isUser);
+        if (!lastUserMessage) {
+          console.warn('[WS] 没有找到用户消息');
+          return;
+        }
+
+        const lastUserMessageIndex = conversation.messages.findIndex(m => m.id === lastUserMessage.id);
+
+        const responses = conversation.messages
+          .filter((msg, index) => !msg.isUser && index > lastUserMessageIndex)
+          .map(msg => ({
+            roleId: msg.roleId,
+            content: msg.content
+          }));
+
+        console.log('[WS] 当前已响应角色数:', responses.length, '/', conversation.roleIds.length);
+
+        const allResponded = conversation.roleIds.every(roleId =>
+          conversation.messages.some((msg, index) =>
+            !msg.isUser && msg.roleId === roleId && index > lastUserMessageIndex
+          )
+        );
+
+        if (allResponded && responses.length > 0) {
+          console.log('[WS] 所有角色已响应，发送响应给客户端');
+
+          clearTimeout(wsRequest.timeout);
+          wsManager.wsRequestQueue.delete(conversationId);
+          stopPolling(conversationId);
+
+          const combinedContent = wsManager.combineResponses(responses);
+
+          wsManager.send({
+            type: 'ai_response',
+            requestId: wsRequest.requestId,
+            content: combinedContent,
+            conversation_id: conversationId,
+            conversation_name: wsRequest.conversationName,
+            timestamp: Date.now()
+          });
+
+          console.log('[WS] 响应已发送');
+        } else {
+          console.log('[WS] 还有角色未响应，继续等待');
+        }
+      } catch (error) {
+        console.error('[WS] 处理 aiResponse 时出错:', error);
+      }
+    })();
+
     return;
   }
 
@@ -1389,11 +1447,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         .then(result => sendResponse(result))
         .catch(error => sendResponse({ error: error.message }));
       return true;
-
-    case 'startResponsePolling':
-      startPolling(request.conversationId);
-      sendResponse({ success: true });
-      break;
 
     default:
       sendResponse({ error: 'Unknown action' });

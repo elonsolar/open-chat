@@ -94,47 +94,33 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('[AI Plugin] 收到消息:', request.type);
 
   if (request.type === 'ping') {
-    sendResponse({ status: 'ok', platform: currentPlatform });
-    return true;
+    const platform = currentAdapter?.platform || 'unknown';
+    sendResponse({ status: 'ok', platform });
+    return;
   }
 
   if (request.type === 'sendMessage') {
+    if (!currentAdapter) {
+      sendResponse({ status: 'error', message: 'adapter未初始化' });
+      return;
+    }
+
     const messageId = request.messageId;
-    sendResponse({ success: true, status: 'processing', messageId });
+    const content = request.content;
+    const conversationId = request.conversationId || null;
 
     if (currentAdapter && currentAdapter.processSendMessage) {
-      currentAdapter.processSendMessage(request.content, messageId);
+      currentAdapter.processSendMessage(content, messageId, conversationId);
     } else {
       console.error('[AI Plugin] ❌ adapter 未初始化或没有 processSendMessage 方法');
+      chrome.runtime.sendMessage({
+        type: 'aiResponse',
+        messageId,
+        conversationId,
+        error: 'adapter未初始化'
+      });
     }
-    return true;
   }
-
-  if (request.type === 'newChat') {
-    console.log('[AI Plugin] 执行新对话');
-
-    (async () => {
-      try {
-        if (currentAdapter && currentAdapter.newChat) {
-          await currentAdapter.newChat();
-          await new Promise(resolve => setTimeout(resolve, 1000));
-
-          const conversationUrl = window.location.href;
-          console.log('[AI Plugin] 新对话URL:', conversationUrl);
-          sendResponse({ success: true, conversationUrl });
-        } else {
-          sendResponse({ success: false, error: 'adapter未初始化或没有newChat方法' });
-        }
-      } catch (error) {
-        console.error('[AI Plugin] newChat失败:', error);
-        sendResponse({ success: false, error: error.message });
-      }
-    })();
-
-    return true;
-  }
-
-  return false;
 });
 
 window.addEventListener('message', (event) => {

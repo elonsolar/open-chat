@@ -464,16 +464,6 @@ async function sendMessage() {
     if (updatedConversation) {
       state.conversation = updatedConversation;
       renderMessages();
-
-      // 延迟3秒后通知 background.js 开始监控响应
-      setTimeout(() => {
-        chrome.runtime.sendMessage({
-          action: 'startResponsePolling',
-          conversationId: conversationId
-        }).catch(error => {
-          console.error('[Chat] 启动监控失败:', error);
-        });
-      }, 3000);
     }
   } catch (error) {
     console.error('发送消息失败:', error);
