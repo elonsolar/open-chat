@@ -244,6 +244,7 @@ class DeepSeekAdapter extends BasePlatformAdapter {
           lastContent = content;
 
           if (content.includes('[[<<>>]]')) {
+            console.log("检测到结束标记");
             // 检测到结束标记后，等待 DOM 稳定再读取完整内容
             setTimeout(() => {
               const finalContent = checkNewMessage(mutations);

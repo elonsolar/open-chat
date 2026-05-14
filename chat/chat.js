@@ -829,9 +829,9 @@ async function sendMessageToBackend(conversationId, content) {
   
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
-      console.error('[Chat] ❌ 发送消息超时（180秒）');
-      reject(new Error('发送消息超时（180秒）'));
-    }, 180000);
+      console.error('[Chat] ❌ 发送消息超时（300秒）');
+      reject(new Error('发送消息超时（300秒）'));
+    }, 300000);
     
     console.log('[Chat] 发送chrome.runtime.sendMessage...');
     chrome.runtime.sendMessage({

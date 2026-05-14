@@ -136,5 +136,30 @@ console.log('原始响应:', JSON.stringify(aiResponse5));
 
 const toolCalls6 = converter.convertTextToToolCalls(aiResponse5);
 console.log('提取到的工具调用:', JSON.stringify(toolCalls6, null, 2));
+console.log('\n---\n');
+
+// 测试 9: 纯 JSON 格式（无代码块）
+console.log('9. 解析工具调用（纯 JSON 格式，无代码块）:');
+const aiResponse6 = `{"name": "bash", "arguments": {"command": "Get-ChildItem -LiteralPath \\".\\"", "description": "Lists current directory contents"}}`;
+console.log('原始响应:', aiResponse6);
+
+const toolCalls7 = converter.convertTextToToolCalls(aiResponse6);
+console.log('提取到的工具调用:', JSON.stringify(toolCalls7, null, 2));
+console.log('\n---\n');
+
+// 测试 10: 纯 JSON 格式（带换行）
+console.log('10. 解析工具调用（纯 JSON 格式，带换行）:');
+const aiResponse7 = `
+{
+  "name": "get_weather",
+  "arguments": {
+    "city": "深圳",
+    "unit": "celsius"
+  }
+}`;
+console.log('原始响应:', aiResponse7);
+
+const toolCalls8 = converter.convertTextToToolCalls(aiResponse7);
+console.log('提取到的工具调用:', JSON.stringify(toolCalls8, null, 2));
 
 console.log('\n=== 测试完成 ===');

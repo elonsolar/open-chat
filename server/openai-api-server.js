@@ -10,6 +10,7 @@ class OpenAIAPIServer {
     this.app = express();
     this.messageRouter = messageRouter;
     this.toolConverter = new ToolConverter();
+    this.conversationState = new Map();
     this.setupMiddleware();
     this.setupRoutes();
   }
@@ -45,8 +46,23 @@ class OpenAIAPIServer {
   }
 
   async handleChatCompletion(req, res) {
+    const requestId = uuidv4();
     try {
-      const { model, messages, tools, stream = false } = req.body;
+      const { model, messages, tools, stream = false, tool_choice } = req.body;
+
+      console.log('\n========== [API] 请求开始 ==========');
+      console.log('[API] Request ID:', requestId);
+      console.log('[API] Model:', model || config.model);
+      console.log('[API] Stream:', stream);
+      console.log('[API] Messages count:', messages?.length);
+      console.log('[API] Tools count:', tools?.length || 0);
+      if (tools && tools.length > 0) {
+        console.log('[API] Tools:', JSON.stringify(tools.map(t => ({
+          name: t.function?.name,
+          params: Object.keys(t.function?.parameters?.properties || {})
+        })), null, 2));
+      }
+      console.log('[API] Last message content:', messages?.[messages.length - 1]);
 
       if (!messages || !Array.isArray(messages)) {
         return res.status(400).json({
@@ -57,24 +73,73 @@ class OpenAIAPIServer {
         });
       }
 
-      const lastMessage = messages[messages.length - 1];
-      const userContent = lastMessage.content || '';
-      
-      let enhancedMessage = userContent;
-      if (tools && tools.length > 0) {
-        enhancedMessage = this.toolConverter.appendToolInstruction(userContent, tools);
+      const firstMessage = messages[0];
+      const conversationId = firstMessage.role === 'system' ? this.normalizeContent(firstMessage.content) : 'default';
+
+      const isFirstSend = messages.length === 2 && 
+                         firstMessage.role === 'system' && 
+                         messages[1].role === 'user';
+
+      console.log('[API] Conversation ID:', conversationId.substring(0, 50) + '...');
+      console.log('[API] Is first send:', isFirstSend);
+
+      let messagesToSend;
+
+      if (isFirstSend) {
+        console.log('[API] 第一次发送：发送 system + user（合并）');
+        const systemContent = this.normalizeContent(firstMessage.content);
+        const userContent = this.normalizeContent(messages[1].content);
+        let combinedContent = `${systemContent}\n\n${userContent}`;
+
+        if (tools && tools.length > 0) {
+          combinedContent = this.toolConverter.appendToolInstruction(combinedContent, tools);
+          console.log('[API] 追加 tool 指令，增强消息长度:', combinedContent.length);
+        }
+
+        messagesToSend = [
+          {
+            role: 'user',
+            content: combinedContent
+          }
+        ];
+
+        this.conversationState.set(conversationId, {
+          sentCount: messages.length,
+          lastSentTime: Date.now()
+        });
+      } else {
+        console.log('[API] 后续发送：只发送新增消息');
+        const state = this.conversationState.get(conversationId) || { sentCount: 0 };
+        const previouslySentCount = state.sentCount;
+
+        const newMessages = messages.slice(previouslySentCount);
+        console.log('[API] 新增消息数量:', newMessages.length);
+
+        if (newMessages.length === 0) {
+          console.log('[API] 没有新消息需要发送');
+          return res.status(400).json({
+            error: {
+              message: 'No new messages to send',
+              type: 'invalid_request_error'
+            }
+          });
+        }
+
+        messagesToSend = this.convertMessagesForExtension(newMessages);
+
+        this.conversationState.set(conversationId, {
+          sentCount: messages.length,
+          lastSentTime: Date.now()
+        });
       }
 
+      console.log('[API] 发送消息数量:', messagesToSend.length);
+
       const requestData = {
-        model: model || config.model, // 这里 model 实际上是会话名称
-        messages: [
-          ...messages.slice(0, -1),
-          {
-            role: lastMessage.role,
-            content: enhancedMessage
-          }
-        ],
-        tools: tools || null
+        model: model || config.model,
+        messages: messagesToSend,
+        tools: null,
+        tool_choice: null
       };
 
       if (stream) {
@@ -85,7 +150,7 @@ class OpenAIAPIServer {
 
     } catch (error) {
       console.error('Error handling chat completion:', error);
-      
+
       if (!res.headersSent) {
         res.status(500).json({
           error: {
@@ -97,11 +162,63 @@ class OpenAIAPIServer {
     }
   }
 
+  /**
+   * 标准化消息 content 字段
+   * 支持字符串格式和多模态数组格式
+   */
+  normalizeContent(content) {
+    if (typeof content === 'string') {
+      return content;
+    }
+    if (Array.isArray(content)) {
+      return content
+        .filter(item => item.type === 'text')
+        .map(item => item.text || '')
+        .join('\n');
+    }
+    return '';
+  }
+
+  /**
+   * 将标准 OpenAI 消息格式转换为适合发送给插件的格式
+   * 处理 assistant 消息中的 tool_calls 和 tool 角色的消息
+   */
+  convertMessagesForExtension(messages) {
+    return messages.map(msg => {
+      if (msg.role === 'assistant' && msg.tool_calls && msg.tool_calls.length > 0) {
+        const toolCallsText = this.toolConverter.convertToolCallsToText(msg.tool_calls);
+        const normalizedContent = this.normalizeContent(msg.content);
+        return {
+          role: 'assistant',
+          content: normalizedContent ? `${normalizedContent}\n\n${toolCallsText}` : toolCallsText
+        };
+      } else if (msg.role === 'tool') {
+        const normalizedContent = this.normalizeContent(msg.content);
+        const toolResultText = `[工具执行结果: ${msg.tool_call_id}]\n${normalizedContent}`;
+        return {
+          role: 'user',
+          content: toolResultText
+        };
+      } else {
+        const normalizedContent = this.normalizeContent(msg.content);
+        return {
+          role: msg.role,
+          content: normalizedContent
+        };
+      }
+    });
+  }
+
   async handleNonStreamingResponse(req, res, requestData) {
     try {
+      console.log('\n[API] ====== Non-Streaming Response ======');
       const response = await this.messageRouter.sendMessageToExtension(requestData);
-      
+
+      console.log('[API] AI Response content length:', response.content?.length || 0);
+      console.log('[API] AI Response preview:', response.content?.substring(0, 200));
+
       if (response.error) {
+        console.error('[API] Response error:', response.content);
         return res.status(500).json({
           error: {
             message: response.content,
@@ -109,8 +226,12 @@ class OpenAIAPIServer {
           }
         });
       }
-      
+
       const toolCalls = this.toolConverter.convertTextToToolCalls(response.content);
+      console.log('[API] Parsed tool_calls count:', toolCalls.length);
+      if (toolCalls.length > 0) {
+        console.log('[API] Tool calls:', JSON.stringify(toolCalls, null, 2));
+      }
       
       const result = {
         id: `chatcmpl-${uuidv4()}`,
@@ -139,7 +260,15 @@ class OpenAIAPIServer {
       if (response.conversation_id) {
         result.conversation_id = response.conversation_id;
       }
-      
+
+      console.log('[API] Response result:', JSON.stringify({
+        id: result.id,
+        finish_reason: result.choices[0].finish_reason,
+        has_tool_calls: !!result.choices[0].message.tool_calls,
+        tool_calls_count: result.choices[0].message.tool_calls?.length || 0
+      }, null, 2));
+      console.log('[API] ====== End Non-Streaming ======\n');
+
       res.json(result);
 
     } catch (error) {
@@ -162,82 +291,145 @@ class OpenAIAPIServer {
     const startTime = Date.now();
 
     try {
+      console.log('\n[API] ====== Streaming Response ======');
       const response = await this.messageRouter.sendMessageToExtension({
         ...requestData,
         requestId: requestId
       });
 
       const content = response.content || '';
+      console.log('[API] AI Response content length:', content.length);
+      console.log('[API] AI Response preview:', content.substring(0, 200));
+
       const toolCalls = this.toolConverter.convertTextToToolCalls(content);
+      console.log('[API] Parsed tool_calls count:', toolCalls.length);
+      if (toolCalls.length > 0) {
+        console.log('[API] Tool calls:', JSON.stringify(toolCalls, null, 2));
+      }
+
+      const finishReason = toolCalls.length > 0 ? 'tool_calls' : 'stop';
+      const createdTime = Math.floor(startTime / 1000);
+      const model = requestData.model;
 
       await this.streamChunk(res, {
         id: `chatcmpl-${requestId}`,
         object: 'chat.completion.chunk',
-        created: Math.floor(startTime / 1000),
-        model: requestData.model,
+        created: createdTime,
+        model: model,
         choices: [{
           index: 0,
           delta: {
             role: 'assistant'
           }
-        }]
+        }],
+        usage: null
       });
+      console.log('[API] SSE: Sent role delta');
 
       if (toolCalls.length > 0) {
-        for (const toolCall of toolCalls) {
+        for (let i = 0; i < toolCalls.length; i++) {
+          const toolCall = toolCalls[i];
+
+          console.log(`[API] SSE: Sending tool_call ${i}:`, {
+            id: toolCall.id,
+            name: toolCall.function.name,
+            arguments_length: toolCall.function.arguments.length
+          });
+
           await this.streamChunk(res, {
             id: `chatcmpl-${requestId}`,
             object: 'chat.completion.chunk',
-            created: Math.floor(startTime / 1000),
-            model: requestData.model,
+            created: createdTime,
+            model: model,
             choices: [{
               index: 0,
               delta: {
                 tool_calls: [{
-                  index: 0,
+                  index: i,
                   id: toolCall.id,
                   type: toolCall.type,
                   function: {
                     name: toolCall.function.name,
+                    arguments: ''
+                  }
+                }]
+              }
+            }],
+            usage: null
+          });
+          console.log(`[API] SSE: Sent tool_call ${i} name delta`);
+
+          await this.streamChunk(res, {
+            id: `chatcmpl-${requestId}`,
+            object: 'chat.completion.chunk',
+            created: createdTime,
+            model: model,
+            choices: [{
+              index: 0,
+              delta: {
+                tool_calls: [{
+                  index: i,
+                  function: {
                     arguments: toolCall.function.arguments
                   }
                 }]
               }
-            }]
+            }],
+            usage: null
           });
+          console.log(`[API] SSE: Sent tool_call ${i} arguments delta (length: ${toolCall.function.arguments.length})`);
         }
-      } else {
+      } else if (content) {
         await this.streamChunk(res, {
           id: `chatcmpl-${requestId}`,
           object: 'chat.completion.chunk',
-          created: Math.floor(startTime / 1000),
-          model: requestData.model,
+          created: createdTime,
+          model: model,
           choices: [{
             index: 0,
             delta: {
               content: content
             }
-          }]
+          }],
+          usage: null
         });
       }
+
+      const promptTokens = this.estimateTokens(requestData.messages);
+      const completionTokens = this.estimateTokens([{ content: content }]);
 
       await this.streamChunk(res, {
         id: `chatcmpl-${requestId}`,
         object: 'chat.completion.chunk',
-        created: Math.floor(startTime / 1000),
-        model: requestData.model,
+        created: createdTime,
+        model: model,
         choices: [{
           index: 0,
           delta: {},
-          finish_reason: toolCalls.length > 0 ? 'tool_calls' : 'stop'
-        }]
+          finish_reason: finishReason
+        }],
+        usage: {
+          prompt_tokens: promptTokens,
+          completion_tokens: completionTokens,
+          total_tokens: promptTokens + completionTokens,
+          prompt_tokens_details: {
+            cached_tokens: 0
+          },
+          completion_tokens_details: {
+            reasoning_tokens: 0,
+            accepted_prediction_tokens: 0,
+            rejected_prediction_tokens: 0
+          }
+        }
       });
+      console.log('[API] SSE: Sent finish_reason:', finishReason);
+      console.log('[API] ====== End Streaming ======\n');
 
       res.write('data: [DONE]\n\n');
 
     } catch (error) {
       console.error('Error in streaming response:', error);
-      
+
       await this.streamChunk(res, {
         id: `chatcmpl-${requestId}`,
         object: 'chat.completion.chunk',
@@ -248,7 +440,8 @@ class OpenAIAPIServer {
           delta: {
             content: `\n[Error: ${error.message}]`
           }
-        }]
+        }],
+        usage: null
       });
 
       res.write('data: [DONE]\n\n');
@@ -266,13 +459,12 @@ class OpenAIAPIServer {
 
   estimateTokens(messages) {
     let totalChars = 0;
-    
+
     for (const message of messages) {
-      if (message.content) {
-        totalChars += message.content.length;
-      }
+      const normalizedContent = this.normalizeContent(message.content);
+      totalChars += normalizedContent.length;
     }
-    
+
     return Math.ceil(totalChars / 4);
   }
 

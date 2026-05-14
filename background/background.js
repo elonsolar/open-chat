@@ -214,7 +214,7 @@ class WebSocketManager {
       console.log('[WS] 处理聊天请求:', requestId, '会话名称:', model);
 
       const userMessage = messages[messages.length - 1];
-      if (!userMessage || userMessage.role !== 'user') {
+      if (!userMessage || (userMessage.role !== 'user' && userMessage.role!=='tool')) {
         throw new Error('无效的消息格式：缺少用户消息');
       }
 
@@ -237,7 +237,7 @@ class WebSocketManager {
       console.log('[WS] 当前队列大小:', this.wsRequestQueue.size);
 
       const timeout = setTimeout(() => {
-        console.error('[WS] TIMEOUT 180秒超时, conversationId:', conversationId);
+        console.error('[WS] TIMEOUT 300秒超时, conversationId:', conversationId);
         console.error('[WS] TIMEOUT 队列中的会话:', Array.from(this.wsRequestQueue.keys()));
         this.wsRequestQueue.delete(conversationId);
         stopPolling(conversationId);
@@ -245,11 +245,11 @@ class WebSocketManager {
         this.send({
           type: 'ai_response',
           requestId: requestId,
-          content: `错误: 等待 AI 响应超时（180秒）`,
+          content: `错误: 等待 AI 响应超时（300秒）`,
           error: true,
           timestamp: Date.now()
         });
-      }, 180000);
+      }, 300000);
 
       this.wsRequestQueue.set(conversationId, {
         requestId,
@@ -916,7 +916,7 @@ class AIMessageManager {
           messageToSend = `${fullPrompt}\n\n${messageToSend}`;
         }
 
-        messageToSend += '\n\n重要：请在你的回复最后必须添加 [[<<>>]] 标记，表示回复结束。';
+        messageToSend += '\n\n**严格遵守**：在你的回复最后必须添加 [[<<>>]] 标记，表示回复结束。';
       } else {
         const lastMessageId = conversation.roleLastMessageIds?.[roleId];
         const messagesToSend = this.getMessagesToSend(conversation, lastMessageId, true);

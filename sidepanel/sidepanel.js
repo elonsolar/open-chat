@@ -641,8 +641,8 @@ function switchTab(tabName) {
 function sendMessage(message) {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
-      reject(new Error('请求超时（180秒）'));
-    }, 180000); // 增加到180秒超时
+      reject(new Error('请求超时（300秒）'));
+    }, 300000); // 增加到300秒超时
 
     chrome.runtime.sendMessage(message, (response) => {
       clearTimeout(timeout);
