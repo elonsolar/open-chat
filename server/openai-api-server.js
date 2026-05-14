@@ -48,6 +48,11 @@ class OpenAIAPIServer {
   async handleChatCompletion(req, res) {
     const requestId = uuidv4();
     try {
+      console.log('\n========== [API] Headers ==========');
+      console.log('[API] Headers:', JSON.stringify(req.headers, null, 2));
+      console.log('[API] x-session-affinity:', req.headers['x-session-affinity'] || '(not set)');
+      console.log('[API] ==============================\n');
+
       const { model, messages, tools, stream = false, tool_choice } = req.body;
 
       console.log('\n========== [API] 请求开始 ==========');
@@ -56,12 +61,12 @@ class OpenAIAPIServer {
       console.log('[API] Stream:', stream);
       console.log('[API] Messages count:', messages?.length);
       console.log('[API] Tools count:', tools?.length || 0);
-      if (tools && tools.length > 0) {
-        console.log('[API] Tools:', JSON.stringify(tools.map(t => ({
-          name: t.function?.name,
-          params: Object.keys(t.function?.parameters?.properties || {})
-        })), null, 2));
-      }
+      // if (tools && tools.length > 0) {
+      //   console.log('[API] Tools:', JSON.stringify(tools.map(t => ({
+      //     name: t.function?.name,
+      //     params: Object.keys(t.function?.parameters?.properties || {})
+      //   })), null, 2));
+      // }
       console.log('[API] Last message content:', messages?.[messages.length - 1]);
 
       if (!messages || !Array.isArray(messages)) {
@@ -73,11 +78,10 @@ class OpenAIAPIServer {
         });
       }
 
-      const firstMessage = messages[0];
-      const conversationId = firstMessage.role === 'system' ? this.normalizeContent(firstMessage.content) : 'default';
+      const conversationId = req.headers['x-session-affinity'];
 
       const isFirstSend = messages.length === 2 && 
-                         firstMessage.role === 'system' && 
+                         messages[0].role === 'system' && 
                          messages[1].role === 'user';
 
       console.log('[API] Conversation ID:', conversationId.substring(0, 50) + '...');
@@ -87,9 +91,9 @@ class OpenAIAPIServer {
 
       if (isFirstSend) {
         console.log('[API] 第一次发送：发送 system + user（合并）');
-        const systemContent = this.normalizeContent(firstMessage.content);
+        const systemContent = this.normalizeContent(messages[0].content);
         const userContent = this.normalizeContent(messages[1].content);
-        let combinedContent = `${systemContent}\n\n${userContent}`;
+        let combinedContent = `${systemContent}\n\n`;
 
         if (tools && tools.length > 0) {
           combinedContent = this.toolConverter.appendToolInstruction(combinedContent, tools);
@@ -99,7 +103,7 @@ class OpenAIAPIServer {
         messagesToSend = [
           {
             role: 'user',
-            content: combinedContent
+            content: `${combinedContent}\n\n${userContent} `
           }
         ];
 
@@ -112,6 +116,8 @@ class OpenAIAPIServer {
         const state = this.conversationState.get(conversationId) || { sentCount: 0 };
         const previouslySentCount = state.sentCount;
 
+
+        console.log('[API] previouseSentCount:', previouslySentCount);
         const newMessages = messages.slice(previouslySentCount);
         console.log('[API] 新增消息数量:', newMessages.length);
 
@@ -181,32 +187,34 @@ class OpenAIAPIServer {
 
   /**
    * 将标准 OpenAI 消息格式转换为适合发送给插件的格式
-   * 处理 assistant 消息中的 tool_calls 和 tool 角色的消息
+   * 所有非 assistant 消息合并成一条 user 消息
    */
   convertMessagesForExtension(messages) {
-    return messages.map(msg => {
-      if (msg.role === 'assistant' && msg.tool_calls && msg.tool_calls.length > 0) {
-        const toolCallsText = this.toolConverter.convertToolCallsToText(msg.tool_calls);
-        const normalizedContent = this.normalizeContent(msg.content);
-        return {
-          role: 'assistant',
-          content: normalizedContent ? `${normalizedContent}\n\n${toolCallsText}` : toolCallsText
-        };
-      } else if (msg.role === 'tool') {
+    const userContents = [];
+
+    for (const msg of messages) {
+      if (msg.role === 'tool') {
         const normalizedContent = this.normalizeContent(msg.content);
         const toolResultText = `[工具执行结果: ${msg.tool_call_id}]\n${normalizedContent}`;
-        return {
-          role: 'user',
-          content: toolResultText
-        };
+        userContents.push(toolResultText);
       } else {
         const normalizedContent = this.normalizeContent(msg.content);
-        return {
-          role: msg.role,
-          content: normalizedContent
-        };
+        if (normalizedContent) {
+          userContents.push(normalizedContent);
+        }
       }
-    });
+    }
+
+    if (userContents.length > 0) {
+      return [
+        {
+          role: 'user',
+          content: userContents.join('\n\n')
+        }
+      ];
+    }
+
+    return [];
   }
 
   async handleNonStreamingResponse(req, res, requestData) {

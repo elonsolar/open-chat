@@ -116,7 +116,7 @@ ${paramsDesc}`;
       });
 
       const toolCall = {
-        id: `call_${Date.now()}_${callIndex}`,
+        id: toolData.id || `call_${Date.now()}_${callIndex}`,
         type: 'function',
         function: {
           name: toolData.name,
@@ -204,7 +204,7 @@ ${paramsDesc}`;
 
     const toolsText = this.convertToolsToText(tools);
 
-    return `${userMessage}\n\n你可以使用以下工具：\n\n${toolsText}\n\n如果需要调用工具，请使用以下格式：\n\`\`\`tool_call\n{"name": "工具名称", "arguments": {"参数名": "参数值"}}\n\`\`\`\n\n参数 arguments 必须是 JSON 对象格式。`;
+    return `${userMessage}\n\n你可以使用以下工具：\n\n${toolsText}\n\n如果需要调用工具，请使用以下格式：\n\`\`\`tool_call\n{"id": "唯一标识符", "name": "工具名称", "arguments": {"参数名": "参数值"}}\n\`\`\`\n\n重要：每个工具调用必须包含唯一的 id 字段（如 "call_1", "call_2"），用于关联工具执行结果。参数 arguments 必须是 JSON 对象格式。`;
   }
 
   /**
@@ -216,10 +216,11 @@ ${paramsDesc}`;
     }
 
     return toolCalls.map(call => {
+      const id = call.id || '';
       const name = call.function?.name || '';
       const args = call.function?.arguments || '{}';
 
-      return `\`\`\`tool_call\n{"name": "${name}", "arguments": ${args}}\n\`\`\``;
+      return `\`\`\`tool_call\n{"id": "${id}", "name": "${name}", "arguments": ${args}}\n\`\`\``;
     }).join('\n\n');
   }
 
