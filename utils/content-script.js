@@ -110,7 +110,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const conversationId = request.conversationId || null;
 
     if (currentAdapter && currentAdapter.processSendMessage) {
-      currentAdapter.processSendMessage(content, messageId, conversationId);
+      currentAdapter.processSendMessage(content, messageId, conversationId)
+        .then(() => {
+          sendResponse({ status: 'processing' });
+        })
+        .catch((error) => {
+          console.error('[AI Plugin] processSendMessage 出错:', error);
+          sendResponse({ status: 'error', message: error.message });
+        });
+      return true; // 保持消息通道打开
     } else {
       console.error('[AI Plugin] ❌ adapter 未初始化或没有 processSendMessage 方法');
       chrome.runtime.sendMessage({
@@ -119,6 +127,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         conversationId,
         error: 'adapter未初始化'
       });
+      sendResponse({ status: 'error', message: 'adapter未初始化' });
     }
   }
 });

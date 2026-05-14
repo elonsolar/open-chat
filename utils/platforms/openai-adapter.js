@@ -64,14 +64,38 @@ class OpenAIAdapter extends BasePlatformAdapter {
 
       const response = await this.waitForAIResponse();
 
-      chrome.runtime.sendMessage({
-        type: 'aiResponse',
-        platform: this.platform,
-        messageId: messageId,
-        conversationId: conversationId,
-        content: response,
-        conversationUrl: window.location.href
-      });
+      // 使用重试机制发送响应
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          await new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage({
+              type: 'aiResponse',
+              platform: this.platform,
+              messageId: messageId,
+              conversationId: conversationId,
+              content: response,
+              conversationUrl: window.location.href
+            }, (response) => {
+              if (chrome.runtime.lastError) {
+                reject(new Error(chrome.runtime.lastError.message));
+              } else {
+                resolve(response);
+              }
+            });
+            setTimeout(() => reject(new Error('sendMessage超时')), 5000);
+          });
+          console.log(`[${this.platform}] ✓ 已发送 aiResponse 消息到 background (第${attempt}次尝试)`);
+          break;
+        } catch (error) {
+          console.warn(`[${this.platform}] ⚠️ 第${attempt}次发送aiResponse失败:`, error.message);
+          if (attempt < 3) {
+            await this.sleep(1000 * attempt);
+          } else {
+            console.error(`[${this.platform}] ❌ 发送aiResponse最终失败，已重试3次`);
+            throw error;
+          }
+        }
+      }
     } catch (error) {
       chrome.runtime.sendMessage({
         type: 'aiResponse',
