@@ -1,5 +1,377 @@
 importScripts('../config/providers.config.js');
 
+class WebSocketManager {
+  constructor(tabManagerRef, pendingResponsesRef) {
+    this.ws = null;
+    this.connected = false;
+    this.shouldReconnect = true;
+    this.reconnectAttempts = 0;
+    this.maxReconnectAttempts = Infinity;
+    this.baseReconnectDelay = 2000;
+    this.maxReconnectDelay = 30000;
+    this.currentReconnectDelay = this.baseReconnectDelay;
+    this.messageQueue = [];
+    this.tabManager = tabManagerRef;
+    this.pendingResponses = pendingResponsesRef;
+    this.reconnectTimeoutId = null;
+    this.heartbeatIntervalId = null;
+    this.heartbeatInterval = 30000;
+  }
+
+  async connect(url) {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      console.log('[WS] 已经连接，无需重复连接');
+      return;
+    }
+
+    try {
+      console.log('[WS] 正在连接到:', url);
+      this.updateStatus(false, 'connecting');
+
+      this.ws = new WebSocket(url);
+
+      this.ws.onopen = () => {
+        console.log('[WS] 连接成功');
+        this.connected = true;
+        this.reconnectAttempts = 0;
+        this.currentReconnectDelay = this.baseReconnectDelay;
+        this.updateStatus(true, 'connected');
+        
+        // 发送队列中的消息
+        this.flushMessageQueue();
+        
+        // 发送连接确认
+        this.send({
+          type: 'connected',
+          data: { message: '浏览器插件已连接' },
+          timestamp: Date.now()
+        });
+
+        // 启动心跳
+        this.startHeartbeat();
+      };
+
+      this.ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          console.log('[WS] 收到消息:', message.type);
+          
+          // 重置心跳计时器
+          if (this.heartbeatIntervalId) {
+            this.resetHeartbeat();
+          }
+          
+          this.handleMessage(message);
+        } catch (error) {
+          console.error('[WS] 解析消息失败:', error);
+        }
+      };
+
+      this.ws.onclose = (event) => {
+        console.log('[WS] 连接关闭, code:', event.code, 'reason:', event.reason);
+        this.connected = false;
+        this.updateStatus(false, 'disconnected');
+        
+        // 停止心跳
+        this.stopHeartbeat();
+
+        // 尝试自动重连
+        if (this.shouldReconnect) {
+          this.scheduleReconnect(url);
+        }
+      };
+
+      this.ws.onerror = (error) => {
+        console.error('[WS] 连接错误:', error);
+        this.updateStatus(false, 'error');
+      };
+
+    } catch (error) {
+      console.error('[WS] 连接失败:', error);
+      this.updateStatus(false, 'error');
+      
+      // 连接失败也尝试重连
+      if (this.shouldReconnect) {
+        this.scheduleReconnect(url);
+      }
+    }
+  }
+
+  disconnect() {
+    console.log('[WS] 主动断开连接，停止自动重连');
+    this.shouldReconnect = false;
+    
+    // 清除重连定时器
+    if (this.reconnectTimeoutId) {
+      clearTimeout(this.reconnectTimeoutId);
+      this.reconnectTimeoutId = null;
+    }
+    
+    // 停止心跳
+    this.stopHeartbeat();
+    
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+      this.connected = false;
+      this.updateStatus(false, 'disconnected');
+    }
+  }
+
+  scheduleReconnect(url) {
+    if (this.reconnectTimeoutId) {
+      return; // 已经有重连计划
+    }
+
+    this.reconnectAttempts++;
+    const delay = Math.min(
+      this.baseReconnectDelay * Math.pow(2, this.reconnectAttempts - 1),
+      this.maxReconnectDelay
+    );
+    this.currentReconnectDelay = delay;
+
+    console.log(`[WS] ${delay / 1000}秒后尝试重连 (${this.reconnectAttempts}次)...`);
+    this.updateStatus(false, 'reconnecting', { 
+      attempt: this.reconnectAttempts,
+      delay: delay 
+    });
+
+    this.reconnectTimeoutId = setTimeout(() => {
+      this.reconnectTimeoutId = null;
+      this.reconnect(url);
+    }, delay);
+  }
+
+  reconnect(url) {
+    this.connect(url);
+  }
+
+  startHeartbeat() {
+    this.stopHeartbeat();
+    this.heartbeatIntervalId = setInterval(() => {
+      if (this.connected && this.ws) {
+        this.send({ type: 'heartbeat', timestamp: Date.now() });
+      }
+    }, this.heartbeatInterval);
+  }
+
+  stopHeartbeat() {
+    if (this.heartbeatIntervalId) {
+      clearInterval(this.heartbeatIntervalId);
+      this.heartbeatIntervalId = null;
+    }
+  }
+
+  resetHeartbeat() {
+    this.stopHeartbeat();
+    this.startHeartbeat();
+  }
+
+  send(message) {
+    if (this.connected && this.ws && this.ws.readyState === WebSocket.OPEN) {
+      try {
+        this.ws.send(JSON.stringify(message));
+        return true;
+      } catch (error) {
+        console.error('[WS] 发送消息失败:', error);
+        return false;
+      }
+    } else {
+      console.log('[WS] 未连接，消息加入队列');
+      this.messageQueue.push(message);
+      return false;
+    }
+  }
+
+  flushMessageQueue() {
+    console.log(`[WS] 发送队列中的 ${this.messageQueue.length} 条消息`);
+    while (this.messageQueue.length > 0 && this.connected) {
+      const message = this.messageQueue.shift();
+      this.send(message);
+    }
+  }
+
+  handleMessage(message) {
+    switch (message.type) {
+      case 'chat_request':
+        this.handleChatRequest(message);
+        break;
+
+      case 'heartbeat':
+        // 心跳消息，不需要处理
+        break;
+
+      default:
+        console.log('[WS] 未知消息类型:', message.type);
+    }
+  }
+
+  async handleChatRequest(message) {
+    const { requestId, model, messages, tools } = message;
+    
+    try {
+      console.log('[WS] 处理聊天请求:', requestId, '会话名称:', model);
+
+      // 获取用户消息（最后一条消息）
+      const userMessage = messages[messages.length - 1];
+      if (!userMessage || userMessage.role !== 'user') {
+        throw new Error('无效的消息格式：缺少用户消息');
+      }
+
+      // model 参数实际是会话名称，查找会话
+      const conversations = await StorageManager.getConversations();
+      let conversation = conversations.find(c => c.name === model);
+
+      if (!conversation) {
+        throw new Error(`会话不存在: ${model}。请先在插件中创建名为 "${model}" 的会话。`);
+      }
+
+      console.log('[WS] 找到会话:', conversation.id, '角色:', conversation.roleIds);
+
+      // 检查会话是否有角色
+      if (!conversation.roleIds || conversation.roleIds.length === 0) {
+        throw new Error(`会话 "${model}" 没有配置角色。请在插件中为该会话添加角色。`);
+      }
+
+      // 添加用户消息到会话
+      console.log('[WS] 添加消息到会话');
+      const processResult = await aiMessageManager.processUserMessage(
+        conversation.id,
+        userMessage.content
+      );
+
+      console.log('[WS] 消息已添加，开始等待响应');
+
+      // 等待所有角色响应
+      const responses = await this.collectConversationResponses(conversation.id);
+
+      // 合并所有响应
+      const combinedContent = this.combineResponses(responses);
+
+      this.send({
+        type: 'ai_response',
+        requestId: requestId,
+        content: combinedContent,
+        conversation_id: conversation.id,
+        conversation_name: conversation.name,
+        timestamp: Date.now()
+      });
+
+      console.log('[WS] 响应已发送');
+
+    } catch (error) {
+      console.error('[WS] 处理聊天请求失败:', error);
+      
+      this.send({
+        type: 'ai_response',
+        requestId: requestId,
+        content: `错误: ${error.message}`,
+        error: true,
+        timestamp: Date.now()
+      });
+    }
+  }
+
+  async collectConversationResponses(conversationId, timeout = 30000) {
+    const initialMessageCount = await this.getLastMessageCount(conversationId);
+    return new Promise((resolve, reject) => {
+      const startTime = Date.now();
+      const checkInterval = 500;
+      
+      const timer = setInterval(async () => {
+        try {
+          const conversation = await conversationManager.getConversation(conversationId);
+          const currentMessageCount = this.countMessagesAfter(conversation, initialMessageCount);
+          
+          // 检查是否超时
+          if (Date.now() - startTime > timeout) {
+            clearInterval(timer);
+            console.log('[WS] 收集响应超时');
+            resolve(this.extractResponses(conversation, initialMessageCount));
+            return;
+          }
+
+          // 如果有新消息，认为响应完成
+          if (currentMessageCount > 0) {
+            // 等待一段时间确保所有响应都到达
+            await new Promise(r => setTimeout(r, 2000));
+            
+            clearInterval(timer);
+            const responses = this.extractResponses(conversation, initialMessageCount);
+            console.log('[WS] 收集到', responses.length, '条响应');
+            resolve(responses);
+          }
+
+        } catch (error) {
+          clearInterval(timer);
+          reject(error);
+        }
+      }, checkInterval);
+    });
+  }
+
+  getLastMessageCount(conversationId) {
+    // 简化：返回当前消息数
+    return conversationManager.getConversation(conversationId)
+      .then(conv => conv.messages ? conv.messages.length : 0);
+  }
+
+  countMessagesAfter(conversation, initialCount) {
+    return conversation.messages ? conversation.messages.length - initialCount : 0;
+  }
+
+  extractResponses(conversation, initialCount) {
+    if (!conversation.messages) return [];
+    
+    return conversation.messages
+      .slice(initialCount)
+      .filter(msg => !msg.isUser)
+      .map(msg => ({
+        content: msg.content,
+        role: msg.roleId,
+        provider: msg.provider,
+        timestamp: msg.timestamp
+      }));
+  }
+
+  combineResponses(responses) {
+    if (responses.length === 0) {
+      return '（没有收到响应）';
+    }
+
+    if (responses.length === 1) {
+      return responses[0].content;
+    }
+
+    // 多个响应，用分隔符组合
+    return responses.map((r, i) => 
+      `[角色 ${i + 1}]\n${r.content}`
+    ).join('\n\n---\n\n');
+  }
+
+  updateStatus(connected, status) {
+    // 通知所有监听器状态变化
+    chrome.runtime.sendMessage({
+      type: 'wsStatusChanged',
+      connected: connected,
+      status: status
+    }).catch(() => {
+      // 忽略错误（可能没有监听器）
+    });
+  }
+
+  getStatus() {
+    return {
+      connected: this.connected,
+      readyState: this.ws ? this.ws.readyState : WebSocket.CLOSED,
+      shouldReconnect: this.shouldReconnect,
+      reconnectAttempts: this.reconnectAttempts,
+      reconnectDelay: this.currentReconnectDelay,
+      isReconnecting: this.reconnectTimeoutId !== null
+    };
+  }
+}
+
 class StorageManager {
   static async getConversations() {
     const result = await chrome.storage.local.get('conversations');
@@ -799,12 +1171,20 @@ let roleManager;
 let aiMessageManager;
 const pendingResponses = new Map();
 const pollingIntervals = new Map();
+let wsManager = null;
 
 async function init() {
   tabManager = new TabManager();
   conversationManager = new ConversationManager(tabManager);
   roleManager = new RoleManager(tabManager);
   aiMessageManager = new AIMessageManager(tabManager, conversationManager);
+  wsManager = new WebSocketManager(tabManager, pendingResponses);
+
+  // 加载设置并连接 WebSocket
+  const settings = await StorageManager.getSettings();
+  if (settings.wsEnabled && settings.wsUrl) {
+    wsManager.connect(settings.wsUrl);
+  }
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -828,6 +1208,50 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ status: 'no_matching_promise' });
     }
     return;
+  }
+
+  // 处理需要 async 的 action
+  if (request.action === 'saveSettings' || request.action === 'reconnectWebSocket') {
+    (async () => {
+      try {
+        if (request.action === 'saveSettings') {
+          await StorageManager.saveSettings(request.settings);
+
+          // 如果启用状态改变，处理 WebSocket 连接
+          if (wsManager) {
+            const currentSettings = await StorageManager.getSettings();
+            if (request.settings.wsEnabled && !currentSettings.wsEnabled) {
+              // 从未启用变为启用
+              wsManager.connect(request.settings.wsUrl);
+            } else if (!request.settings.wsEnabled && currentSettings.wsEnabled) {
+              // 从启用变为未启用
+              wsManager.disconnect();
+            } else if (request.settings.wsUrl !== currentSettings.wsUrl && request.settings.wsEnabled) {
+              // URL 改变且已启用
+              wsManager.disconnect();
+              setTimeout(() => {
+                wsManager.connect(request.settings.wsUrl);
+              }, 500);
+            }
+          }
+          sendResponse({ success: true });
+        } else if (request.action === 'reconnectWebSocket') {
+          if (wsManager) {
+            const settings = await StorageManager.getSettings();
+            if (settings.wsEnabled && settings.wsUrl) {
+              wsManager.disconnect();
+              setTimeout(() => {
+                wsManager.connect(settings.wsUrl);
+              }, 500);
+            }
+          }
+          sendResponse({ success: true });
+        }
+      } catch (error) {
+        sendResponse({ error: error.message });
+      }
+    })();
+    return true;
   }
 
   switch (request.action) {
@@ -909,6 +1333,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     case 'getSettings':
       StorageManager.getSettings().then(sendResponse);
+      return true;
+
+    case 'disconnectWebSocket':
+      if (wsManager) {
+        wsManager.disconnect();
+      }
+      sendResponse({ success: true });
+      return true;
+
+    case 'getWSStatus':
+      if (wsManager) {
+        sendResponse(wsManager.getStatus());
+      } else {
+        sendResponse({ connected: false });
+      }
       return true;
 
     case 'testPlatform':
@@ -1044,10 +1483,8 @@ function startPolling(conversationId) {
             const currentActiveTab = tabs[0];
             const isCurrentlyOnChatPage = currentActiveTab && currentActiveTab.url && currentActiveTab.url.includes('chat/chat.html');
 
-            // 激活目标tab，不等待完成
             chrome.tabs.update(existingTab.id, { active: true }).catch(() => {});
 
-            // 给Edge一点时间处理激活，然后切回
             if (isCurrentlyOnChatPage) {
               await new Promise(resolve => setTimeout(resolve, 100));
               const allTabs = await chrome.tabs.query({});
@@ -1058,11 +1495,11 @@ function startPolling(conversationId) {
             }
           }
         } catch (error) {
-          console.error(`[Background] 激活 ${role.name} 标签页失败:`, error);
+          console.error(`[Background] 激活 ${role.name} 标签页失败`, error);
         }
       }
     } catch (error) {
-      console.error('[Background] 轮询检查失败:', error);
+      console.error('[Background] 轮询检查失败', error);
     }
   }, 5000));
 }

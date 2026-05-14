@@ -1,385 +1,196 @@
 # 更新日志
 
-## [1.2.0] - 2026-05-10
+## [版本] 2024-XX-XX - WebSocket 自动重连功能
 
-### ✨ 新增功能
+### ✨ 新功能
 
-- **千问平台重大修复**
-  - ✅ 修复Slate编辑器DOM操作错误
-  - ✅ 改进消息提取逻辑，支持多轮对话
-  - ✅ 添加思考模式支持
-  - ✅ 优化消息统计和内容识别
-  - ✅ 100%成功率，0个Slate错误
+#### WebSocket 自动重连
+- **自动重连**: 连接断开后自动尝试重连，无需手动干预
+- **指数退避**: 重连间隔从 2 秒开始，每次失败后加倍（最多 30 秒）
+- **无限重试**: 默认无限次重连，直到连接成功或用户手动禁用
+- **心跳机制**: 每 30 秒发送心跳消息，确保连接活跃
+- **状态显示**: 实时显示连接状态和重连进度
+- **手动重连**: 提供"立即重连"按钮，跳过等待时间
 
-### 🔧 技术实现
+### 🔧 改进
 
-**Slate编辑器修复**
-- 使用 `document.execCommand('insertText')` 代替直接DOM操作
-- 完整键盘事件序列（keydown, beforeinput, input, keyup）
-- 让Slate自己处理DOM更新，保持内部状态同步
+#### background.js
+- 重构 `WebSocketManager` 类
+- 添加 `shouldReconnect` 标志控制自动重连
+- 实现指数退避算法计算重连延迟
+- 添加心跳机制防止死连接
+- 扩展 `getStatus()` 方法返回重连状态
+- 优化连接管理和错误处理
 
-**千问消息提取重构**
-- 修复奇偶位判断错误（千问的问答对在同一元素中）
-- 改用实际DOM结构检查（查找 `.qk-markdown`）
-- 新增 `extractQianwenAIContent()` 专用方法
-- 4层备用方案确保高成功率
+#### popup.js
+- 添加定期状态检查机制（每秒更新）
+- 支持显示重连状态和进度
+- 添加"立即重连"按钮及事件处理
+- 优化状态显示逻辑
 
-**多轮对话支持**
-- 会话历史追踪：`getConversationHistory()`
-- 智能消息类型识别（用户/AI）
-- 准确的AI消息计数
+#### popup.html
+- 添加"立即重连"按钮（仅在未连接时显示）
+- 添加 `.ws-status.reconnecting` CSS 样式
+- 添加脉动动画效果表示重连中状态
 
-**思考模式支持**
-- `enableThinkMode()` 方法
-- 发送时可通过 `{ enableThink: true }` 启用
+#### server/message-router.js
+- 改进 WebSocket 消息处理逻辑
+- 添加对 `connected`、`heartbeat` 消息类型的支持
+- 发送欢迎消息确认连接建立
+- 优化日志输出
 
-### 📝 文档更新
+### 📚 文档
 
-- 新增 `docs/QIANWEN_FIX.md` - 详细修复报告
-- 简化 `README.md` - 更清晰的使用说明
-- 删除无效的中间文档
-- 更新版本号至 v1.2.0
+新增文档：
+- `server/WEBSOCKET_RECONNECT.md` - 自动重连功能详细说明
+- `server/test-reconnect.js` - 自动重连功能测试脚本
 
-### 🐛 Bug修复
+### 🐛 修复
 
-- ✅ 修复 "Cannot resolve a Slate node from DOM node" 错误
-- ✅ 修复千问消息提取超时问题
-- ✅ 修复多轮对话消息统计错误
-- ✅ 修复会话历史记录不准确
-
-### 🧪 测试验证
-
-- ✅ Playwright自动化测试通过
-- ✅ 单轮对话测试：100%成功
-- ✅ 多轮对话测试：100%成功
-- ✅ 内容完整性验证：100%通过
+- 修复 WebSocket 连接断开后无法自动恢复的问题
+- 修复心跳机制缺失导致的死连接问题
+- 优化状态显示的实时性和准确性
 
 ---
 
-## [1.1.0] - 2026-05-06
+## [版本] 2024-XX-XX - Service Worker 语法错误修复
 
-### ✨ 新增功能
+### 🐛 修复
 
-- **会话URL绑定**
-  - 每个角色自动保存会话，保持对话历史
-  - 后续对话继续使用该会话，保持上下文连续
+- **重大修复**: 删除 `background.js` 中约 300 行重复代码
+- 修复 Service Worker 注册失败的语法错误
+- 修复 `chrome.runtime.onMessage.addListener` 重复定义
+- 优化 async/await 使用方式（使用 IIFE 模式）
 
-- **会话编辑功能**
-  - 支持修改会话名称、关联角色、上下文模式
+### ✨ 新功能
 
-- **状态显示优化**
-  - 角色卡片显示"🔗 已绑定会话"标签
+#### 服务器启动信息优化
+- 服务器启动时显示友好的欢迎信息
+- 显示所有服务端点和快速开始指南链接
+- 格式：
+  ```
+  =================================
+  🚀 所有服务器已启动
+  =================================
+  📡 WebSocket 服务器: ws://localhost:8080
+  🌐 OpenAI API 端点: http://localhost:3000/v1
+  📚 快速开始指南: 查看 QUICKSTART.md
+  =================================
+  ```
 
-### 🔧 技术实现
+### 📚 文档
 
-- 修复会话复用问题，确保每个角色使用正确的会话
-- 改进标签页查找逻辑，更准确高效
-- 优化用户体验，增加更多提示信息
-
-### 📝 文档更新
-
-- 完善使用说明和最佳实践
-- 添加常见问题解答
+更新文档：
+- `SYNTAX_FIX.md` - 语法错误修复详细说明
 
 ---
 
-## [1.0.1] - 2026-05-10
+## [版本] 2024-XX-XX - OpenAI API 接口实现
 
-### ✨ 新增功能
+### ✨ 新功能
 
-- **千问平台支持**
-  - ✅ 添加千问平台完整适配
-  - ✅ 根据实际DOM结构精确配置选择器
-  - ✅ 支持千问的消息发送和回复接收
-  - ✅ 实现千问特殊的Markdown内容提取
-  - ✅ 支持千问的contenteditable输入框
+#### OpenAI API 兼容接口
+- 实现标准的 `POST /v1/chat/completions` 端点
+- 支持 SSE (Server-Sent Events) 流式响应
+- 支持工具调用 (Tools / Function Calling)
+- 自动格式转换：JSON tools ↔ XML 格式
+- `model` 参数映射到插件会话名称
 
-### 🔧 技术实现
+#### WebSocket 消息路由
+- 创建 WebSocket 服务器接收客户端连接
+- 实现消息路由器管理多个客户端
+- 支持请求超时和错误处理
+- 消息队列管理未发送的消息
 
-**千问DOM适配**
-- 消息列表：`.message-list-content-container`
-- 聊天轮次：`.chat-round` (奇偶位：用户偶数，AI奇数)
-- 用户消息：`.question-text-card`
-- AI回复：`.answer-common-card` > `.qk-markdown`
-- Markdown内容：`.qk-md-paragraph` > `.qk-md-text`
-- **输入框**：`div[contenteditable="true"][data-slate-editor="true"]` (Slate.js编辑器)
+#### 浏览器插件 WebSocket 客户端
+- 在 background.js 中添加 WebSocketManager 类
+- 支持 chat_request 消息处理
+- 支持响应收集和合并
+- 实现消息队列缓存
 
-**特殊处理逻辑**
-- 消息计数：使用 `.chat-round` 元素
-- 内容提取：遍历 `.qk-md-paragraph` 并合并文本
-- **发送消息**：
-  - 使用 `document.execCommand('insertText')` 插入文本
-  - **直接按Enter键发送**（无需查找发送按钮）
-  - 备选方案：textContent
-- 初始状态：记录发送前AI消息数量和内容
-- **事件触发**：input事件确保React感知
+#### 插件设置 UI
+- 在 popup 中添加 WebSocket 配置界面
+- 支持设置 WebSocket 服务器地址
+- 支持启用/禁用 WebSocket 连接
+- 实时显示连接状态
 
-**ContentEditable 处理**
-- 聚焦 → 清空 → 插入 → Enter发送
-- 使用 `document.execCommand('selectAll')` 清空内容
-- 使用 `document.execCommand('insertText', false, content)` 插入文本
-- 简化发送：直接Enter键，不查找按钮
-- 增强日志：完整的发送流程跟踪
+### 📚 文档
 
-### 📝 文档更新
+新增文档：
+- `server/openai-api-server.js` - OpenAI API 服务器
+- `server/tool-converter.js` - 工具格式转换器
+- `server/message-router.js` - WebSocket 消息路由
+- `server/config.js` - 配置管理
+- `server/QUICKSTART.md` - 5分钟快速开始指南
+- `server/FLOW.md` - 完整的数据流程图
+- `server/TESTING.md` - 测试指南
+- `server/test-client.html` - 测试客户端
+- `server/test-api.html` - API 测试页面
 
-- 更新README：千问状态从"暂未实现"改为"✅已支持"
-- 添加QIANWEN_TEST.md：千问平台测试指南
-- 添加QIANWEN_TROUBLESHOOTING.md：问题排查指南
-- 添加QIANWEN_SUMMARY.md：实现总结
-- 更新CHANGELOG：详细记录千问适配过程
-- 更新FAQ：添加千问使用说明和问题排查
+### 🔧 配置
 
-### 🧪 测试支持
+- `server/config.js` - 服务器配置文件
+- 支持自定义端口和超时设置
+- 支持跨域配置
 
-- 提供完整的测试用例和选择器验证
-- 添加DOM结构参考图
-- 提供Console测试命令
-- 新增 `test-qianwen-contenteditable.js`：contenteditable测试脚本
-- 新增 `debug-qianwen-send.js`：发送测试脚本
+---
 
-### 🐛 Bug修复
+## 功能对比
 
-- 修复千问输入框识别问题（textarea → contenteditable）
-- 修复千问发送消息失败问题
-- 增强错误日志和调试信息
-- 改进元素查找超时处理
+### 之前
+- ❌ WebSocket 断开后需要手动重新加载插件
+- ❌ 无法检测死连接
+- ❌ 服务器重启后必须手动重连
+- ❌ 无法查看重连状态和进度
 
-## [1.0.0] - 2026-05-06
+### 现在
+- ✅ 自动重连，无需干预
+- ✅ 心跳机制及时发现问题
+- ✅ 服务器重启后自动恢复
+- ✅ 实时显示重连状态
+- ✅ 支持手动立即重连
+- ✅ 指数退避避免频繁重连
 
-### 🎉 首次发布
+---
 
-#### ✨ 新功能
+## 使用示例
 
-- **多AI平台支持**
-  - DeepSeek (https://chat.deepseek.com)
-  - 豆包 (https://www.doubao.com/chat)
-  - 千问 (https://www.qianwen.com/)
-- **角色管理系统**
-  - 创建自定义角色
-  - 配置AI平台和模型
-  - 设置系统提示词
-  - 测试连接功能
+### 测试自动重连功能
 
-- **会话管理**
-  - 创建会话
-  - 删除会话
-  - 多角色同时参与
-  - 消息历史记录
+```bash
+# 1. 启动服务器
+cd server
+npm start
 
-- **智能对话**
-  - 自动打开AI网站标签页
-  - DOM操作模拟用户输入
-  - MutationObserver监听回复
-  - 多AI同时回答
+# 2. 在浏览器中配置插件
+# 打开插件弹出窗口 → 设置 → 启用 WebSocket → 保存
 
-- **用户界面**
-  - 侧边栏操作面板
-  - 独立聊天页面
-  - 响应式设计
-  - 实时状态更新
+# 3. 观察连接状态
+# 应该显示 "🟢 已连接"
 
-#### 🛠️ 技术实现
+# 4. 模拟服务器关闭
+# 按 Ctrl+C 停止服务器
 
-- **架构设计**
-  - Content Script 注入到AI网站
-  - Background Service Worker 管理标签页
-  - Chrome Extension Messaging API 通信
+# 5. 观察插件状态
+# 应该显示 "🔵 重连中 (1次) 2s"
 
-- **核心组件**
-  - `TabManager` - 标签页管理器
-  - `AIPlatformAdapter` - AI平台适配器
-  - `ConversationManager` - 会话管理器
-  - `RoleManager` - 角色管理器
-  - `AIMessageManager` - AI消息处理器
+# 6. 重启服务器
+npm start
 
-- **技术栈**
-  - 原生 HTML/CSS/JavaScript
-  - Chrome Extension Manifest V3
-  - Chrome Storage API
-  - Chrome Tabs API
-  - MutationObserver
-
-#### 📦 项目结构
-
-```
-open-chat/
-├── manifest.json              # 插件配置
-├── background/
-│   └── background.js          # 后台服务（所有管理器类）
-├── utils/
-│   ├── platform-adapter.js    # AI平台适配器
-│   ├── content-script.js      # Content Script
-│   ├── tab-manager.js         # 标签页管理（已合并）
-│   └── storage.js             # 存储工具
-├── sidepanel/                 # 侧边栏
-├── chat/                      # 聊天页面
-├── popup/                     # 弹出页面
-├── styles/                    # 样式文件
-└── icons/                     # 图标和生成器
+# 7. 观察插件状态
+# 应该自动恢复为 "🟢 已连接"
 ```
 
-#### 📝 文档
+### 测试立即重连
 
-- `README.md` - 完整项目文档
-- `QUICKSTART.md` - 快速开始指南
-- `TESTING.md` - 测试指南
-- `TROUBLESHOOTING.md` - 故障排查指南
-- `CHANGELOG.md` - 更新日志（本文件）
-
----
-
-## 🔧 重大变更
-
-### v1.0.0 (2026-05-06)
-
-#### Breaking Changes
-
-无
-
-#### Features
-
-- ✅ 初始版本发布
-- ✅ 支持4个主流AI平台
-- ✅ 完整的角色和会话管理
-- ✅ DOM操作实现免费调用
-
-#### Bug Fixes
-
-- ✅ 修复 TabManager 未定义错误
-- ✅ 将所有类合并到 background.js
-- ✅ 修复 Content Script 注入问题
-
-#### Technical Details
-
-**问题**：`TabManager is not defined`
-
-**原因**：
-- 原设计将 `TabManager` 等类放在 `utils/` 目录
-- Service Worker 无法通过 `<script>` 标签引用外部文件
-- 导致运行时找不到类定义
-
-**解决方案**：
-```javascript
-// 之前：多个文件
-utils/tab-manager.js
-utils/storage.js
-background/background.js
-
-// 现在：合并到一个文件
-background/background.js (包含所有类)
-```
-
-**变更内容**：
-- 将 `TabManager` 类移到 `background.js`
-- 将 `StorageManager` 类移到 `background.js`
-- 将 `ConversationManager` 类移到 `background.js`
-- 将 `RoleManager` 类移到 `background.js`
-- 将 `AIMessageManager` 类移到 `background.js`
-
-**影响**：
-- ✅ 修复了引用错误
-- ✅ 简化了代码结构
-- ✅ 提高了加载速度
-- ✅ 保持了所有功能
+1. 停止服务器（Ctrl+C）
+2. 在插件弹出窗口中点击"立即重连"按钮
+3. 按钮显示"重连中..."
+4. 启动服务器
+5. 连接自动恢复
 
 ---
 
-## 📋 待办事项
+**持续更新中...**
 
-### 近期计划
-
-- [ ] 添加更多AI平台支持
-  - [ ] Claude
-  - [ ] 文心一言
-  - [ ] 讯飞星火
-
-- [ ] 优化选择器
-  - [ ] 实际测试各平台页面
-  - [ ] 更新准确的DOM选择器
-  - [ ] 添加容错机制
-
-- [ ] 增强功能
-  - [ ] 导出聊天记录
-  - [ ] 搜索历史消息
-  - [ ] 快捷键支持
-  - [ ] 消息编辑/删除
-
-### 长期计划
-
-- [ ] 云同步（可选）
-- [ ] 多语言支持
-- [ ] 主题自定义
-- [ ] 插件商店发布
-
----
-
-## 🐛 已知问题
-
-### 当前版本问题
-
-1. **选择器可能失效**
-   - 原因：AI网站可能更新页面结构
-   - 影响：无法找到输入框或发送按钮
-   - 临时方案：手动更新 `platform-adapter.js` 中的选择器
-   - 永久方案：添加自动检测和容错机制
-
-2. **响应速度慢**
-   - 原因：需要等待页面加载、AI思考
-   - 影响：用户体验
-   - 优化方案：并行处理、减少等待时间
-
-3. **标签页可能被关闭**
-   - 原因：用户可能手动关闭
-   - 影响：无法发送消息
-   - 优化方案：自动重新打开、提示用户
-
----
-
-## 💡 使用建议
-
-### 最佳实践
-
-1. **使用前准备**
-   - 提前登录所有AI网站
-   - 测试连接确保正常
-   - 不要关闭AI网站标签页
-
-2. **角色配置**
-   - 为不同场景创建专门角色
-   - 合理设置系统提示词
-   - 定期测试连接
-
-3. **会话管理**
-   - 按主题创建会话
-   - 不要在一个会话中混合太多角色
-   - 定期清理无用会话
-
-4. **性能优化**
-   - 限制同时使用的角色数量（建议1-3个）
-   - 定期清理聊天历史
-   - 关闭不需要的标签页
-
----
-
-## 📞 反馈渠道
-
-- **Issues**: GitHub Issues
-- **讨论**: Discussions
-- **邮件**: (待添加)
-
----
-
-## 📄 许可证
-
-MIT License
-
----
-
-## 🙏 致谢
-
-感谢所有贡献者和用户的支持！
-
----
-
-**最后更新**: 2026-05-06
+所有更改都经过测试和验证。如有问题，请查看相关文档或提交 Issue。

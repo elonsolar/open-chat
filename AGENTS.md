@@ -22,6 +22,8 @@ background/background.js    # Service worker — ALL manager classes in one file
                             # (TabManager, StorageManager, ConversationManager,
                             #  RoleManager, AIMessageManager)
                             # Cannot use external <script> — Service Worker limitation
+config/providers.config.js  # Platform definitions (id, name, baseUrl, color, urlPatterns)
+                            # Loaded via importScripts in background.js
 utils/platforms/            # Per-platform adapter classes
   base-adapter.js           #   BasePlatformAdapter (shared logic)
   deepseek-adapter.js       #   DeepSeekAdapter extends BasePlatformAdapter
@@ -30,13 +32,18 @@ utils/platforms/            # Per-platform adapter classes
   kimi-adapter.js           #   KimiAdapter extends BasePlatformAdapter
 utils/content-script.js     # Bootstrap: detects platform, factory switch,
                             #   creates adapter, bridges chrome.runtime messages
+utils/early-intercept.js    # Intercepts fetch/XHR to capture AI responses (experimental)
 utils/floating-window.js    # Injected on all non-AI-site pages
 utils/floating-content.js   #   (excluded by manifest exclude_matches)
+utils/storage.js            # Helper functions for content scripts to message background
 sidepanel/                  # Side panel UI (HTML + JS)
+sidepanel/sidepanel-multiple.*  # Experimental multi-conversation sidepanel (not active)
 popup/                      # Browser action popup
-chat/                       # Full-page chat UI
+chat/                       # Full-page chat UI (chat.html + chat.js)
 styles/                     # CSS files
 server/                     # Optional Node.js WebSocket server
+rules/                      # declarativeNetRequest rules (remove X-Frame-Options)
+libs/marked.min.js          # Markdown renderer (web-accessible resource)
 ```
 
 ## Content Script Injection Order (critical)
@@ -58,9 +65,15 @@ Defined in `manifest.json`. Scripts load in this exact sequence:
 - **Context modes**: `self` = separate tabs per role, `shared` = all roles see same history
 - **Send modes**: `parallel` | `sequential` | `random`
 
+## Chat Commands
+
+The chat UI (`chat/chat.js`) supports slash commands typed in the input:
+- `/clear` — Clear all conversation messages and reset role session URLs
+- `/mode` — Open mode selector to switch context/send mode and adjust role order
+
 ## Common Gotchas
 
-- **Stale files on disk**: `utils/tab-manager.js`, `utils/storage.js`, `utils/platform-adapter.js.backup`, `utils/platform-adapter-new.js`, `utils/platform-adapter.js` are dead code — their logic was merged into `background.js` or replaced by the platform refactor.
 - **Selectors break when AI sites update DOM**: Platform adapters use hardcoded CSS selectors. If message send/receive breaks, the platform adapter selectors need updating.
 - **SPA re-init**: `content-script.js` uses MutationObserver on `document.body` to detect URL changes and re-initialize. Skipped when `window.isSendingMessage === true`.
 - **Provider = platform string**: The UI "provider" dropdown value is passed directly as the `platform` argument — 1:1 mapping, no translation layer.
+- **Service Worker lifecycle**: `background/background.js` runs as a Manifest V3 service worker — it can be terminated by the browser. State is persisted in `chrome.storage.local`.

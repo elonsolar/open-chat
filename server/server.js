@@ -1,9 +1,12 @@
-// 简单的WebSocket服务器示例
-// 用于接收Edge浏览器插件的消息
-
 const WebSocket = require('ws');
+const config = require('./config');
+const MessageRouter = require('./message-router');
+const OpenAIAPIServer = require('./openai-api-server');
 
-const PORT = 8080;
+const messageRouter = new MessageRouter();
+const apiServer = new OpenAIAPIServer(messageRouter);
+
+const PORT = config.wsPort;
 const wss = new WebSocket.Server({ port: PORT });
 
 console.log(`WebSocket服务器运行在 ws://localhost:${PORT}`);
@@ -14,9 +17,9 @@ const clients = new Set();
 wss.on('connection', (ws, req) => {
   const clientId = req.socket.remoteAddress;
   console.log(`新客户端连接: ${clientId}`);
-  clients.add(ws);
+  
+  messageRouter.registerWebSocketClient(ws);
 
-  // 发送欢迎消息
   ws.send(JSON.stringify({
     type: 'connected',
     data: { message: '已连接到服务器' },
@@ -28,7 +31,11 @@ wss.on('connection', (ws, req) => {
       const data = JSON.parse(message);
       console.log(`[${new Date().toLocaleTimeString()}] 收到消息:`, data.type);
 
-      // 根据消息类型处理
+      if (data.type === 'chat_request') {
+        console.log('  聊天请求:', data.model);
+        return;
+      }
+
       switch (data.type) {
         case 'conversations':
           console.log('  会话列表更新:', data.data.conversations.length, '个会话');
@@ -44,12 +51,11 @@ wss.on('connection', (ws, req) => {
             isUser: data.data.message.isUser,
             content: data.data.message.content.substring(0, 50) + '...'
           });
-
-          // 可以在这里处理消息，例如：
-          // - 保存到数据库
-          // - 转发给其他客户端
-          // - 触发其他操作
           broadcastToOthers(ws, data);
+          break;
+
+        case 'ai_response':
+          console.log('  AI响应:', data.requestId);
           break;
 
         default:
@@ -89,21 +95,46 @@ function broadcastToAll(message) {
   });
 }
 
-// 示例：定期发送心跳
+async function startServers() {
+  try {
+    await apiServer.start();
+    console.log('');
+    console.log('=================================');
+    console.log('🚀 所有服务器已启动');
+    console.log('=================================');
+    console.log(`📡 WebSocket 服务器: ws://localhost:${config.wsPort}`);
+    console.log(`🌐 OpenAI API 端点: http://localhost:${config.port}/v1`);
+    console.log(`📚 快速开始指南: 查看 QUICKSTART.md`);
+    console.log('=================================');
+    console.log('');
+  } catch (error) {
+    console.error('启动服务器失败:', error);
+    process.exit(1);
+  }
+}
+
 setInterval(() => {
   broadcastToAll({
     type: 'heartbeat',
-    data: { time: new Date().toISOString() },
+    data: { 
+      time: new Date().toISOString(),
+      connected_clients: messageRouter.getConnectedClientsCount()
+    },
     timestamp: Date.now()
   });
-}, 30000); // 每30秒
+}, 30000);
 
-// 处理服务器关闭
-process.on('SIGINT', () => {
+startServers();
+
+process.on('SIGINT', async () => {
   console.log('\n正在关闭服务器...');
+  
   wss.clients.forEach(client => {
     client.close();
   });
+  
+  await apiServer.stop();
+  
   wss.close(() => {
     console.log('服务器已关闭');
     process.exit(0);
