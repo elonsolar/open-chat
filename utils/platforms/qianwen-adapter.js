@@ -61,7 +61,7 @@ class QianwenAdapter extends BasePlatformAdapter {
 
     editor.dispatchEvent(new InputEvent('beforeinput', { bubbles: true, cancelable: true, inputType: 'insertText', data: content }));
     editor.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: false, inputType: 'insertText', data: content }));
-    await this.sleep(500);
+    await this.sleep(1000);
 
     const sendButton = await this.waitForButton();
     sendButton.click();
@@ -71,11 +71,35 @@ class QianwenAdapter extends BasePlatformAdapter {
 
   async waitForButton() {
     const startTime = Date.now();
-    while (Date.now() - startTime < 8000) {
+    while (Date.now() - startTime < 15000) {
       const btn = document.querySelector('button[aria-label="发送消息"]');
-      if (btn && !btn.disabled && btn.offsetParent !== null) return btn;
+      if (btn) {
+        const isDisabled = btn.disabled;
+        const isVisible = btn.offsetParent !== null;
+        console.log(`[${this.platform}] 按钮状态: disabled=${isDisabled}, visible=${isVisible}`);
+        
+        if (!isDisabled && isVisible) return btn;
+        
+        if (isDisabled) {
+          console.log(`[${this.platform}] 按钮仍为 disabled，等待...`);
+        }
+        if (!isVisible) {
+          console.log(`[${this.platform}] 按钮不可见，等待...`);
+        }
+      } else {
+        console.log(`[${this.platform}] 未找到按钮元素，等待...`);
+      }
       await this.sleep(200);
     }
+    
+    const allButtons = document.querySelectorAll('button');
+    console.error(`[${this.platform}] 页面上所有按钮:`, Array.from(allButtons).map(b => ({
+      ariaLabel: b.getAttribute('aria-label'),
+      disabled: b.disabled,
+      visible: b.offsetParent !== null,
+      className: b.className
+    })));
+    
     throw new Error('发送按钮未找到');
   }
 

@@ -4,7 +4,7 @@
 
 ## ⚡ 快速开始
 
-**5分钟快速配置指南**: 查看 [QUICKSTART.md](QUICKSTART.md)
+**5分钟快速配置指南**: 查看 [QUICK_START.md](../QUICK_START.md)
 
 ## 核心概念
 

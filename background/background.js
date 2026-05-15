@@ -278,7 +278,7 @@ class WebSocketManager {
     }
   }
 
-  combineResponses(responses) {
+  async combineResponses(responses) {
     if (!responses || responses.length === 0) {
       return '';
     }
@@ -287,29 +287,28 @@ class WebSocketManager {
       return responses[0].content;
     }
 
+    const roles = await StorageManager.getRoles();
     return responses.map((r, index) => {
-      const roles = StorageManager.getRoles().then(roles => {
-        const role = roles.find(r => r.id === r.roleId);
-        return role ? role.name : `角色 ${index + 1}`;
-      });
-      return `[${index + 1}] ${r.content}`;
+      const role = roles.find(role => role.id === r.roleId);
+      const roleName = role ? role.name : `角色 ${index + 1}`;
+      return `[${roleName}] ${r.content}`;
     }).join('\n\n');
   }
 
-  combineResponses(responses) {
-    if (responses.length === 0) {
-      return '（没有收到响应）';
-    }
+  // combineResponses(responses) {
+  //   if (responses.length === 0) {
+  //     return '（没有收到响应）';
+  //   }
 
-    if (responses.length === 1) {
-      return responses[0].content;
-    }
+  //   if (responses.length === 1) {
+  //     return responses[0].content;
+  //   }
 
-    // 多个响应，用分隔符组合
-    return responses.map((r, i) => 
-      `[角色 ${i + 1}]\n${r.content}`
-    ).join('\n\n---\n\n');
-  }
+  //   // 多个响应，用分隔符组合
+  //   return responses.map((r, i) => 
+  //     `[角色 ${i + 1}]\n${r.content}`
+  //   ).join('\n\n---\n\n');
+  // }
 
   updateStatus(connected, status) {
     // 通知所有监听器状态变化
@@ -1037,8 +1036,9 @@ class AIMessageManager {
   }
 
   async sendToRolesSequential(conversation, roles, contextMode, useFloatWindow, conversationId) {
-    for (let i = 0; i < conversation.roleIds.length; i++) {
-      const roleId = conversation.roleIds[i];
+    const roleOrder = conversation.roleOrder || conversation.roleIds;
+    for (let i = 0; i < roleOrder.length; i++) {
+      const roleId = roleOrder[i];
       await this.sendMessageToRole(roleId, roles, conversation, contextMode, useFloatWindow, conversationId);
       conversation = await this.conversationManager.getConversation(conversationId);
     }
@@ -1245,7 +1245,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           wsManager.wsRequestQueue.delete(conversationId);
           stopPolling(conversationId);
 
-          const combinedContent = wsManager.combineResponses(responses);
+          const combinedContent = await wsManager.combineResponses(responses);
 
           wsManager.send({
             type: 'ai_response',

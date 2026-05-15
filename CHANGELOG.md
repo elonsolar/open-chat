@@ -121,11 +121,8 @@
 - `server/tool-converter.js` - 工具格式转换器
 - `server/message-router.js` - WebSocket 消息路由
 - `server/config.js` - 配置管理
-- `server/QUICKSTART.md` - 5分钟快速开始指南
+- `QUICK_START.md` - 5分钟快速开始指南
 - `server/FLOW.md` - 完整的数据流程图
-- `server/TESTING.md` - 测试指南
-- `server/test-client.html` - 测试客户端
-- `server/test-api.html` - API 测试页面
 
 ### 🔧 配置
 

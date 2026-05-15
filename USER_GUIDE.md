@@ -375,12 +375,11 @@ Shift+Enter   - 换行
    截图错误信息
    ```
 
-2. **查看详细文档**
-   ```
-   - README.md - 完整功能说明
-   - TROUBLESHOOTING.md - 故障排查
-   - TESTING.md - 测试指南
-   ```
+ 2. **查看详细文档**
+    ```
+    - README.md - 完整功能说明
+    - QUICK_START.md - 快速开始指南
+    ```
 
 3. **提交问题**
    ```

@@ -61,6 +61,8 @@ class OpenAIAPIServer {
       console.log('[API] Stream:', stream);
       console.log('[API] Messages count:', messages?.length);
       console.log('[API] Tools count:', tools?.length || 0);
+      console.log('[API] first message:', messages[0]);
+      console.log('[API] second message:', messages[0]);
       // if (tools && tools.length > 0) {
       //   console.log('[API] Tools:', JSON.stringify(tools.map(t => ({
       //     name: t.function?.name,
@@ -86,6 +88,35 @@ class OpenAIAPIServer {
 
       console.log('[API] Conversation ID:', conversationId.substring(0, 50) + '...');
       console.log('[API] Is first send:', isFirstSend);
+
+      const firstMessageContent = this.normalizeContent(messages[0]?.content || '');
+      if (firstMessageContent.includes('You are a title generator')) {
+        console.log('[API] 检测到标题生成请求，使用本地生成');
+
+        const lastMessage = messages[messages.length - 1];
+        let userContent = '';
+        if (lastMessage?.content) {
+          const content = lastMessage.content;
+          if (typeof content === 'string') {
+            userContent = content;
+          } else if (Array.isArray(content)) {
+            userContent = content
+              .filter(item => 
+                item.type === 'text' && 
+                !item.text.includes('<system-reminder>')
+              )
+              .map(item => item.text || '')
+              .join('\n');
+          }
+        }
+        const title = this.extractFirstSentence(userContent);
+
+        if (stream) {
+          return await this.sendTitleStreamResponse(req, res, title, requestId);
+        } else {
+          return this.sendTitleNonStreamResponse(req, res, title, requestId);
+        }
+      }
 
       let messagesToSend;
 
@@ -185,6 +216,124 @@ class OpenAIAPIServer {
     return '';
   }
 
+  extractFirstSentence(text) {
+    if (!text || typeof text !== 'string') {
+      return 'Untitled';
+    }
+
+    const trimmed = text.trim();
+
+    const match = trimmed.match(/^.+?[。！？.!?，,\n]/);
+    if (match) {
+      let sentence = match[0].trim();
+      sentence = sentence.replace(/[。！？.!?，,\n]+$/, '');
+      if (sentence.length > 30) {
+        return sentence.substring(0, 30) + '...';
+      }
+      return sentence;
+    }
+
+    if (trimmed.length > 30) {
+      return trimmed.substring(0, 30) + '...';
+    }
+
+    return trimmed;
+  }
+
+  sendTitleNonStreamResponse(req, res, title, requestId) {
+    const result = {
+      id: `chatcmpl-${requestId}`,
+      object: 'chat.completion',
+      created: Math.floor(Date.now() / 1000),
+      model: req.body.model || config.model,
+      choices: [{
+        index: 0,
+        message: {
+          role: 'assistant',
+          content: title
+        },
+        finish_reason: 'stop'
+      }],
+      usage: {
+        prompt_tokens: 10,
+        completion_tokens: Math.ceil(title.length / 4),
+        total_tokens: 10 + Math.ceil(title.length / 4)
+      }
+    };
+
+    console.log('[API] Title generated (non-stream):', title);
+    res.json(result);
+  }
+
+  async sendTitleStreamResponse(req, res, title, requestId) {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    const createdTime = Math.floor(Date.now() / 1000);
+    const model = req.body.model || config.model;
+
+    await this.streamChunk(res, {
+      id: `chatcmpl-${requestId}`,
+      object: 'chat.completion.chunk',
+      created: createdTime,
+      model: model,
+      choices: [{
+        index: 0,
+        delta: {
+          role: 'assistant'
+        }
+      }],
+      usage: null
+    });
+
+    await this.streamChunk(res, {
+      id: `chatcmpl-${requestId}`,
+      object: 'chat.completion.chunk',
+      created: createdTime,
+      model: model,
+      choices: [{
+        index: 0,
+        delta: {
+          content: title
+        }
+      }],
+      usage: null
+    });
+
+    const promptTokens = 10;
+    const completionTokens = Math.ceil(title.length / 4);
+
+    await this.streamChunk(res, {
+      id: `chatcmpl-${requestId}`,
+      object: 'chat.completion.chunk',
+      created: createdTime,
+      model: model,
+      choices: [{
+        index: 0,
+        delta: {},
+        finish_reason: 'stop'
+      }],
+      usage: {
+        prompt_tokens: promptTokens,
+        completion_tokens: completionTokens,
+        total_tokens: promptTokens + completionTokens,
+        prompt_tokens_details: {
+          cached_tokens: 0
+        },
+        completion_tokens_details: {
+          reasoning_tokens: 0,
+          accepted_prediction_tokens: 0,
+          rejected_prediction_tokens: 0
+        }
+      }
+    });
+
+    console.log('[API] Title generated (stream):', title);
+    res.write('data: [DONE]\n\n');
+    res.end();
+  }
+
   /**
    * 将标准 OpenAI 消息格式转换为适合发送给插件的格式
    * 所有非 assistant 消息合并成一条 user 消息
@@ -197,7 +346,7 @@ class OpenAIAPIServer {
         const normalizedContent = this.normalizeContent(msg.content);
         const toolResultText = `[工具执行结果: ${msg.tool_call_id}]\n${normalizedContent}`;
         userContents.push(toolResultText);
-      } else {
+      } else if(msg.role=='user'){
         const normalizedContent = this.normalizeContent(msg.content);
         if (normalizedContent) {
           userContents.push(normalizedContent);

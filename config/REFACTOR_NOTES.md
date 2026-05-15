@@ -55,7 +55,7 @@ manifest.json中的 `content_scripts.matches` 和 `exclude_matches` 仍包含硬
 3. 当添加新平台时，需要同时更新这两个文件
 
 ### utils/tab-manager.js
-这是已弃用的死代码文件（根据AGENTS.md说明），其逻辑已合并到background.js中，无需修改。
+这是已弃用的死代码文件，其逻辑已合并到background.js中，无需修改。
 
 ## 添加新服务商的步骤
 
