@@ -398,7 +398,10 @@ A:
 
 ## 更新日志
 
-### v1.0.0 (最新)
+### v1.1.0 (最新)
+- ✨ 新增跨平台会话删除功能，清除会话时自动删除各平台会话
+
+### v1.0.0
 - ✨ 支持 DeepSeek、千问、豆包、Kimi 四个平台
 - ✨ 实现多模型协作（并行、顺序、随机接龙）
 - ✨ 支持上下文管理（独享/共享模式）
@@ -430,11 +433,11 @@ A:
 
 - **问题反馈**：[GitHub Issues](https://github.com/yourusername/free-ai/issues)
 - **功能建议**：[GitHub Discussions](https://github.com/yourusername/free-ai/discussions)
-- **邮箱**：your-email@example.com
+- **邮箱**：641620192@qq.com
 
 ## Star History
 
-如果这个项目对你有帮助，请给个 Star ⭐️
+[![Star History Chart](https://api.star-history.com/svg?repos=elonsolar/free-ai&type=Date)](https://star-history.com/#elonsolar/free-ai&Date)
 
 ## License
 MIT
