@@ -375,6 +375,142 @@ class QianwenAdapter extends BasePlatformAdapter {
       resetWatchdog();
     });
   }
+
+  async deleteConversation(conversationUrl) {
+    console.log(`[${this.platform}] ========== 开始删除会话 ==========`);
+    console.log(`[${this.platform}] 会话URL:`, conversationUrl);
+
+    try {
+      if (window.location.href !== conversationUrl) {
+        window.location.href = conversationUrl;
+        await this.sleep(3000);
+      }
+
+      await this.sleep(2000);
+
+      const convList = document.querySelector('[role="list"].sider-scrollbar');
+      if (!convList) {
+        throw new Error('找不到会话列表');
+      }
+
+      const convItems = Array.from(convList.children).filter(child => {
+        const inner = child.firstElementChild;
+        if (!inner) return false;
+        const text = child.textContent.trim();
+        return text.length > 0 && text.length < 100 && inner.classList.contains('cursor-pointer');
+      });
+
+      let targetItem = null;
+
+      targetItem = convItems.find(item => {
+        const inner = item.firstElementChild;
+        return inner && inner.classList.contains('!bg-option');
+      });
+
+      if (!targetItem) {
+        const urlId = conversationUrl.split('/chat/')[1]?.split('/')[0];
+        if (convItems.length > 0) {
+          console.warn(`[${this.platform}] ⚠️ 未找到活动会话，使用第一个会话`);
+          targetItem = convItems[0];
+        }
+      }
+
+      if (!targetItem) {
+        throw new Error('找不到目标会话');
+      }
+      console.log(`[${this.platform}] ✓ 找到会话:`, targetItem.textContent.trim());
+
+      targetItem.scrollIntoView({ behavior: 'instant', block: 'center' });
+      await this.sleep(300);
+
+      const innerItem = targetItem.firstElementChild;
+      const menuButton = innerItem?.querySelector('button[aria-haspopup="menu"]');
+
+      if (!menuButton) {
+        throw new Error('找不到会话菜单按钮');
+      }
+      console.log(`[${this.platform}] ✓ 找到菜单按钮`);
+
+      // 使用 PointerEvent 触发 Radix UI 菜单
+      const btnRect = menuButton.getBoundingClientRect();
+      const bx = btnRect.left + btnRect.width / 2;
+      const by = btnRect.top + btnRect.height / 2;
+
+      const pointerEvents = [
+        new PointerEvent('pointerdown', { bubbles: true, cancelable: true, view: window, clientX: bx, clientY: by, pointerId: 1, pointerType: 'mouse' }),
+        new PointerEvent('pointerup', { bubbles: true, cancelable: true, view: window, clientX: bx, clientY: by, pointerId: 1, pointerType: 'mouse' }),
+        new MouseEvent('click', { bubbles: true, cancelable: true, view: window, clientX: bx, clientY: by })
+      ];
+      pointerEvents.forEach(e => menuButton.dispatchEvent(e));
+      await this.sleep(800);
+
+      const menuItems = document.querySelectorAll('[role="menuitem"]');
+      let deleteButton = null;
+
+      for (const item of menuItems) {
+        if (item.textContent.includes('删除此对话')) {
+          deleteButton = item;
+          break;
+        }
+      }
+
+      if (!deleteButton) {
+        throw new Error('找不到删除按钮');
+      }
+      console.log(`[${this.platform}] ✓ 找到删除按钮`);
+
+      const dbRect = deleteButton.getBoundingClientRect();
+      const dbx = dbRect.left + dbRect.width / 2;
+      const dby = dbRect.top + dbRect.height / 2;
+
+      const deletePointerEvents = [
+        new PointerEvent('pointerdown', { bubbles: true, cancelable: true, view: window, clientX: dbx, clientY: dby, pointerId: 1, pointerType: 'mouse' }),
+        new PointerEvent('pointerup', { bubbles: true, cancelable: true, view: window, clientX: dbx, clientY: dby, pointerId: 1, pointerType: 'mouse' }),
+        new MouseEvent('click', { bubbles: true, cancelable: true, view: window, clientX: dbx, clientY: dby })
+      ];
+      deletePointerEvents.forEach(e => deleteButton.dispatchEvent(e));
+      await this.sleep(800);
+
+      const dialog = document.querySelector('div[role="dialog"][data-state="open"]');
+      if (!dialog) {
+        throw new Error('找不到确认删除对话框');
+      }
+      console.log(`[${this.platform}] ✓ 找到确认删除对话框`);
+
+      const dialogButtons = dialog.querySelectorAll('button');
+      let confirmButton = null;
+
+      for (const btn of dialogButtons) {
+        if (btn.textContent.includes('确定')) {
+          confirmButton = btn;
+          break;
+        }
+      }
+
+      if (!confirmButton) {
+        throw new Error('找不到确认删除按钮');
+      }
+      console.log(`[${this.platform}] ✓ 找到确认删除按钮`);
+
+      const cbRect = confirmButton.getBoundingClientRect();
+      const cbx = cbRect.left + cbRect.width / 2;
+      const cby = cbRect.top + cbRect.height / 2;
+
+      const confirmPointerEvents = [
+        new PointerEvent('pointerdown', { bubbles: true, cancelable: true, view: window, clientX: cbx, clientY: cby, pointerId: 1, pointerType: 'mouse' }),
+        new PointerEvent('pointerup', { bubbles: true, cancelable: true, view: window, clientX: cbx, clientY: cby, pointerId: 1, pointerType: 'mouse' }),
+        new MouseEvent('click', { bubbles: true, cancelable: true, view: window, clientX: cbx, clientY: cby })
+      ];
+      confirmPointerEvents.forEach(e => confirmButton.dispatchEvent(e));
+      await this.sleep(2000);
+
+      console.log(`[${this.platform}] ✓ 会话删除成功`);
+      return true;
+    } catch (error) {
+      console.error(`[${this.platform}] ❌ 删除会话失败:`, error.message);
+      throw error;
+    }
+  }
 }
 
 window.QianwenAdapter = QianwenAdapter;

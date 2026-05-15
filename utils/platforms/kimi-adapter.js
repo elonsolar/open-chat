@@ -328,6 +328,147 @@ class KimiAdapter extends BasePlatformAdapter {
       resetWatchdog();
     });
   }
+
+  async deleteConversation(conversationUrl) {
+    console.log(`[${this.platform}] ========== 开始删除会话 ==========`);
+    console.log(`[${this.platform}] 会话URL:`, conversationUrl);
+
+    try {
+      if (window.location.href !== conversationUrl) {
+        window.location.href = conversationUrl;
+        await this.sleep(3000);
+      }
+
+      await this.sleep(2000);
+
+      const conversationId = conversationUrl.split('/chat/')[1]?.split('?')[0];
+      if (!conversationId) {
+        throw new Error('无法从URL中提取会话ID');
+      }
+      console.log(`[${this.platform}] 会话ID:`, conversationId);
+
+      const conversationLinks = document.querySelectorAll('a.chat-info-item[href*="/chat/"]');
+      let targetLink = null;
+
+      // 方案1：通过活动状态查找
+      targetLink = Array.from(conversationLinks).find(link => {
+        return link.getAttribute('aria-current') === 'page';
+      });
+
+      // 方案2：通过URL匹配兜底
+      if (!targetLink && conversationId) {
+        for (const link of conversationLinks) {
+          if (link.href.includes(conversationId)) {
+            targetLink = link;
+            break;
+          }
+        }
+      }
+
+      // 方案3：使用第一个会话作为兜底
+      if (!targetLink && conversationLinks.length > 0) {
+        console.warn(`[${this.platform}] ⚠️ 未找到精确匹配会话，使用第一个会话`);
+        targetLink = conversationLinks[0];
+      }
+
+      if (!targetLink) {
+        throw new Error('找不到目标会话链接');
+      }
+      console.log(`[${this.platform}] ✓ 找到会话链接:`, targetLink.textContent.trim());
+
+      targetLink.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      await this.sleep(500);
+
+      const moreBtn = targetLink.querySelector('.more-btn');
+      if (!moreBtn) {
+        throw new Error('找不到更多按钮');
+      }
+      console.log(`[${this.platform}] ✓ 找到更多按钮`);
+
+      const btnRect = moreBtn.getBoundingClientRect();
+      const bx = btnRect.left + btnRect.width / 2;
+      const by = btnRect.top + btnRect.height / 2;
+
+      moreBtn.dispatchEvent(new PointerEvent('pointerdown', {
+        bubbles: true, cancelable: true, view: window,
+        clientX: bx, clientY: by, pointerId: 1, pointerType: 'mouse'
+      }));
+      moreBtn.dispatchEvent(new PointerEvent('pointerup', {
+        bubbles: true, cancelable: true, view: window,
+        clientX: bx, clientY: by, pointerId: 1, pointerType: 'mouse'
+      }));
+      moreBtn.dispatchEvent(new MouseEvent('click', {
+        bubbles: true, cancelable: true, view: window,
+        clientX: bx, clientY: by
+      }));
+      await this.sleep(800);
+
+      const menu = document.querySelector('.opts-menu');
+      if (!menu) {
+        throw new Error('找不到操作菜单');
+      }
+
+      const deleteItem = menu.querySelector('li.opt-item.delete');
+      if (!deleteItem) {
+        throw new Error('找不到删除按钮');
+      }
+      console.log(`[${this.platform}] ✓ 找到删除按钮`);
+
+      const dbRect = deleteItem.getBoundingClientRect();
+      const dbx = dbRect.left + dbRect.width / 2;
+      const dby = dbRect.top + dbRect.height / 2;
+
+      deleteItem.dispatchEvent(new PointerEvent('pointerdown', {
+        bubbles: true, cancelable: true, view: window,
+        clientX: dbx, clientY: dby, pointerId: 1, pointerType: 'mouse'
+      }));
+      deleteItem.dispatchEvent(new PointerEvent('pointerup', {
+        bubbles: true, cancelable: true, view: window,
+        clientX: dbx, clientY: dby, pointerId: 1, pointerType: 'mouse'
+      }));
+      deleteItem.dispatchEvent(new MouseEvent('click', {
+        bubbles: true, cancelable: true, view: window,
+        clientX: dbx, clientY: dby
+      }));
+      await this.sleep(800);
+
+      const confirmDialog = document.querySelector('.modal-container');
+      if (!confirmDialog) {
+        throw new Error('找不到确认删除对话框');
+      }
+      console.log(`[${this.platform}] ✓ 找到确认删除对话框`);
+
+      const confirmButton = confirmDialog.querySelector('button.kimi-button.danger');
+      if (!confirmButton) {
+        throw new Error('找不到确认删除按钮');
+      }
+      console.log(`[${this.platform}] ✓ 找到确认删除按钮`);
+
+      const cbRect = confirmButton.getBoundingClientRect();
+      const cbx = cbRect.left + cbRect.width / 2;
+      const cby = cbRect.top + cbRect.height / 2;
+
+      confirmButton.dispatchEvent(new PointerEvent('pointerdown', {
+        bubbles: true, cancelable: true, view: window,
+        clientX: cbx, clientY: cby, pointerId: 1, pointerType: 'mouse'
+      }));
+      confirmButton.dispatchEvent(new PointerEvent('pointerup', {
+        bubbles: true, cancelable: true, view: window,
+        clientX: cbx, clientY: cby, pointerId: 1, pointerType: 'mouse'
+      }));
+      confirmButton.dispatchEvent(new MouseEvent('click', {
+        bubbles: true, cancelable: true, view: window,
+        clientX: cbx, clientY: cby
+      }));
+      await this.sleep(2000);
+
+      console.log(`[${this.platform}] ✓ 会话删除成功`);
+      return true;
+    } catch (error) {
+      console.error(`[${this.platform}] ❌ 删除会话失败:`, error.message);
+      throw error;
+    }
+  }
 }
 
 window.KimiAdapter = KimiAdapter;

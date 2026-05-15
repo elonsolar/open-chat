@@ -39,7 +39,7 @@ const PROVIDERS = {
   kimi: {
     id: 'kimi',
     name: 'Kimi',
-    baseUrl: 'https://kimi.moonshot.cn/',
+    baseUrl: 'https://www.kimi.com/',
     domain: 'moonshot.cn',
     defaultModel: 'kimi-chat',
     color: '#6366f1',

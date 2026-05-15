@@ -92,6 +92,12 @@ function bindEvents() {
   elements.messageInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
+      const value = e.target.value.trim();
+      if (value.startsWith('/')) {
+        hideCommandSuggestions();
+        sendMessage();
+        return;
+      }
       if (selectCandidateCommand()) {
         return;
       }
@@ -233,6 +239,12 @@ async function handleStorageChange(change) {
     if (newMessageCount > oldMessageCount) {
       console.log(`[Chat] 新增了 ${newMessageCount - oldMessageCount} 条消息`);
       scrollToBottom();
+
+      if (state.isWaitingResponse) {
+        console.log('[Chat] AI回复已到达，恢复发送按钮');
+        state.isWaitingResponse = false;
+        resetSendButton();
+      }
     }
   }
 }
@@ -465,16 +477,30 @@ async function sendMessage() {
       state.conversation = updatedConversation;
       renderMessages();
     }
+
+    state.isWaitingResponse = true;
+
+    setTimeout(() => {
+      if (state.isWaitingResponse) {
+        state.isWaitingResponse = false;
+        resetSendButton();
+      }
+    }, 60000);
   } catch (error) {
     console.error('发送消息失败:', error);
     showError('发送消息失败: ' + error.message);
+    resetSendButton();
   } finally {
-    state.isLoading = false;
     hideThinkingIndicator();
-    elements.sendBtn.disabled = false;
-    elements.sendBtn.textContent = '发送';
     scrollToBottom();
   }
+}
+
+function resetSendButton() {
+  state.isLoading = false;
+  state.isWaitingResponse = false;
+  elements.sendBtn.disabled = false;
+  elements.sendBtn.textContent = '发送';
 }
 
 function showThinkingIndicator() {
@@ -519,27 +545,70 @@ async function handleCommand(command) {
   }
 }
 
-async function handleClearCommand() {
-  if (!confirm('确定要清除所有会话内容吗？这将删除所有消息并重置角色会话URL。')) {
-    return;
-  }
+let clearStatusTimeout = null;
 
+async function handleClearCommand() {
   try {
-    const updatedConversation = await chrome.runtime.sendMessage({
-      action: 'clearConversation',
+    // Step 1: 清空本地会话 → 立即清除页面
+    const response = await chrome.runtime.sendMessage({
+      action: 'clearConversationLocal',
       conversationId
     });
 
-    if (updatedConversation) {
-      state.conversation = updatedConversation;
-      renderMessages();
-      console.log('[Chat] 会话已清除');
+    if (!response || !response.success) {
+      throw new Error(response?.error || '清除失败');
     }
+
+    state.conversation = response.conversation;
+    renderMessages();
+    console.log('[Chat] 本地会话已清除');
+
+    // 在标题附近显示状态：正在删除后台会话
+    showClearStatus('deleting');
+
+    // Step 2: 把 roleUrls 快照传给平台删除（不 await）
+    chrome.runtime.sendMessage({
+      action: 'clearConversationPlatform',
+      conversationId,
+      roleUrls: response.roleUrls
+    });
+
   } catch (error) {
     console.error('[Chat] 清除会话失败:', error);
-    showError('清除会话失败: ' + error.message);
+    showClearStatus('failed');
   }
 }
+
+function showClearStatus(status) {
+  const existing = document.querySelector('.clear-status');
+  if (existing) existing.remove();
+  if (clearStatusTimeout) {
+    clearTimeout(clearStatusTimeout);
+    clearStatusTimeout = null;
+  }
+
+  const indicator = document.createElement('div');
+  indicator.className = 'clear-status';
+
+  if (status === 'deleting') {
+    indicator.innerHTML = '<span class="clear-status-dot"></span><span class="clear-status-text">正在删除后台会话...</span>';
+  } else if (status === 'done') {
+    indicator.innerHTML = '<span class="clear-status-dot clear-status-done"></span><span class="clear-status-text">清除成功</span>';
+    clearStatusTimeout = setTimeout(() => indicator.remove(), 2000);
+  } else if (status === 'failed') {
+    indicator.innerHTML = '<span class="clear-status-dot clear-status-failed"></span><span class="clear-status-text">清除失败</span>';
+    clearStatusTimeout = setTimeout(() => indicator.remove(), 3000);
+  }
+
+  document.querySelector('.chat-header-top').appendChild(indicator);
+}
+
+// 监听平台删除完成通知
+chrome.runtime.onMessage.addListener((request) => {
+  if (request.type === 'clearComplete') {
+    showClearStatus(request.success ? 'done' : 'failed');
+  }
+});
 
 async function handleModeCommand() {
   showModeSelector();
@@ -941,6 +1010,14 @@ function scrollToBottom() {
 
 function showError(message) {
   elements.messagesContainer.innerHTML = `<div class="error-message">${escapeHtml(message)}</div>`;
+}
+
+function showSuccess(message) {
+  const successDiv = document.createElement('div');
+  successDiv.className = 'success-message';
+  successDiv.textContent = message;
+  elements.messagesContainer.appendChild(successDiv);
+  setTimeout(() => successDiv.remove(), 3000);
 }
 
 const availableCommands = [

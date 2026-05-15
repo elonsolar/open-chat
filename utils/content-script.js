@@ -99,6 +99,29 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return;
   }
 
+  if (request.type === 'deleteConversation') {
+    console.log('[AI Plugin] ========== 收到删除会话请求 ==========');
+    console.log('[AI Plugin] 会话URL:', request.conversationUrl);
+    console.log('[AI Plugin] 当前适配器:', currentAdapter?.platform);
+
+    if (!currentAdapter) {
+      console.error('[AI Plugin] ❌ adapter未初始化');
+      sendResponse({ success: false, error: 'adapter未初始化' });
+      return;
+    }
+
+    currentAdapter.deleteConversation(request.conversationUrl)
+      .then(() => {
+        console.log('[AI Plugin] ✅ 删除会话成功');
+        sendResponse({ success: true });
+      })
+      .catch((error) => {
+        console.error('[AI Plugin] ❌ 删除会话失败:', error);
+        sendResponse({ success: false, error: error.message });
+      });
+    return true;
+  }
+
   if (request.type === 'sendMessage') {
     if (!currentAdapter) {
       sendResponse({ status: 'error', message: 'adapter未初始化' });

@@ -18,8 +18,16 @@ class DeepSeekAdapter extends BasePlatformAdapter {
   async waitForElement(selector, timeout = 10000) {
     const startTime = Date.now();
     while (Date.now() - startTime < timeout) {
-      const element = document.querySelector(selector);
-      if (element) return element;
+      if (selector.includes(':has-text(')) {
+        const [baseSelector, textPart] = selector.split(':has-text(');
+        const text = textPart.replace(/[)'"]/g, '');
+        const elements = document.querySelectorAll(baseSelector);
+        const element = Array.from(elements).find(el => el.textContent.includes(text));
+        if (element) return element;
+      } else {
+        const element = document.querySelector(selector);
+        if (element) return element;
+      }
       await this.sleep(100);
     }
     throw new Error(`元素未找到: ${selector}`);
@@ -306,6 +314,122 @@ class DeepSeekAdapter extends BasePlatformAdapter {
 
       resetWatchdog();
     });
+  }
+
+  async deleteConversation(conversationUrl) {
+    console.log(`[${this.platform}] ========== 开始删除会话 ==========`);
+    console.log(`[${this.platform}] 会话URL:`, conversationUrl);
+
+    try {
+      if (window.location.href !== conversationUrl) {
+        window.location.href = conversationUrl;
+        await this.sleep(3000);
+      }
+
+      await this.sleep(2000);
+
+      const conversationLinks = document.querySelectorAll('a[href*="/chat/s/"]');
+      let targetLink = null;
+
+      // 方案1：通过活动状态查找
+      targetLink = Array.from(conversationLinks).find(link => {
+        const style = window.getComputedStyle(link);
+        return style.fontWeight === '700' || 
+               style.fontWeight === 'bold' ||
+               link.classList.contains('active') ||
+               link.getAttribute('aria-current') === 'page';
+      });
+
+      // 方案2：通过URL匹配兜底
+      if (!targetLink) {
+        const conversationId = conversationUrl.split('/chat/s/')[1]?.split('/')[0];
+        if (conversationId) {
+          for (const link of conversationLinks) {
+            if (link.href.includes(conversationId)) {
+              targetLink = link;
+              break;
+            }
+          }
+        }
+      }
+
+      // 方案3：使用第一个会话作为兜底
+      if (!targetLink && conversationLinks.length > 0) {
+        console.warn(`[${this.platform}] ⚠️ 未找到精确匹配会话，使用第一个会话`);
+        targetLink = conversationLinks[0];
+      }
+
+      if (!targetLink) {
+        throw new Error('找不到目标会话链接');
+      }
+      console.log(`[${this.platform}] ✓ 找到会话链接:`, targetLink.textContent.trim());
+
+      targetLink.scrollIntoView({ behavior: 'instant', block: 'center' });
+      await this.sleep(300);
+
+      const menuButton = targetLink.querySelector('[class*="ds-icon-button"], div[role="button"]');
+      if (!menuButton) {
+        throw new Error('找不到会话菜单按钮');
+      }
+      console.log(`[${this.platform}] ✓ 找到菜单按钮`);
+
+      menuButton.click();
+      await this.sleep(800);
+
+      const menuContainer = document.querySelector('.ds-dropdown-menu[role="menu"]');
+      if (!menuContainer) {
+        throw new Error('找不到下拉菜单');
+      }
+      console.log(`[${this.platform}] ✓ 找到下拉菜单`);
+
+      const menuItems = menuContainer.querySelectorAll('.ds-dropdown-menu-option');
+      let deleteButton = null;
+
+      for (const item of menuItems) {
+        if (item.textContent.includes('删除')) {
+          deleteButton = item;
+          break;
+        }
+      }
+
+      if (!deleteButton) {
+        throw new Error('找不到删除按钮');
+      }
+      console.log(`[${this.platform}] ✓ 找到删除按钮`);
+
+      deleteButton.click();
+      await this.sleep(800);
+
+      const modalWrapper = document.querySelector('.ds-modal-wrapper.ds-theme');
+      if (!modalWrapper) {
+        throw new Error('找不到确认删除对话框');
+      }
+      console.log(`[${this.platform}] ✓ 找到确认删除对话框`);
+
+      const dialogButtons = modalWrapper.querySelectorAll('button');
+      let confirmButton = null;
+
+      for (const btn of dialogButtons) {
+        if (btn.textContent.includes('删除该对话')) {
+          confirmButton = btn;
+          break;
+        }
+      }
+
+      if (!confirmButton) {
+        throw new Error('找不到确认删除按钮');
+      }
+      console.log(`[${this.platform}] ✓ 找到确认删除按钮`);
+
+      confirmButton.click();
+      await this.sleep(2000);
+
+      console.log(`[${this.platform}] ✓ 会话删除成功`);
+      return true;
+    } catch (error) {
+      console.error(`[${this.platform}] ❌ 删除会话失败:`, error.message);
+      throw error;
+    }
   }
 }
 

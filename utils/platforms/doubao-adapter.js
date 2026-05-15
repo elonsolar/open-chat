@@ -252,15 +252,20 @@ class DoubaoAdapter extends BasePlatformAdapter {
         const msgList = document.querySelector('[class*="message-list"]');
         if (!msgList) return null;
 
-        const aiMessages = msgList.querySelectorAll('[class*="flow-markdown-body"]');
-        if (aiMessages.length === 0) return null;
+        // 获取消息列表的所有子元素
+        const messageRows = Array.from(msgList.children).filter(child => 
+          child.textContent && child.textContent.trim().length > 0
+        );
+        
+        if (messageRows.length === 0) return null;
 
-        // 获取最后一个消息
-        const lastAiMessage = aiMessages[aiMessages.length - 1];
-        if (!lastAiMessage) return null;
+        // 获取最后一个非空消息行
+        const lastMessageRow = messageRows[messageRows.length - 1];
+        if (!lastMessageRow) return null;
 
-        const clonedMessage = lastAiMessage.cloneNode(true);
+        const clonedMessage = lastMessageRow.cloneNode(true);
 
+        // 移除思考相关元素（如果存在）
         const thinkSelectors = [
           '[class*="think"]',
           '[class*="thought"]',
@@ -273,15 +278,39 @@ class DoubaoAdapter extends BasePlatformAdapter {
           elements.forEach(el => el.remove());
         });
 
+        // 移除所有按钮
         const buttons = clonedMessage.querySelectorAll('button');
         buttons.forEach(btn => btn.remove());
+        
+        // 移除用户输入部分（通常包含输入提示）
+        const userInputElements = clonedMessage.querySelectorAll('[class*="whitespace-pre-wrap"], [class*="user-input"]');
+        userInputElements.forEach(el => el.remove());
 
         const formattedElement = this.formatCodeBlocks(clonedMessage);
 
         let rawText = this.extractTextWithNewlines(formattedElement).trim();
         console.log(`[${this.platform}] 提取文本长度: ${rawText.length}, 前50字符: ${rawText.substring(0, 50)}`);
 
-        if (!rawText || rawText.length < 10) return null;
+        if (!rawText) return null;
+
+        // 提取最后一段AI回复（从最后一个[[<<>>]]往前找到上一个[[<<>>]]，取中间部分）
+        const marker = '[[<<>>]]';
+        const lastMarkerIndex = rawText.lastIndexOf(marker);
+        
+        if (lastMarkerIndex !== -1) {
+          // 找到上一个标记
+          const prevMarkerIndex = rawText.lastIndexOf(marker, lastMarkerIndex - 1);
+          
+          if (prevMarkerIndex !== -1) {
+            // 提取两个标记之间的内容
+            rawText = rawText.substring(prevMarkerIndex + marker.length, lastMarkerIndex).trim();
+          } else {
+            // 没有上一个标记，提取到最后一个标记为止
+            rawText = rawText.substring(0, lastMarkerIndex).trim();
+          }
+        }
+
+        console.log(`[${this.platform}] 提取最后一段回复长度: ${rawText.length}, 内容: ${rawText.substring(0, 50)}`);
 
         const thinkKeywords = ['思考中', 'Thinking', '正在思考', '思考内容'];
         const hasThinkKeyword = thinkKeywords.some(keyword => rawText.includes(keyword));
@@ -332,6 +361,145 @@ class DoubaoAdapter extends BasePlatformAdapter {
 
       resetWatchdog();
     });
+  }
+
+  async deleteConversation(conversationUrl) {
+    console.log(`[${this.platform}] ========== 开始删除会话 ==========`);
+    console.log(`[${this.platform}] 会话URL:`, conversationUrl);
+
+    try {
+      if (window.location.href !== conversationUrl) {
+        window.location.href = conversationUrl;
+        await this.sleep(3000);
+      }
+
+      await this.sleep(2000);
+
+      const allLinks = document.querySelectorAll('a[href*="/chat/"]');
+      const conversationLinks = Array.from(allLinks).filter(link =>
+        link.id.startsWith('conversation_') || !link.className.includes('group/sidebar_nav_item')
+      );
+      let targetLink = null;
+
+      // 方案1：通过活动状态查找（仅在历史对话链接中）
+      targetLink = conversationLinks.find(link => {
+        const style = window.getComputedStyle(link);
+        return style.fontWeight === '700' || 
+               style.fontWeight === 'bold' ||
+               link.classList.contains('active') ||
+               link.getAttribute('aria-current') === 'page';
+      });
+
+      // 方案2：通过URL匹配兜底
+      if (!targetLink) {
+        const conversationId = conversationUrl.split('/chat/')[1]?.split('/')[0];
+        if (conversationId) {
+          targetLink = conversationLinks.find(link =>
+            link.href.includes(conversationId)
+          );
+        }
+      }
+
+      // 方案3：使用第一个会话作为兜底
+      if (!targetLink && conversationLinks.length > 0) {
+        console.warn(`[${this.platform}] ⚠️ 未找到精确匹配会话，使用第一个会话`);
+        targetLink = conversationLinks[0];
+      }
+
+      if (!targetLink) {
+        throw new Error('找不到目标会话链接');
+      }
+      console.log(`[${this.platform}] ✓ 找到会话链接:`, targetLink.textContent.trim());
+
+      targetLink.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      await this.sleep(500);
+
+      const rect = targetLink.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      const eventTypes = ['pointerenter', 'pointerover', 'pointermove', 'mouseenter', 'mouseover', 'mousemove'];
+      for (const eventType of eventTypes) {
+        const event = new MouseEvent(eventType, {
+          bubbles: true,
+          cancelable: true,
+          view: window,
+          clientX: x,
+          clientY: y,
+          screenX: x,
+          screenY: y
+        });
+        targetLink.dispatchEvent(event);
+      }
+      await this.sleep(500);
+
+      const menuButton = targetLink.querySelector('button');
+      if (!menuButton) {
+        throw new Error('找不到会话菜单按钮');
+      }
+      console.log(`[${this.platform}] ✓ 找到菜单按钮`);
+
+      const btnRect = menuButton.getBoundingClientRect();
+      const bx = btnRect.left + btnRect.width / 2;
+      const by = btnRect.top + btnRect.height / 2;
+
+      menuButton.dispatchEvent(new PointerEvent('pointerdown', {
+        bubbles: true, cancelable: true, view: window,
+        clientX: bx, clientY: by, pointerId: 1, pointerType: 'mouse'
+      }));
+      menuButton.dispatchEvent(new PointerEvent('pointerup', {
+        bubbles: true, cancelable: true, view: window,
+        clientX: bx, clientY: by, pointerId: 1, pointerType: 'mouse'
+      }));
+      menuButton.dispatchEvent(new MouseEvent('click', {
+        bubbles: true, cancelable: true, view: window,
+        clientX: bx, clientY: by
+      }));
+      await this.sleep(1000);
+
+      const deleteMenuItem = await this.waitForElement('[role="menuitem"]', 3000);
+      const menuItems = document.querySelectorAll('[role="menuitem"]');
+      let deleteButton = null;
+
+      for (const item of menuItems) {
+        if (item.textContent.includes('删除')) {
+          deleteButton = item;
+          break;
+        }
+      }
+
+      if (!deleteButton) {
+        throw new Error('找不到删除按钮');
+      }
+      console.log(`[${this.platform}] ✓ 找到删除按钮`);
+
+      deleteButton.click();
+      await this.sleep(500);
+
+      const dialog = await this.waitForElement('[role="dialog"]', 3000);
+      const dialogButtons = dialog.querySelectorAll('button');
+      let confirmButton = null;
+
+      for (const btn of dialogButtons) {
+        if (btn.textContent.includes('删除')) {
+          confirmButton = btn;
+          break;
+        }
+      }
+
+      if (!confirmButton) {
+        throw new Error('找不到确认删除按钮');
+      }
+      console.log(`[${this.platform}] ✓ 找到确认删除按钮`);
+
+      confirmButton.click();
+      await this.sleep(2000);
+
+      console.log(`[${this.platform}] ✓ 会话删除成功`);
+      return true;
+    } catch (error) {
+      console.error(`[${this.platform}] ❌ 删除会话失败:`, error.message);
+      throw error;
+    }
   }
 }
 

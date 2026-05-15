@@ -1140,7 +1140,93 @@ class AIMessageManager {
       throw new Error('会话不存在');
     }
 
-    return await this.conversationManager.clearConversationMessages(conversationId);
+      // 先删除各个平台的会话
+      const deletedConversations = [];
+      if (conversation.roleUrls && Object.keys(conversation.roleUrls).length > 0) {
+        const roles = await StorageManager.getRoles();
+        console.log(`[AIMessageManager] 准备删除平台会话，共 ${Object.keys(conversation.roleUrls).length} 个`);
+
+        for (const [roleId, conversationUrl] of Object.entries(conversation.roleUrls)) {
+        const role = roles.find(r => r.id === roleId);
+        if (!role || !conversationUrl) continue;
+
+        try {
+          console.log(`[AIMessageManager] 开始删除 ${role.provider} 平台的会话: ${conversationUrl}`);
+          await this.deletePlatformConversation(role.provider, conversationUrl);
+          deletedConversations.push({ provider: role.provider, url: conversationUrl });
+          console.log(`[AIMessageManager] ✓ ${role.provider} 平台会话删除成功`);
+        } catch (error) {
+          console.error(`[AIMessageManager] ❌ ${role.provider} 平台会话删除失败:`, error.message);
+        }
+      }
+
+      console.log(`[AIMessageManager] 平台会话删除完成，成功删除 ${deletedConversations.length} 个`);
+    }
+
+    // 然后清除本地数据
+    const result = await this.conversationManager.clearConversationMessages(conversationId);
+    return { ...result, deletedConversations };
+  }
+
+  async deletePlatformConversation(provider, conversationUrl) {
+    try {
+      const tab = await this.tabManager.openPlatformTab(provider, false, conversationUrl);
+      
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // 检查 content script 是否就绪
+      let pingSuccess = false;
+      for (let i = 0; i < 5; i++) {
+        try {
+          const pingResponse = await chrome.tabs.sendMessage(tab.id, { type: 'ping' });
+          if (pingResponse && pingResponse.status === 'ok') {
+            pingSuccess = true;
+            break;
+          }
+        } catch (pingError) {
+          if (i === 0) {
+            try {
+              await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                files: [
+                  'utils/platforms/base-adapter.js',
+                  'utils/platforms/deepseek-adapter.js',
+                  'utils/platforms/doubao-adapter.js',
+                  'utils/platforms/qianwen-adapter.js',
+                  'utils/platforms/kimi-adapter.js',
+                  'utils/content-script.js'
+                ]
+              });
+              await new Promise(resolve => setTimeout(resolve, 3000));
+            } catch (injectError) {
+              console.warn(`注入content script到${provider}失败:`, injectError.message);
+            }
+          } else {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
+        }
+      }
+
+      if (!pingSuccess) {
+        throw new Error('Content Script未就绪');
+      }
+
+      // 发送删除会话消息
+      const response = await chrome.tabs.sendMessage(tab.id, {
+        type: 'deleteConversation',
+        conversationUrl: conversationUrl
+      });
+
+      if (!response || !response.success) {
+        throw new Error(response?.error || '删除失败');
+      }
+
+      console.log(`[AIMessageManager] ${provider} 平台会话删除成功`);
+      return true;
+    } catch (error) {
+      console.error(`[AIMessageManager] 删除 ${provider} 平台会话失败:`, error);
+      throw error;
+    }
   }
 }
 
@@ -1330,10 +1416,70 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return true;
 
     case 'clearConversation':
-      aiMessageManager.clearConversation(request.conversationId)
-        .then(conversation => sendResponse(conversation))
-        .catch(error => sendResponse({ error: error.message }));
+      (async () => {
+        try {
+          const result = await aiMessageManager.clearConversation(request.conversationId);
+          sendResponse({ 
+            success: true, 
+            conversation: result,
+            deletedConversations: result.deletedConversations || []
+          });
+        } catch (error) {
+          sendResponse({ error: error.message });
+        }
+      })();
       return true;
+
+    case 'clearConversationLocal':
+      (async () => {
+        try {
+          const conversation = await aiMessageManager.conversationManager.getConversation(request.conversationId);
+          const savedRoleUrls = conversation?.roleUrls ? { ...conversation.roleUrls } : {};
+
+          const result = await aiMessageManager.conversationManager.clearConversationMessages(request.conversationId);
+          sendResponse({ success: true, conversation: result, roleUrls: savedRoleUrls });
+        } catch (error) {
+          sendResponse({ error: error.message });
+        }
+      })();
+      return true;
+
+    case 'clearConversationPlatform':
+      (async () => {
+        try {
+          const roleUrls = request.roleUrls || {};
+          const deletedConversations = [];
+
+          if (Object.keys(roleUrls).length > 0) {
+            const roles = await StorageManager.getRoles();
+            for (const [roleId, conversationUrl] of Object.entries(roleUrls)) {
+              const role = roles.find(r => r.id === roleId);
+              if (!role || !conversationUrl) continue;
+              try {
+                await aiMessageManager.deletePlatformConversation(role.provider, conversationUrl);
+                deletedConversations.push({ provider: role.provider, url: conversationUrl });
+              } catch (error) {
+                console.error(`[AIMessageManager] ❌ ${role.provider} 平台会话删除失败:`, error.message);
+              }
+            }
+          }
+
+          chrome.runtime.sendMessage({
+            type: 'clearComplete',
+            success: true,
+            conversationId: request.conversationId,
+            deletedCount: deletedConversations.length
+          });
+        } catch (error) {
+          chrome.runtime.sendMessage({
+            type: 'clearComplete',
+            success: false,
+            conversationId: request.conversationId,
+            error: error.message
+          });
+        }
+      })();
+      return false;
 
     case 'addMessage':
       aiMessageManager.processUserMessage(request.conversationId, request.content)
