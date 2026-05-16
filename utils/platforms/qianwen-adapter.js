@@ -119,6 +119,10 @@ class QianwenAdapter extends BasePlatformAdapter {
       const response = await this.waitForAIResponse();
       console.log(`[${this.platform}] ✓ 收到 AI 回复，长度:`, response?.length || 0);
 
+      // 等待 URL 更新（Qianwen 发送消息后会导航到新会话）
+      const conversationUrl = await this.waitForUrlUpdate();
+      console.log(`[${this.platform}] ✓ URL 已更新:`, conversationUrl);
+
       // 使用重试机制发送响应
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
@@ -129,7 +133,7 @@ class QianwenAdapter extends BasePlatformAdapter {
               messageId: messageId,
               conversationId: conversationId,
               content: response,
-              conversationUrl: window.location.href
+              conversationUrl: conversationUrl
             }, (response) => {
               if (chrome.runtime.lastError) {
                 reject(new Error(chrome.runtime.lastError.message));
@@ -172,7 +176,7 @@ class QianwenAdapter extends BasePlatformAdapter {
       let lastContent = '';
       let observer = null;
       let timeoutHandle = null;
-      const WATCHDOG_TIMEOUT = 10000;
+      const WATCHDOG_TIMEOUT = 30000;
 
       const resetWatchdog = () => {
         if (timeoutHandle) {
@@ -510,6 +514,45 @@ class QianwenAdapter extends BasePlatformAdapter {
       console.error(`[${this.platform}] ❌ 删除会话失败:`, error.message);
       throw error;
     }
+  }
+
+  /**
+   * 等待 URL 更新到新会话
+   * Qianwen 发送消息后，URL 会从 /chat/ 或 /chat 变成 /chat/{sessionId}
+   */
+  async waitForUrlUpdate(timeout = 10000) {
+    const startTime = Date.now();
+    const initialUrl = window.location.href;
+    const initialPath = new URL(initialUrl).pathname;
+
+    console.log(`[${this.platform}] 开始等待 URL 更新...`);
+    console.log(`[${this.platform}] 初始 URL:`, initialUrl);
+    console.log(`[${this.platform}] 初始路径:`, initialPath);
+
+    // 如果当前已经在会话页面，直接返回
+    if (initialPath !== '/chat' && initialPath !== '/chat/') {
+      console.log(`[${this.platform}] 当前已经在会话页面，无需等待`);
+      return initialUrl;
+    }
+
+    // 等待 URL 更新
+    while (Date.now() - startTime < timeout) {
+      const currentUrl = window.location.href;
+      const currentPath = new URL(currentUrl).pathname;
+
+      // URL 已更新（不再是 /chat 或 /chat/）
+      if (currentPath !== '/chat' && currentPath !== '/chat/' && currentUrl !== initialUrl) {
+        console.log(`[${this.platform}] ✓ URL 已更新!`);
+        console.log(`[${this.platform}] 新 URL:`, currentUrl);
+        console.log(`[${this.platform}] 新路径:`, currentPath);
+        return currentUrl;
+      }
+
+      await this.sleep(100);
+    }
+
+    console.warn(`[${this.platform}] ⚠️ URL 未在 ${timeout}ms 内更新，使用当前 URL`);
+    return window.location.href;
   }
 }
 

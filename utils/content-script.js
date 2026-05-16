@@ -99,6 +99,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return;
   }
 
+  // 新增：强制渲染消息
+  if (request.type === 'forceRender') {
+    console.log('[AI Plugin] ========== 收到强制渲染请求 ==========');
+
+    if (window.forceRenderUtil) {
+      window.forceRenderUtil.tryForceRender()
+        .then(success => {
+          console.log('[AI Plugin] ✓ 强制渲染完成:', success);
+          sendResponse({ success });
+        })
+        .catch(error => {
+          console.error('[AI Plugin] ✗ 强制渲染失败:', error);
+          sendResponse({ success: false, error: error.message });
+        });
+      return true; // 保持消息通道打开，等待异步响应
+    } else {
+      console.warn('[AI Plugin] forceRenderUtil 未加载');
+      sendResponse({ success: false, error: 'forceRenderUtil not loaded' });
+    }
+    return;
+  }
+
   if (request.type === 'deleteConversation') {
     console.log('[AI Plugin] ========== 收到删除会话请求 ==========');
     console.log('[AI Plugin] 会话URL:', request.conversationUrl);

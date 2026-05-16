@@ -232,7 +232,7 @@ class DoubaoAdapter extends BasePlatformAdapter {
       let lastContent = '';
       let observer = null;
       let timeoutHandle = null;
-      const WATCHDOG_TIMEOUT = 10000;
+      const WATCHDOG_TIMEOUT = 30000;
 
       const resetWatchdog = () => {
         if (timeoutHandle) {
@@ -252,11 +252,12 @@ class DoubaoAdapter extends BasePlatformAdapter {
         const msgList = document.querySelector('[class*="message-list"]');
         if (!msgList) return null;
 
-        // 获取消息列表的所有子元素
-        const messageRows = Array.from(msgList.children).filter(child => 
-          child.textContent && child.textContent.trim().length > 0
+        // 查找所有消息行（豆包使用 .v_list_row）
+        const allRows = msgList.querySelectorAll('.v_list_row');
+        const messageRows = Array.from(allRows).filter(row => 
+          row.textContent && row.textContent.trim().length > 0
         );
-        
+
         if (messageRows.length === 0) return null;
 
         // 获取最后一个非空消息行
@@ -293,25 +294,6 @@ class DoubaoAdapter extends BasePlatformAdapter {
 
         if (!rawText) return null;
 
-        // 提取最后一段AI回复（从最后一个[[<<>>]]往前找到上一个[[<<>>]]，取中间部分）
-        const marker = '[[<<>>]]';
-        const lastMarkerIndex = rawText.lastIndexOf(marker);
-        
-        if (lastMarkerIndex !== -1) {
-          // 找到上一个标记
-          const prevMarkerIndex = rawText.lastIndexOf(marker, lastMarkerIndex - 1);
-          
-          if (prevMarkerIndex !== -1) {
-            // 提取两个标记之间的内容
-            rawText = rawText.substring(prevMarkerIndex + marker.length, lastMarkerIndex).trim();
-          } else {
-            // 没有上一个标记，提取到最后一个标记为止
-            rawText = rawText.substring(0, lastMarkerIndex).trim();
-          }
-        }
-
-        console.log(`[${this.platform}] 提取最后一段回复长度: ${rawText.length}, 内容: ${rawText.substring(0, 50)}`);
-
         const thinkKeywords = ['思考中', 'Thinking', '正在思考', '思考内容'];
         const hasThinkKeyword = thinkKeywords.some(keyword => rawText.includes(keyword));
         if (hasThinkKeyword) return null;
@@ -337,6 +319,7 @@ class DoubaoAdapter extends BasePlatformAdapter {
           lastContent = content;
 
           if (content.includes('[[<<>>]]')) {
+            console.log("检测到结束标记");
             if (timeoutHandle) {
               clearTimeout(timeoutHandle);
               timeoutHandle = null;

@@ -5,8 +5,8 @@ class DeepSeekAdapter extends BasePlatformAdapter {
       sendButton: 'button',
       messageList: '.ds-message',
       messageSelector: '.ds-message',
-      userInput: '*',
-      aiResponse: '*',
+      userInput: '.ds-message:has(.ds-markdown)',
+      aiResponse: '.ds-message:has(.ds-markdown)',
       newChatButton: '[class*="new"]'
     });
   }
@@ -140,7 +140,7 @@ class DeepSeekAdapter extends BasePlatformAdapter {
       let lastContent = '';
       let observer = null;
       let timeoutHandle = null;
-      const WATCHDOG_TIMEOUT = 10000;
+      const WATCHDOG_TIMEOUT = 30000;
 
       const resetWatchdog = () => {
         if (timeoutHandle) {

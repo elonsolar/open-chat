@@ -1,5 +1,91 @@
 importScripts('../config/providers.config.js');
 
+/**
+ * 检测浏览器信息
+ */
+async function getBrowserInfo() {
+  try {
+    // 获取浏览器信息
+    const browserInfo = await chrome.runtime.getBrowserInfo ?
+      await chrome.runtime.getBrowserInfo() : null;
+
+    if (browserInfo) {
+      console.log('[Background] 浏览器信息:', browserInfo);
+
+      // Edge (Chromium-based)
+      if (browserInfo.name === 'Microsoft Edge' || browserInfo.name.includes('Edg')) {
+        return {
+          name: 'Edge',
+          isEdge: true,
+          isChrome: false
+        };
+      }
+
+      // Chrome
+      if (browserInfo.name === 'Chrome') {
+        return {
+          name: 'Chrome',
+          isEdge: false,
+          isChrome: true
+        };
+      }
+    }
+
+    // 回退到 User-Agent 检测
+    const ua = navigator.userAgent;
+    if (ua.includes('Edg/')) {
+      return {
+        name: 'Edge',
+        isEdge: true,
+        isChrome: false
+      };
+    } else if (ua.includes('Chrome/')) {
+      return {
+        name: 'Chrome',
+        isEdge: false,
+        isChrome: true
+      };
+    }
+
+    // 默认当作 Chrome 处理
+    return {
+      name: 'Unknown',
+      isEdge: false,
+      isChrome: true
+    };
+  } catch (error) {
+    console.log('[Background] 无法检测浏览器类型，默认当作 Chrome:', error.message);
+    return {
+      name: 'Unknown',
+      isEdge: false,
+      isChrome: true
+    };
+  }
+}
+
+/**
+ * 检测浏览器并返回适当的激活延迟
+ * Edge 需要更长的激活时间来触发 DOM 更新
+ */
+async function getActivationDelay(platform = null) {
+  const browserInfo = await getBrowserInfo();
+
+  const delays = {
+    'kimi': 300,
+    'deepseek': 800,
+    'doubao': 1500,
+    'qianwen': 1500
+  };
+
+  if (browserInfo.isEdge) {
+    return platform ? (delays[platform] || 1500) : 1500;
+  } else if (browserInfo.isChrome) {
+    return platform ? (delays[platform] || 1000) : 1000;
+  }
+
+  return platform ? (delays[platform] || 1000) : 1000;
+}
+
 class WebSocketManager {
   constructor(tabManagerRef, pendingResponsesRef) {
     this.ws = null;
@@ -295,21 +381,6 @@ class WebSocketManager {
     }).join('\n\n');
   }
 
-  // combineResponses(responses) {
-  //   if (responses.length === 0) {
-  //     return '（没有收到响应）';
-  //   }
-
-  //   if (responses.length === 1) {
-  //     return responses[0].content;
-  //   }
-
-  //   // 多个响应，用分隔符组合
-  //   return responses.map((r, i) => 
-  //     `[角色 ${i + 1}]\n${r.content}`
-  //   ).join('\n\n---\n\n');
-  // }
-
   updateStatus(connected, status) {
     // 通知所有监听器状态变化
     chrome.runtime.sendMessage({
@@ -369,89 +440,35 @@ class StorageManager {
 
 class TabManager {
   constructor() {
-    this.tabs = new Map();
   }
 
-  async openPlatformTab(platform, forceNew = false, targetUrl = null) {
-    const provider = PROVIDERS[platform];
-    if (!provider) {
-      throw new Error(`不支持的平台: ${platform}`);
+  async openPlatformTab(url) {
+    const existingTab = await this.findTabByUrl(url);
+    if (existingTab) {
+      console.log(`[TabManager] 复用已存在的标签页, URL: ${existingTab.url}`);
+      return existingTab;
     }
 
-    const url = provider.baseUrl;
-
-    if (!forceNew) {
-      if (targetUrl) {
-        const exactTab = await this.findTabByUrl(targetUrl);
-        if (exactTab) {
-          console.log(`[TabManager] 复用已存在的标签页 (URL匹配): ${platform}`);
-          await chrome.tabs.update(exactTab.id, { active: false });
-          await this.sleep(1000);
-          return exactTab;
-        }
-      } else {
-        const existingTab = await this.findPlatformTab(platform);
-        if (existingTab) {
-          console.log(`[TabManager] 复用已存在的标签页: ${platform}`);
-          await chrome.tabs.update(existingTab.id, { active: false });
-          await this.sleep(2000);
-          return existingTab;
-        }
-      }
-    }
-
-    const openUrl = targetUrl || url;
-    console.log(`[TabManager] 创建新标签页: ${platform} -> ${openUrl}`);
+    console.log(`[TabManager] 创建新标签页 -> ${url}`);
     const tab = await chrome.tabs.create({
-      url: openUrl,
+      url,
       active: false
     });
 
-    this.tabs.set(platform, tab.id);
     await this.waitForTabReady(tab.id);
 
-    // 确保标签页保持后台状态
     await chrome.tabs.update(tab.id, { active: false });
 
     return tab;
   }
 
-  async findPlatformTab(platform) {
-    const provider = PROVIDERS[platform];
-    if (!provider) return null;
-
-    const domain = provider.domain;
-
-    const tabId = this.tabs.get(platform);
-    if (tabId) {
-      try {
-        const tab = await chrome.tabs.get(tabId);
-        if (tab.url && tab.url.includes(domain)) {
-          return tab;
-        } else {
-          this.tabs.delete(platform);
-        }
-      } catch (e) {
-        this.tabs.delete(platform);
-      }
-    }
-
-    const allTabs = await chrome.tabs.query({});
-    const platformTab = allTabs.find(tab =>
-      tab.url && tab.url.includes(domain) && !tab.pendingUrl
-    );
-
-    if (platformTab) {
-      this.tabs.set(platform, platformTab.id);
-      return platformTab;
-    }
-
-    return null;
-  }
-
   async findTabByUrl(targetUrl) {
+    const normalizedUrl = targetUrl.replace(/\/$/, '');
     const allTabs = await chrome.tabs.query({});
-    return allTabs.find(tab => tab.url === targetUrl && !tab.pendingUrl) || null;
+    return allTabs.find(tab => {
+      if (!tab.url || tab.pendingUrl) return false;
+      return tab.url.replace(/\/$/, '') === normalizedUrl;
+    }) || null;
   }
 
   async waitForTabReady(tabId, timeout = 30000) {
@@ -482,40 +499,33 @@ class TabManager {
     });
   }
 
-  async sendMessageToTab(tabId, message, timeout = 90000) {
-    const tab = await chrome.tabs.get(tabId);
-    if (!tab) {
-      throw new Error(`标签页 ${tabId} 不存在`);
+  async sendToPlatform(platform, data = {}, targetUrl = null, conversation = null, roleId = null) {
+    const provider = PROVIDERS[platform];
+    if (!provider) {
+      throw new Error(`不支持的平台: ${platform}`);
+    }
+    const url = targetUrl || provider.baseUrl;
+    const tab = await this.openPlatformTab(url);
+
+    if (conversation && roleId) {
+      if (!conversation.roleTabIds) conversation.roleTabIds = {};
+      conversation.roleTabIds[roleId] = tab.id;
+
+      const convId = data.conversationId;
+      if (convId) {
+        const convs = await StorageManager.getConversations();
+        const conv = convs.find(c => c.id === convId);
+        if (conv) {
+          if (!conv.roleTabIds) conv.roleTabIds = {};
+          conv.roleTabIds[roleId] = tab.id;
+          await StorageManager.saveConversations(convs);
+        }
+      }
     }
 
-    try {
-      await Promise.race([
-        chrome.tabs.sendMessage(tabId, { type: 'ping' }),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Ping超时')), 10000)
-        )
-      ]);
-    } catch (pingError) {
-      throw new Error('Content Script未注入，请刷新AI网站页面或重新加载插件');
-    }
-
-    return await Promise.race([
-      chrome.tabs.sendMessage(tabId, message),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error(`发送消息超时 (${timeout / 1000}秒)`)), timeout)
-      )
-    ]);
-  }
-
-  async sendToPlatform(platform, messageType, data = {}, forceNewTab = false, targetUrl = null) {
-    const tab = await this.openPlatformTab(platform, forceNewTab, targetUrl);
-
-    // 确保标签页保持后台状态
     try {
       await chrome.tabs.update(tab.id, { active: false });
-    } catch (e) {
-      // 标签页可能已关闭
-    }
+    } catch (e) {}
 
     await this.sleep(3000);
 
@@ -528,26 +538,7 @@ class TabManager {
           break;
         }
       } catch (pingError) {
-        if (i === 0) {
-          try {
-            await chrome.scripting.executeScript({
-              target: { tabId: tab.id },
-              files: [
-                'utils/platforms/base-adapter.js',
-                'utils/platforms/deepseek-adapter.js',
-                'utils/platforms/doubao-adapter.js',
-                'utils/platforms/qianwen-adapter.js',
-                'utils/platforms/kimi-adapter.js',
-                'utils/content-script.js'
-              ]
-            });
-            await this.sleep(3000);
-          } catch (injectError) {
-            console.warn(`注入content script到${platform}失败:`, injectError.message);
-          }
-        } else {
-          await this.sleep(2000);
-        }
+        await this.sleep(2000);
       }
     }
 
@@ -555,62 +546,45 @@ class TabManager {
       throw new Error('Content Script未就绪，请刷新AI网站页面');
     }
 
-    if (!forceNewTab) {
-      await this.sleep(2000);
-    }
+    await this.sleep(2000);
 
-    const message = {
-      type: messageType,
-      ...data
-    };
+    const messageId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${platform}`;
+    const conversationId = data.conversationId || null;
 
-    if (messageType === 'sendMessage') {
-      const messageId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${platform}`;
-      const conversationId = data.conversationId || null;
+    const responsePromise = new Promise((resolve, reject) => {
+      pendingResponses.set(messageId, { resolve, reject, conversationId });
 
-      const responsePromise = new Promise((resolve, reject) => {
-        pendingResponses.set(messageId, { resolve, reject, conversationId });
+      setTimeout(() => {
+        if (pendingResponses.has(messageId)) {
+          pendingResponses.delete(messageId);
+          reject(new Error('等待AI回复超时（300秒）'));
+        }
+      }, 300000);
+    });
 
-        setTimeout(() => {
-          if (pendingResponses.has(messageId)) {
-            pendingResponses.delete(messageId);
-            reject(new Error('等待AI回复超时（300秒）'));
-          }
-        }, 300000);
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    try {
+      await chrome.tabs.sendMessage(tab.id, {
+        type: 'sendMessage',
+        ...data,
+        messageId,
+        conversationId
       });
 
-      await new Promise(resolve => setTimeout(resolve, 100));
-
       try {
-        await chrome.tabs.sendMessage(tab.id, {
-          ...message,
-          messageId: messageId,
-          conversationId: conversationId
-        });
-
-        // 发送消息后确保标签页保持后台状态
-        try {
-          await chrome.tabs.update(tab.id, { active: false });
-        } catch (e) {
-          // 标签页可能已关闭，忽略
-        }
-      } catch (sendError) {
-        pendingResponses.delete(messageId);
-        throw sendError;
-      }
-
-      return await responsePromise;
-    } else {
-      return await this.sendMessageToTab(tab.id, message);
+        await chrome.tabs.update(tab.id, { active: false });
+      } catch (e) {}
+    } catch (sendError) {
+      pendingResponses.delete(messageId);
+      throw sendError;
     }
+
+    return await responsePromise;
   }
 
-  async newChat(platform) {
-    return await this.sendToPlatform(platform, 'newChat');
-  }
-
-  async sendMessage(platform, content, forceNewTab = false, targetUrl = null, conversationId = null) {
-    const response = await this.sendToPlatform(platform, 'sendMessage', { content, conversationId }, forceNewTab, targetUrl);
+  async sendMessage(platform, content, targetUrl = null, conversationId = null, conversation = null, roleId = null) {
+    const response = await this.sendToPlatform(platform, { content, conversationId }, targetUrl, conversation, roleId);
     return {
       success: true,
       content: response.content || response,
@@ -618,46 +592,38 @@ class TabManager {
     };
   }
 
-  async getChatHistory(platform) {
-    return await this.sendToPlatform(platform, 'getChatHistory');
-  }
+  async activatePlatformTab(platform, targetUrl = null) {
+    const provider = PROVIDERS[platform];
+    if (!provider) return false;
 
-  async getPlatformInfo(platform) {
-    return await this.sendToPlatform(platform, 'getPageInfo');
-  }
-
-  async closePlatformTab(platform) {
-    const tabId = this.tabs.get(platform);
-    if (tabId) {
-      await chrome.tabs.remove(tabId);
-      this.tabs.delete(platform);
-    }
-  }
-
-  async activatePlatformTab(platform) {
-    const existingTab = await this.findPlatformTab(platform);
+    const url = targetUrl || provider.baseUrl;
+    const existingTab = await this.findTabByUrl(url);
 
     if (existingTab) {
       await chrome.tabs.update(existingTab.id, { active: true });
       return true;
-    } else {
-      const tab = await this.openPlatformTab(platform, true);
-      await chrome.tabs.update(tab.id, { active: true });
-      return true;
     }
+
+    const tab = await this.openPlatformTab(url);
+    await chrome.tabs.update(tab.id, { active: true });
+    return true;
   }
 
-  async openPlatformConversation(platform) {
-    const existingTab = await this.findPlatformTab(platform);
+  async openPlatformConversation(platform, targetUrl = null) {
+    const provider = PROVIDERS[platform];
+    if (!provider) return { success: false, error: `不支持的平台: ${platform}` };
+
+    const url = targetUrl || provider.baseUrl;
+    const existingTab = await this.findTabByUrl(url);
 
     if (existingTab) {
       await chrome.tabs.update(existingTab.id, { active: true });
       return { success: true, tabId: existingTab.id };
-    } else {
-      const tab = await this.openPlatformTab(platform, true);
-      await chrome.tabs.update(tab.id, { active: true });
-      return { success: true, tabId: tab.id };
     }
+
+    const tab = await this.openPlatformTab(url);
+    await chrome.tabs.update(tab.id, { active: true });
+    return { success: true, tabId: tab.id };
   }
 
   sleep(ms) {
@@ -673,6 +639,17 @@ class ConversationManager {
 
   async createConversation(name, roleIds, contextMode, roleSettings = {}) {
     const conversations = await StorageManager.getConversations();
+    const roles = await StorageManager.getRoles();
+
+    const roleUrls = {};
+    if (roleIds && roleIds.length > 0) {
+      for (const roleId of roleIds) {
+        const role = roles.find(r => r.id === roleId);
+        if (role && PROVIDERS[role.provider]) {
+          roleUrls[roleId] = PROVIDERS[role.provider].baseUrl;
+        }
+      }
+    }
 
     const newConversation = {
       id: this.generateId(),
@@ -681,7 +658,8 @@ class ConversationManager {
       contextMode: contextMode || 'self',
       sendMode: 'parallel',
       roleSettings: roleSettings || {},
-      roleUrls: {},
+      roleUrls: roleUrls,
+      roleTabIds: {},
       roleLastMessageIds: {},
       messages: [],
       createdAt: Date.now(),
@@ -723,6 +701,7 @@ class ConversationManager {
     if (conversation) {
       conversation.messages = [];
       conversation.roleUrls = {};
+      conversation.roleTabIds = {};
       conversation.roleLastMessageIds = {};
       conversation.updatedAt = Date.now();
       await StorageManager.saveConversations(conversations);
@@ -962,8 +941,8 @@ class AIMessageManager {
       }
 
       const conversationUrl = conversation.roleUrls?.[roleId];
-      console.log(`[AIMessageManager] 开始发送消息到角色 ${role.name} (${role.provider}), 会话URL: ${conversationUrl || '使用baseUrl'}`);
-      const response = await this.tabManager.sendMessage(role.provider, messageToSend, false, conversationUrl, conversationId);
+      console.log(`[AIMessageManager] 开始发送消息到角色 ${role.name} (${role.provider}), 会话URL: ${conversationUrl}`);
+      const response = await this.tabManager.sendMessage(role.provider, messageToSend, conversationUrl, conversationId, conversation, roleId);
       console.log(`[AIMessageManager] 角色 ${role.name} 响应: ${response?.success ? '成功' : '失败'}`);
 
       if (response && response.success) {
@@ -982,7 +961,6 @@ class AIMessageManager {
 
             if (conversation.roleUrls[roleId] !== response.conversationUrl) {
               conversation.roleUrls[roleId] = response.conversationUrl;
-              await this.conversationManager.updateConversation(conversationId, { roleUrls: conversation.roleUrls });
             }
           }
 
@@ -993,11 +971,13 @@ class AIMessageManager {
               conversation.roleLastMessageIds = {};
             }
             conversation.roleLastMessageIds[roleId] = savedMessage.id;
-
-            await this.conversationManager.updateConversation(conversationId, {
-              roleLastMessageIds: conversation.roleLastMessageIds
-            });
           }
+
+          await this.conversationManager.updateConversation(conversationId, {
+            roleUrls: conversation.roleUrls,
+            roleTabIds: conversation.roleTabIds,
+            roleLastMessageIds: conversation.roleLastMessageIds
+          });
 
           if (useFloatWindow) {
             await this.sendToFloatWindow('addMessage', {
@@ -1090,50 +1070,6 @@ class AIMessageManager {
     }
   }
 
-  async newChatOnPlatform(provider) {
-    try {
-      const response = await this.tabManager.newChat(provider);
-      return response && response.success;
-    } catch (error) {
-      console.error(`在 ${provider} 创建新会话失败:`, error);
-      return false;
-    }
-  }
-
-  async initRoleConversation(conversationId, roleId) {
-    const conversation = await this.conversationManager.getConversation(conversationId);
-    if (!conversation) {
-      throw new Error('会话不存在');
-    }
-
-    const roles = await StorageManager.getRoles();
-    const role = roles.find(r => r.id === roleId);
-    if (!role) {
-      throw new Error('角色不存在');
-    }
-
-    try {
-      const response = await this.tabManager.newChat(role.provider);
-      if (!response || !response.conversationUrl) {
-        throw new Error('创建会话失败');
-      }
-
-      if (!conversation.roleUrls) {
-        conversation.roleUrls = {};
-      }
-      conversation.roleUrls[roleId] = response.conversationUrl;
-
-      await this.conversationManager.updateConversation(conversationId, {
-        roleUrls: conversation.roleUrls
-      });
-
-      return await this.conversationManager.getConversation(conversationId);
-    } catch (error) {
-      console.error(`初始化角色 ${roleId} 会话失败:`, error);
-      throw error;
-    }
-  }
-
   async clearConversation(conversationId) {
     const conversation = await this.conversationManager.getConversation(conversationId);
     if (!conversation) {
@@ -1170,11 +1106,10 @@ class AIMessageManager {
 
   async deletePlatformConversation(provider, conversationUrl) {
     try {
-      const tab = await this.tabManager.openPlatformTab(provider, false, conversationUrl);
+      const tab = await this.tabManager.openPlatformTab(conversationUrl);
       
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // 检查 content script 是否就绪
       let pingSuccess = false;
       for (let i = 0; i < 5; i++) {
         try {
@@ -1184,26 +1119,7 @@ class AIMessageManager {
             break;
           }
         } catch (pingError) {
-          if (i === 0) {
-            try {
-              await chrome.scripting.executeScript({
-                target: { tabId: tab.id },
-                files: [
-                  'utils/platforms/base-adapter.js',
-                  'utils/platforms/deepseek-adapter.js',
-                  'utils/platforms/doubao-adapter.js',
-                  'utils/platforms/qianwen-adapter.js',
-                  'utils/platforms/kimi-adapter.js',
-                  'utils/content-script.js'
-                ]
-              });
-              await new Promise(resolve => setTimeout(resolve, 3000));
-            } catch (injectError) {
-              console.warn(`注入content script到${provider}失败:`, injectError.message);
-            }
-          } else {
-            await new Promise(resolve => setTimeout(resolve, 2000));
-          }
+          await new Promise(resolve => setTimeout(resolve, 2000));
         }
       }
 
@@ -1530,7 +1446,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return true;
 
     case 'activatePlatformTab':
-      tabManager.activatePlatformTab(request.provider)
+      tabManager.activatePlatformTab(request.provider, request.targetUrl)
         .then(() => sendResponse({ success: true }))
         .catch(error => sendResponse({ error: error.message }));
       return true;
@@ -1576,22 +1492,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         .catch(error => sendResponse({ success: false, error: error.message }));
       return true;
 
-    case 'newChatOnPlatform':
-      aiMessageManager.newChatOnPlatform(request.provider)
-        .then(success => sendResponse({ success }))
-        .catch(error => sendResponse({ success: false, error: error.message }));
-      return true;
-
-    case 'initRoleConversation':
-      aiMessageManager.initRoleConversation(request.conversationId, request.roleId)
-        .then(conversation => sendResponse(conversation))
-        .catch(error => sendResponse({ error: error.message }));
-      return true;
-
     case 'openPlatformConversation':
-      tabManager.openPlatformConversation(request.provider)
-        .then(result => sendResponse(result))
-        .catch(error => sendResponse({ error: error.message }));
+      (async () => {
+        try {
+          let targetUrl = request.targetUrl || null;
+          if (!targetUrl && request.conversationId && request.roleId) {
+            const conversation = await conversationManager.getConversation(request.conversationId);
+            targetUrl = conversation?.roleUrls?.[request.roleId] || null;
+          }
+          const result = await tabManager.openPlatformConversation(request.provider, targetUrl);
+          sendResponse(result);
+        } catch (error) {
+          sendResponse({ error: error.message });
+        }
+      })();
       return true;
 
     default:
@@ -1670,37 +1584,58 @@ function startPolling(conversationId) {
 
       console.log(`[Background] 检测到 ${pendingRoleIds.length} 个未响应角色`);
 
+      const browserInfo = await getBrowserInfo();
+      console.log(`[Background] 浏览器: ${browserInfo.name}, 待处理角色: ${pendingRoleIds.map(id => roles.find(r => r.id === id)?.name).join(', ')}`);
+
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      const originalActiveTab = tabs[0];
+
       for (const roleId of pendingRoleIds) {
         const role = roles.find(r => r.id === roleId);
         if (!role) continue;
+        const provider = PROVIDERS[role.provider];
+        const roleUrl = conversation.roleUrls?.[roleId];
+        const isBaseUrl = !roleUrl || roleUrl === provider?.baseUrl;
 
         try {
           console.log(`[Background] 激活角色 ${role.name} (${role.provider}) 标签页`);
-          const existingTab = await tabManager.findPlatformTab(role.provider);
-          if (existingTab) {
-            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-            const currentActiveTab = tabs[0];
-            const isCurrentlyOnChatPage = currentActiveTab && currentActiveTab.url && currentActiveTab.url.includes('chat/chat.html');
+          let targetTab = null;
 
-            chrome.tabs.update(existingTab.id, { active: true }).catch(() => {});
-
-            if (isCurrentlyOnChatPage) {
-              await new Promise(resolve => setTimeout(resolve, 100));
-              const allTabs = await chrome.tabs.query({});
-              const chatTab = allTabs.find(tab => tab.url && tab.url.includes('chat/chat.html'));
-              if (chatTab) {
-                chrome.tabs.update(chatTab.id, { active: true }).catch(() => {});
+          if (isBaseUrl) {
+            const tabId = conversation.roleTabIds?.[roleId];
+            if (tabId) {
+              try {
+                await chrome.tabs.get(tabId);
+                targetTab = { id: tabId };
+              } catch {
+                console.log(`[Background] tab ${tabId} 已关闭`);
               }
             }
+          } else {
+            targetTab = await tabManager.findTabByUrl(roleUrl);
           }
+
+          if (!targetTab) {
+            console.log(`[Background] 未找到标签页: role: ${role.name}, url=${roleUrl}, provider: ${role.provider}`);
+            continue;
+          }
+
+          await chrome.tabs.update(targetTab.id, { active: true });
+          //await new Promise(resolve => setTimeout(resolve, 100));
+          //await new Promise(resolve => setTimeout(resolve, 300));
         } catch (error) {
           console.error(`[Background] 激活 ${role.name} 标签页失败`, error);
         }
       }
+
+      if (originalActiveTab) {
+        await chrome.tabs.update(originalActiveTab.id, { active: true });
+        console.log(`[Background] 已切回原始标签页`);
+      }
     } catch (error) {
       console.error('[Background] 轮询检查失败', error);
     }
-  }, 5000));
+  }, 6000));
 }
 
 function stopPolling(conversationId) {
@@ -1723,35 +1658,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === 'pageReady') {
-    sendResponse({ status: 'ok' });
-  }
-});
-
-chrome.tabs.onRemoved.addListener((tabId) => {
-  for (const [platform, storedTabId] of tabManager.tabs.entries()) {
-    if (storedTabId === tabId) {
-      tabManager.tabs.delete(platform);
-      break;
-    }
-  }
-});
-
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'complete' && tab.url) {
-    for (const [platform, storedTabId] of tabManager.tabs.entries()) {
-      if (storedTabId === tabId) {
-        const provider = PROVIDERS[platform];
-        if (provider && !tab.url.includes(provider.domain)) {
-          tabManager.tabs.delete(platform);
-        }
-        break;
-      }
-    }
-  }
-});
-
 if (typeof chrome !== 'undefined' && chrome.action && chrome.action.onClicked) {
   chrome.action.onClicked.addListener(async (tab) => {
     if (tab.windowId) {
@@ -1760,54 +1666,26 @@ if (typeof chrome !== 'undefined' && chrome.action && chrome.action.onClicked) {
   });
 }
 
-async function injectFloatingWindowToAllTabs() {
+chrome.tabs.onRemoved.addListener(async (tabId) => {
   try {
-    const tabs = await chrome.tabs.query({});
-
-    for (const tab of tabs) {
-      const isAIPlatform = tab.url && (
-        tab.url.includes('deepseek.com') ||
-        tab.url.includes('doubao.com') ||
-        tab.url.includes('qianwen.com') ||
-        tab.url.includes('moonshot.cn')
-      );
-
-      const isSpecialPage = tab.url && (
-        tab.url.startsWith('chrome://') ||
-        tab.url.startsWith('chrome-extension://') ||
-        tab.url.startsWith('edge://') ||
-        tab.url.startsWith('about:')
-      );
-
-      if (!isAIPlatform && !isSpecialPage && tab.url && tab.url.startsWith('http')) {
-        try {
-          await chrome.tabs.sendMessage(tab.id, { action: 'ping' });
-        } catch (pingError) {
-          try {
-            await chrome.scripting.executeScript({
-              target: { tabId: tab.id },
-              files: ['utils/floating-window.js', 'utils/floating-content.js']
-            });
-          } catch (injectError) {
+    const conversations = await StorageManager.getConversations();
+    let changed = false;
+    for (const conv of conversations) {
+      if (conv.roleTabIds) {
+        for (const [rid, tid] of Object.entries(conv.roleTabIds)) {
+          if (tid === tabId) {
+            delete conv.roleTabIds[rid];
+            changed = true;
           }
         }
       }
     }
+    if (changed) {
+      await StorageManager.saveConversations(conversations);
+    }
   } catch (error) {
-    console.error('注入浮动窗口失败:', error);
+    console.error('[Background] 清理 roleTabIds 失败:', error);
   }
-}
-
-chrome.runtime.onStartup.addListener(async () => {
-  setTimeout(async () => {
-    await injectFloatingWindowToAllTabs();
-  }, 1000);
-});
-
-chrome.runtime.onInstalled.addListener(async () => {
-  setTimeout(async () => {
-    await injectFloatingWindowToAllTabs();
-  }, 1000);
 });
 
 init();

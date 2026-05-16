@@ -157,7 +157,7 @@ class KimiAdapter extends BasePlatformAdapter {
       let lastContent = '';
       let observer = null;
       let timeoutHandle = null;
-      const WATCHDOG_TIMEOUT = 10000;
+      const WATCHDOG_TIMEOUT = 30000;
 
       const resetWatchdog = () => {
         if (timeoutHandle) {

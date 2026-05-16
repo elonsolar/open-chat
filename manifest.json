@@ -33,16 +33,9 @@
     {
       "matches": [
         "https://chat.deepseek.com/*",
-        "https://www.deepseek.com/*",
-        "https://deepseek.com/*",
         "https://www.doubao.com/*",
-        "https://doubao.com/*",
         "https://www.qianwen.com/*",
-        "https://qianwen.com/*",
-        "https://kimi.moonshot.cn/*",
-        "https://www.kimi.moonshot.cn/*",
-        "https://www.kimi.com/*",
-        "https://kimi.com/*"
+        "https://www.kimi.com/*"
       ],
       "js": [
         "utils/platforms/base-adapter.js",
@@ -60,16 +53,9 @@
       "run_at": "document_end",
       "exclude_matches": [
         "https://chat.deepseek.com/*",
-        "https://www.deepseek.com/*",
-        "https://deepseek.com/*",
         "https://www.doubao.com/*",
-        "https://doubao.com/*",
         "https://www.qianwen.com/*",
-        "https://qianwen.com/*",
-        "https://kimi.moonshot.cn/*",
-        "https://www.kimi.moonshot.cn/*",
-        "https://www.kimi.com/*",
-        "https://kimi.com/*"
+        "https://www.kimi.com/*"
       ]
     }
   ],

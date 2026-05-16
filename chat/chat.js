@@ -93,11 +93,22 @@ function bindEvents() {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       const value = e.target.value.trim();
+
       if (value.startsWith('/')) {
-        hideCommandSuggestions();
-        sendMessage();
+        const filter = value.substring(1).toLowerCase();
+        const candidates = getFilteredCommands(filter);
+
+        if (candidates.length > 0) {
+          elements.messageInput.value = candidates[0].name + ' ';
+          hideCommandSuggestions();
+          sendMessage();
+        } else {
+          showError('没有匹配的命令: ' + value);
+          hideCommandSuggestions();
+        }
         return;
       }
+
       if (selectCandidateCommand()) {
         return;
       }
@@ -305,11 +316,17 @@ function bindRoleClickEvents() {
   clickableElements.forEach(el => {
     el.addEventListener('click', async (e) => {
       const provider = e.currentTarget.getAttribute('data-provider');
+      const roleId = e.currentTarget.getAttribute('data-role-id');
       if (provider) {
         try {
+          let targetUrl = null;
+          if (roleId && state.conversation?.roleUrls) {
+            targetUrl = state.conversation.roleUrls[roleId] || null;
+          }
           await chrome.runtime.sendMessage({
             action: 'activatePlatformTab',
-            provider
+            provider,
+            targetUrl
           });
         } catch (error) {
           console.error('激活标签页失败:', error);
@@ -422,7 +439,7 @@ function renderMessages() {
       `;
     } else {
       const clickableClass = provider ? 'clickable' : '';
-      const providerAttr = provider ? `data-provider="${provider}"` : '';
+      const providerAttr = provider ? `data-provider="${provider}" data-role-id="${msg.roleId}"` : '';
       const providerConfig = PROVIDERS ? PROVIDERS[provider] : null;
       const color = providerConfig ? providerConfig.color : '#666';
 
@@ -1025,12 +1042,17 @@ const availableCommands = [
   { name: '/mode', description: '切换上下文模式和发送模式，调整角色顺序' }
 ];
 
+function getFilteredCommands(filter) {
+  if (!filter) {
+    return availableCommands;
+  }
+  return availableCommands.filter(cmd => cmd.name.toLowerCase().includes(filter));
+}
+
 function showCommandSuggestions(filter = '') {
   hideCommandSuggestions();
 
-  const filteredCommands = filter 
-    ? availableCommands.filter(cmd => cmd.name.toLowerCase().includes(filter))
-    : availableCommands;
+  const filteredCommands = getFilteredCommands(filter);
 
   if (filteredCommands.length === 0) {
     return;
