@@ -1,0 +1,157 @@
+[
+  {
+    "tag": "H3",
+    "text": "🚀 项目名称：星际探索计划 (Star Trek)",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H4",
+    "text": "1. 核心特性概览",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H4",
+    "text": "2. 技术栈与环境配置",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H4",
+    "text": "3. 算法逻辑细节",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H4",
+    "text": "4. 任务检查清单",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H3",
+    "text": "项目代号：星际探索 (Star Trek) - 综合技术手册",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H4",
+    "text": "1. 核心架构与任务清单",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H4",
+    "text": "2. 推进引擎模块 (负责人：老K)",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H4",
+    "text": "3. 数据记录与遥测规范 (负责人：小D)",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H4",
+    "text": "4. 算法逻辑细节",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H3",
+    "text": "星际探索计划：全系统技术白皮书 v2.1",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H4",
+    "text": "1. 总体架构与接口定义",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H5",
+    "text": "1.1 星载系统拓扑",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H5",
+    "text": "1.2 跨模块接口矩阵",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H4",
+    "text": "2. 推进系统详细设计",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H5",
+    "text": "2.1 主引擎性能参数",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H5",
+    "text": "2.2 推力闭环控制算法",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H5",
+    "text": "2.3 故障模式与对策（FMEA）",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H4",
+    "text": "3. 能源管理与热控策略",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H5",
+    "text": "3.1 功率预算分配",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H5",
+    "text": "3.2 热控分区",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H4",
+    "text": "4. 软件开发与质量保证",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H5",
+    "text": "4.1 代码提交规范",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H5",
+    "text": "4.2 CI/CD 流水线",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H4",
+    "text": "5. 任务里程碑与责任矩阵",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H5",
+    "text": "5.1 关键路径时间表",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H5",
+    "text": "5.2 当前待办（推进模块视角）",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H4",
+    "text": "6. 附录：轨道机动数学模型",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H5",
+    "text": "6.1 霍曼转移速度增量",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H5",
+    "text": "6.2 推力与轨道要素变化率",
+    "className": "qk-md-head"
+  },
+  {
+    "tag": "H1",
+    "text": "千问 - 阿里旗下全能AI助手",
+    "className": ""
+  }
+]

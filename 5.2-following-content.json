@@ -1,0 +1,65 @@
+{
+  "h5Text": "5.2 当前待办（推进模块视角）",
+  "followingElements": [
+    {
+      "tag": "UL",
+      "className": "qk-md-ul",
+      "text": "完成栅极电源在真空罐中的 200 小时寿命试验向小豆提供生命维持系统的功耗波动模型（用于能源仿真）配合小D统一遥测字段命名：将 grid_current 改为 ips_grid_i_a更新推进剂贮箱的",
+      "outerHTML": "<ul class=\"qk-md-ul\"><li class=\"qk-md-li complete qk-md-task-list\"><input class=\"qk-md-li-checkbox\" disabled=\"\" type=\"checkbox\"><span class=\"qk-md-text complete\">完成栅极电源在真空罐中的 200 小时寿命试验</span></li><li class=\"qk-md-li complete qk-md-task-list\"><input class=\"qk-md-li-checkbox\" disabled=\"\" type=\"checkbox\"><span class=\"qk-md-text complete\">向小豆提供生命维持系统的功耗波动模型（用于能源仿真）</span></li><li class=\"qk-md-li comp"
+    },
+    {
+      "tag": "HR",
+      "className": "qk-md-hr",
+      "text": "",
+      "outerHTML": "<hr class=\"qk-md-hr\">"
+    },
+    {
+      "tag": "H4",
+      "className": "qk-md-head",
+      "text": "6. 附录：轨道机动数学模型",
+      "outerHTML": "<h4 class=\"qk-md-head\"><span class=\"qk-md-text complete\">6. 附录：轨道机动数学模型</span></h4>"
+    },
+    {
+      "tag": "H5",
+      "className": "qk-md-head",
+      "text": "6.1 霍曼转移速度增量",
+      "outerHTML": "<h5 class=\"qk-md-head\"><span class=\"qk-md-text complete\">6.1 霍曼转移速度增量</span></h5>"
+    },
+    {
+      "tag": "DIV",
+      "className": "qk-md-paragraph",
+      "text": "从地球轨道（半径  r1r_1r1​ ）转移至目标行星轨道（半径  r2r_2r2​ ）所需的总速度增量：",
+      "outerHTML": "<div class=\"qk-md-paragraph\"><span class=\"qk-md-text complete\">从地球轨道（半径  </span><span class=\"qk-md-katext qk-md-katext-inline\"><span class=\"katex\"><span class=\"katex-mathml\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi>r</mi><mn>1</mn></msub></mrow><annotation encoding=\"application/x-tex\">r_1</annotation></semantics></math></span><span class=\"katex-html\" aria-hidden="
+    },
+    {
+      "tag": "DIV",
+      "className": "qk-md-katext qk-md-katext-block",
+      "text": "Δvtotal=μr1(2r2r1+r2−1)+μr2(1−2r1r1+r2)\\Delta v_{total} = \\sqrt{\\frac{\\mu}{r_1}} \\left( \\sqrt{\\frac{",
+      "outerHTML": "<div class=\"qk-md-katext qk-md-katext-block\"><span class=\"katex-display\"><span class=\"katex\"><span class=\"katex-mathml\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><mi mathvariant=\"normal\">Δ</mi><msub><mi>v</mi><mrow><mi>t</mi><mi>o</mi><mi>t</mi><mi>a</mi><mi>l</mi></mrow></msub><mo>=</mo><msqrt><mfrac><mi>μ</mi><msub><mi>r</mi><mn>1</mn></msub></mfrac></msqr"
+    },
+    {
+      "tag": "DIV",
+      "className": "qk-md-paragraph",
+      "text": "其中  μ\\muμ  为太阳引力常数，单位 km³/s²。",
+      "outerHTML": "<div class=\"qk-md-paragraph\"><span class=\"qk-md-text complete\">其中  </span><span class=\"qk-md-katext qk-md-katext-inline\"><span class=\"katex\"><span class=\"katex-mathml\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>μ</mi></mrow><annotation encoding=\"application/x-tex\">\\mu</annotation></semantics></math></span><span class=\"katex-html\" aria-hidden=\"true\"><span class=\"base\"><sp"
+    },
+    {
+      "tag": "H5",
+      "className": "qk-md-head",
+      "text": "6.2 推力与轨道要素变化率",
+      "outerHTML": "<h5 class=\"qk-md-head\"><span class=\"qk-md-text complete\">6.2 推力与轨道要素变化率</span></h5>"
+    },
+    {
+      "tag": "DIV",
+      "className": "qk-md-paragraph",
+      "text": "在平均轨道根数法下，切向推力  FtF_tFt​  对半长轴  aaa  的影响：",
+      "outerHTML": "<div class=\"qk-md-paragraph\"><span class=\"qk-md-text complete\">在平均轨道根数法下，切向推力  </span><span class=\"qk-md-katext qk-md-katext-inline\"><span class=\"katex\"><span class=\"katex-mathml\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi>F</mi><mi>t</mi></msub></mrow><annotation encoding=\"application/x-tex\">F_t</annotation></semantics></math></span><span class=\"katex-html\" aria-h"
+    },
+    {
+      "tag": "DIV",
+      "className": "qk-md-katext qk-md-katext-block",
+      "text": "dadt=h2a2(esin⁡θ⋅Fr+rp⋅Ft)\\frac{da}{dt} = \\frac{h^2}{a^2} (e \\sin\\theta \\cdot F_r + \\frac{r}{p} \\cdo",
+      "outerHTML": "<div class=\"qk-md-katext qk-md-katext-block\"><span class=\"katex-display\"><span class=\"katex\"><span class=\"katex-mathml\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><mfrac><mrow><mi>d</mi><mi>a</mi></mrow><mrow><mi>d</mi><mi>t</mi></mrow></mfrac><mo>=</mo><mfrac><msup><mi>h</mi><mn>2</mn></msup><msup><mi>a</mi><mn>2</mn></msup></mfrac><mo stretchy=\"false\">(</mo"
+    }
+  ]
+}

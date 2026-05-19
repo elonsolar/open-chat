@@ -2213,3 +2213,35 @@ body {
   font-size: 12px;
   color: var(--text-secondary);
 }
+
+/* KaTeX 数学公式样式支持 */
+.message-text .katex {
+  font-size: 1.05em;
+}
+
+.message-text .katex-display {
+  margin: 16px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.message-text .katex-display > .katex {
+  white-space: normal;
+}
+
+.message-text .katex-display > .katex > .katex-html {
+  display: block;
+  width: 100%;
+}
+
+/* 确保行内公式正确对齐 */
+.message-text p .katex {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* 防止公式在代码块中也被渲染 */
+.message-text pre .katex,
+.message-text code .katex {
+  display: none;
+}

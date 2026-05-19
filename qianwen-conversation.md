@@ -1,0 +1,1677 @@
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - complementary [ref=e5]:
+        - generic [ref=e7]:
+          - generic [ref=e8]:
+            - generic [ref=e9]:
+              - img "tyIcon" [ref=e12] [cursor=pointer]
+              - generic [ref=e13]:
+                - button [ref=e14] [cursor=pointer]:
+                  - img [ref=e16]
+                - button [ref=e18] [cursor=pointer]:
+                  - img [ref=e20]
+            - generic [ref=e23]:
+              - button "新建对话" [ref=e24] [cursor=pointer]:
+                - img [ref=e26]
+                - generic [ref=e28]: 新建对话
+              - button [ref=e29] [cursor=pointer]:
+                - img [ref=e31]
+          - list [ref=e34]:
+            - generic [ref=e276]:
+              - generic [ref=e277] [cursor=pointer]:
+                - img [ref=e279]
+                - generic [ref=e281]: 我的空间
+              - generic [ref=e282] [cursor=pointer]:
+                - img [ref=e284]
+                - generic [ref=e286]: 智能体
+            - generic [ref=e288]:
+              - generic [ref=e290]: 对话分组
+              - generic [ref=e291]:
+                - generic [ref=e292] [cursor=pointer]:
+                  - img [ref=e294]
+                  - generic [ref=e296]: 新分组
+                - generic [ref=e299] [cursor=pointer]: golang
+            - generic [ref=e302]: 最近对话
+            - generic [ref=e304] [cursor=pointer]:
+              - generic [ref=e306]: 复杂Markdown示例
+              - button [ref=e307]:
+                - img [ref=e309]
+            - generic [ref=e314] [cursor=pointer]: 推荐国内及全球搜索工具
+            - generic [ref=e318] [cursor=pointer]: 拆解两层循环：外层维持多轮对话，内层实现流式输出
+            - generic [ref=e322] [cursor=pointer]: uv
+            - generic [ref=e326] [cursor=pointer]: 你好
+            - generic [ref=e330] [cursor=pointer]: uv
+            - generic [ref=e334] [cursor=pointer]: 格式测试回复：文本样式与列表展示
+            - generic [ref=e338] [cursor=pointer]: Python格式化能力展示
+            - generic [ref=e342] [cursor=pointer]: 老K解析stream_graph_updates函数
+            - generic [ref=e346] [cursor=pointer]: opencode
+            - generic [ref=e350] [cursor=pointer]: 免费体验AI生成视频的方法与工具推荐
+            - generic [ref=e354] [cursor=pointer]: 生成插件内聊天页面链接
+            - generic [ref=e358] [cursor=pointer]: 南京江北天气预报（大风警报）
+            - generic [ref=e362] [cursor=pointer]: 江宁当前温度
+            - generic [ref=e366] [cursor=pointer]: 5月16日
+            - generic [ref=e370] [cursor=pointer]: 2025年河南人口数据
+          - generic [ref=e374] [cursor=pointer]:
+            - img [ref=e375]
+            - generic [ref=e376]: Qwen5546
+      - generic [ref=e68]:
+        - generic [ref=e69]:
+          - generic [ref=e70]:
+            - img "tyIcon" [ref=e73] [cursor=pointer]
+            - generic [ref=e74]:
+              - button [ref=e75] [cursor=pointer]:
+                - img [ref=e77]
+              - button [ref=e79] [cursor=pointer]:
+                - img [ref=e81]
+          - generic [ref=e84]:
+            - button "新建对话" [ref=e85] [cursor=pointer]:
+              - img [ref=e87]
+              - generic [ref=e89]: 新建对话
+            - button [ref=e90] [cursor=pointer]:
+              - img [ref=e92]
+        - list [ref=e95]:
+          - generic [ref=e377]:
+            - generic [ref=e378] [cursor=pointer]:
+              - img [ref=e380]
+              - generic [ref=e382]: 我的空间
+            - generic [ref=e383] [cursor=pointer]:
+              - img [ref=e385]
+              - generic [ref=e387]: 智能体
+          - generic [ref=e389]:
+            - generic [ref=e391]: 对话分组
+            - generic [ref=e392]:
+              - generic [ref=e393] [cursor=pointer]:
+                - img [ref=e395]
+                - generic [ref=e397]: 新分组
+              - generic [ref=e400] [cursor=pointer]: golang
+          - generic [ref=e403]: 最近对话
+          - generic [ref=e405] [cursor=pointer]:
+            - generic [ref=e407]: 复杂Markdown示例
+            - button [ref=e408]:
+              - img [ref=e410]
+          - generic [ref=e415] [cursor=pointer]: 推荐国内及全球搜索工具
+          - generic [ref=e419] [cursor=pointer]: 拆解两层循环：外层维持多轮对话，内层实现流式输出
+          - generic [ref=e423] [cursor=pointer]: uv
+          - generic [ref=e427] [cursor=pointer]: 你好
+          - generic [ref=e431] [cursor=pointer]: uv
+          - generic [ref=e435] [cursor=pointer]: 格式测试回复：文本样式与列表展示
+          - generic [ref=e439] [cursor=pointer]: Python格式化能力展示
+          - generic [ref=e443] [cursor=pointer]: 老K解析stream_graph_updates函数
+          - generic [ref=e447] [cursor=pointer]: opencode
+          - generic [ref=e451] [cursor=pointer]: 免费体验AI生成视频的方法与工具推荐
+          - generic [ref=e455] [cursor=pointer]: 生成插件内聊天页面链接
+          - generic [ref=e459] [cursor=pointer]: 南京江北天气预报（大风警报）
+          - generic [ref=e463] [cursor=pointer]: 江宁当前温度
+          - generic [ref=e467] [cursor=pointer]: 5月16日
+          - generic [ref=e471] [cursor=pointer]: 2025年河南人口数据
+        - generic [ref=e475] [cursor=pointer]:
+          - img [ref=e476]
+          - generic [ref=e477]: Qwen5546
+      - generic [ref=e132]:
+        - generic [ref=e134]:
+          - generic [ref=e137] [cursor=pointer]:
+            - generic [ref=e138]: Qwen3.5-千问
+            - img [ref=e141]
+          - button [ref=e146] [cursor=pointer]:
+            - img [ref=e148]
+        - generic [ref=e153]:
+          - generic [ref=e156]:
+            - generic [ref=e158]:
+              - generic [ref=e161]:
+                - generic [ref=e480]:
+                  - generic [ref=e485]:
+                    - generic [ref=e487]: "当前我们在一个会话里，会话里有成员 user、小问、老K、小豆、小D 你的当前会话名称是：小问 请注意：你只能扮演小问，不可以扮演其他角色,且你不可以提及自己是谁 下面是当前会话的历史内容： User: 给出markdown 常见例子， 包含各种标题， 内容复杂一点 重要：请在你的回复最后必须添加 [[<<>>]] 标记，表示回复结束。"
+                    - generic [ref=e488]:
+                      - img [ref=e490] [cursor=pointer]
+                      - img [ref=e494] [cursor=pointer]
+                      - img [ref=e498] [cursor=pointer]
+                  - generic [ref=e506]:
+                    - generic [ref=e510]:
+                      - generic [ref=e511]: 没问题，这就给你整理一份内容比较丰富的 Markdown 示例。我把常见的语法都融合进了一篇模拟的“项目文档”里，你可以直接参考它的写法：
+                      - separator [ref=e512]
+                      - heading "🚀 项目名称：星际探索计划 (Star Trek)" [level=3] [ref=e513]
+                      - blockquote [ref=e514]:
+                        - generic [ref=e515]:
+                          - strong [ref=e516]: 摘要
+                          - text: ：本文档旨在概述下一代深空探测器的核心架构与任务目标。我们将采用模块化设计，确保系统的可扩展性与高可用性。
+                      - heading "1. 核心特性概览" [level=4] [ref=e517]
+                      - generic [ref=e518]: 为了应对复杂的宇宙环境，我们的探测器具备以下关键能力：
+                      - list [ref=e519]:
+                        - listitem [ref=e520]:
+                          - strong [ref=e521]: 自主导航系统
+                          - text: ：基于深度学习的实时路径规划。
+                        - listitem [ref=e522]:
+                          - strong [ref=e523]: 量子通讯模块
+                          - text: ：实现超光速的信息纠缠传输（实验阶段）。
+                        - listitem [ref=e524]:
+                          - strong [ref=e525]: 自适应能源管理
+                          - text: ：根据任务负载动态分配太阳能与核能比例。
+                      - generic [ref=e527]:
+                        - generic [ref=e528]:
+                          - generic [ref=e529]: 表格
+                          - img [ref=e532] [cursor=pointer]
+                        - table [ref=e538]:
+                          - rowgroup [ref=e539]:
+                            - row "模块名称 优先级 预计完成时间 负责人" [ref=e540]:
+                              - columnheader "模块名称" [ref=e541]:
+                                - generic [ref=e542]: 模块名称
+                              - columnheader "优先级" [ref=e543]:
+                                - generic [ref=e544]: 优先级
+                              - columnheader "预计完成时间" [ref=e545]:
+                                - generic [ref=e546]: 预计完成时间
+                              - columnheader "负责人" [ref=e547]:
+                                - generic [ref=e548]: 负责人
+                          - rowgroup [ref=e549]:
+                            - row "推进引擎 🔴 高 Q3 2026 老K" [ref=e550]:
+                              - cell "推进引擎" [ref=e551]
+                              - cell "🔴 高" [ref=e552]
+                              - cell "Q3 2026" [ref=e553]
+                              - cell "老K" [ref=e554]
+                            - row "生命维持 🟡 中 Q4 2026 小豆" [ref=e555]:
+                              - cell "生命维持" [ref=e556]
+                              - cell "🟡 中" [ref=e557]
+                              - cell "Q4 2026" [ref=e558]
+                              - cell "小豆" [ref=e559]
+                            - row "数据记录 🟢 低 Q1 2027 小D" [ref=e560]:
+                              - cell "数据记录" [ref=e561]
+                              - cell "🟢 低" [ref=e562]
+                              - cell "Q1 2027" [ref=e563]
+                              - cell "小D" [ref=e564]
+                      - heading "2. 技术栈与环境配置" [level=4] [ref=e565]
+                      - generic [ref=e566]: 在开发过程中，我们需要严格遵循以下环境规范。请在终端中执行以下命令来初始化你的本地仓库：
+                      - generic [ref=e568]:
+                        - generic [ref=e570]:
+                          - generic [ref=e571]: bash
+                          - generic [ref=e572]:
+                            - button "编辑" [ref=e574] [cursor=pointer]:
+                              - generic [ref=e575]:
+                                - img [ref=e577]
+                                - generic [ref=e579]: 编辑
+                            - button [ref=e581] [cursor=pointer]:
+                              - img [ref=e583]
+                            - button [ref=e586] [cursor=pointer]:
+                              - img [ref=e589]
+                            - button [ref=e592] [cursor=pointer]:
+                              - img [ref=e595]
+                        - code [ref=e599]:
+                          - generic [ref=e600]:
+                            - generic [ref=e601]: "1"
+                            - text: "# 克隆主仓库并进入目录"
+                          - generic [ref=e602]:
+                            - generic [ref=e603]: "2"
+                            - text: git clone https://github.com/example/star-trek.git
+                          - generic [ref=e604]:
+                            - generic [ref=e605]: "3"
+                            - text: cd star-trek
+                          - generic [ref=e607]: "4"
+                          - generic [ref=e608]:
+                            - generic [ref=e609]: "5"
+                            - text: "# 安装必要的依赖包"
+                          - generic [ref=e610]:
+                            - generic [ref=e611]: "6"
+                            - text: npm install --save react three-fiber @types/three
+                          - generic [ref=e613]: "7"
+                          - generic [ref=e614]:
+                            - generic [ref=e615]: "8"
+                            - text: "# 启动本地开发服务器"
+                          - generic [ref=e616]:
+                            - generic [ref=e617]: "9"
+                            - text: npm run dev
+                      - heading "3. 算法逻辑细节" [level=4] [ref=e618]
+                      - generic [ref=e619]: 在处理遥测数据时，我们使用了一个加权平均算法来过滤噪点。其数学表达如下：
+                      - generic [ref=e620]:
+                        - text: 假设有一组传感器读数
+                        - generic [ref=e622]:
+                          - math [ref=e624]:
+                            - generic [ref=e626]:
+                              - generic [ref=e627]: X
+                              - generic [ref=e628]: =
+                              - generic [ref=e629]: "{"
+                              - generic [ref=e630]:
+                                - generic [ref=e631]: x
+                                - generic [ref=e632]: "1"
+                              - generic [ref=e633]: ","
+                              - generic [ref=e634]:
+                                - generic [ref=e635]: x
+                                - generic [ref=e636]: "2"
+                              - generic [ref=e637]: ","
+                              - generic [ref=e638]: .
+                              - generic [ref=e639]: .
+                              - generic [ref=e640]: .
+                              - generic [ref=e641]: ","
+                              - generic [ref=e642]:
+                                - generic [ref=e643]: x
+                                - generic [ref=e644]: "n"
+                              - generic [ref=e645]: "}"
+                          - generic [ref=e646]:
+                            - generic [ref=e647]: X =
+                            - generic [ref=e648]:
+                              - text: "{"
+                              - generic [ref=e649]:
+                                - text: x
+                                - generic [ref=e654]: "1"
+                              - text: ","
+                              - generic [ref=e658]:
+                                - text: x
+                                - generic [ref=e663]: "2"
+                              - text: ", ...,"
+                              - generic [ref=e667]:
+                                - text: x
+                                - generic [ref=e672]: "n"
+                              - text: "}"
+                        - text: ，对应的权重为
+                        - generic [ref=e677]:
+                          - math [ref=e679]:
+                            - generic [ref=e681]:
+                              - generic [ref=e682]: W
+                              - generic [ref=e683]: =
+                              - generic [ref=e684]: "{"
+                              - generic [ref=e685]:
+                                - generic [ref=e686]: w
+                                - generic [ref=e687]: "1"
+                              - generic [ref=e688]: ","
+                              - generic [ref=e689]:
+                                - generic [ref=e690]: w
+                                - generic [ref=e691]: "2"
+                              - generic [ref=e692]: ","
+                              - generic [ref=e693]: .
+                              - generic [ref=e694]: .
+                              - generic [ref=e695]: .
+                              - generic [ref=e696]: ","
+                              - generic [ref=e697]:
+                                - generic [ref=e698]: w
+                                - generic [ref=e699]: "n"
+                              - generic [ref=e700]: "}"
+                          - generic [ref=e701]:
+                            - generic [ref=e702]: W =
+                            - generic [ref=e703]:
+                              - text: "{"
+                              - generic [ref=e704]:
+                                - text: w
+                                - generic [ref=e709]: "1"
+                              - text: ","
+                              - generic [ref=e713]:
+                                - text: w
+                                - generic [ref=e718]: "2"
+                              - text: ", ...,"
+                              - generic [ref=e722]:
+                                - text: w
+                                - generic [ref=e727]: "n"
+                              - text: "}"
+                        - text: ，则滤波后的输出值
+                        - generic [ref=e732]:
+                          - math [ref=e734]:
+                            - generic [ref=e737]: "Y"
+                          - generic [ref=e739]: "Y"
+                        - text: 可以表示为：
+                      - generic [ref=e742]:
+                        - math [ref=e744]:
+                          - generic [ref=e746]:
+                            - generic [ref=e747]: "Y"
+                            - generic [ref=e748]: =
+                            - generic [ref=e749]:
+                              - generic [ref=e750]:
+                                - generic [ref=e751]:
+                                  - generic [ref=e752]: ∑
+                                  - generic [ref=e753]:
+                                    - generic [ref=e754]: i
+                                    - generic [ref=e755]: =
+                                    - generic [ref=e756]: "1"
+                                  - generic [ref=e757]: "n"
+                                - generic [ref=e758]:
+                                  - generic [ref=e759]: w
+                                  - generic [ref=e760]: i
+                                - generic [ref=e761]:
+                                  - generic [ref=e762]: x
+                                  - generic [ref=e763]: i
+                              - generic [ref=e764]:
+                                - generic [ref=e765]:
+                                  - generic [ref=e766]: ∑
+                                  - generic [ref=e767]:
+                                    - generic [ref=e768]: i
+                                    - generic [ref=e769]: =
+                                    - generic [ref=e770]: "1"
+                                  - generic [ref=e771]: "n"
+                                - generic [ref=e772]:
+                                  - generic [ref=e773]: w
+                                  - generic [ref=e774]: i
+                        - generic [ref=e775]:
+                          - generic [ref=e776]: Y =
+                          - generic [ref=e782]:
+                            - generic [ref=e783]:
+                              - generic [ref=e784]:
+                                - text: ∑
+                                - generic [ref=e788]:
+                                  - generic [ref=e790]: i=1
+                                  - generic [ref=e792]: "n"
+                              - generic [ref=e796]:
+                                - text: w
+                                - generic [ref=e801]: i
+                            - generic [ref=e806]:
+                              - generic [ref=e807]:
+                                - text: ∑
+                                - generic [ref=e811]:
+                                  - generic [ref=e813]: i=1
+                                  - generic [ref=e815]: "n"
+                              - generic [ref=e819]:
+                                - text: w
+                                - generic [ref=e824]: i
+                              - generic [ref=e828]:
+                                - text: x
+                                - generic [ref=e833]: i
+                      - emphasis [ref=e841]: 注意：权重的总和必须归一化，以避免数值溢出。
+                      - heading "4. 任务检查清单" [level=4] [ref=e842]
+                      - generic [ref=e843]: 在发射前，请确保以下所有事项已确认完毕：
+                      - list [ref=e844]:
+                        - listitem [ref=e845]:
+                          - checkbox [checked] [disabled] [ref=e846]
+                          - text: 硬件压力测试通过
+                        - listitem [ref=e847]:
+                          - checkbox [checked] [disabled] [ref=e848]
+                          - text: 软件固件更新至 v2.4.0
+                        - listitem [ref=e849]:
+                          - checkbox [disabled] [ref=e850]
+                          - text: 宇航员心理评估完成
+                        - listitem [ref=e851]:
+                          - checkbox [disabled] [ref=e852]
+                          - text: 最终发射窗口确认
+                      - separator [ref=e853]
+                      - generic [ref=e854]: 希望这个包含标题、引用、列表、表格、代码块、公式和任务列表的综合例子对你有帮助！[[<<>>]]
+                    - generic [ref=e856]:
+                      - generic [ref=e858]:
+                        - img [ref=e860] [cursor=pointer]
+                        - button [ref=e862] [cursor=pointer]:
+                          - img [ref=e863]
+                      - img [ref=e866] [cursor=pointer]
+                      - img [ref=e870] [cursor=pointer]
+                      - img [ref=e874] [cursor=pointer]
+                      - img [ref=e879] [cursor=pointer]
+                - generic [ref=e884]:
+                  - generic [ref=e889]:
+                    - generic [ref=e891]: "老K: 小问这份文档结构确实清晰，不过作为推进引擎模块的负责人，我补充几点实际落地时的注意事项。 --- ## 🔧 推进引擎模块补充说明 > **状态**：当前处于原型验证阶段，离子推进器阵列已完成第三轮真空点火测试。 ### 关键性能指标 根据上周的台架试验数据，主引擎在稳态工作模式下表现如下： | 测试项 | 目标值 | 实测值 | 偏差 | | --- | --- | --- | --- | | 比冲 (Isp) | 4200 s | 4150 s | -1.2% | | 推力密度 | 2.5 N/m² | 2.48 N/m² | -0.8% | | 功耗比 | ≤ 12 kW/N | 11.8 kW/N | ✅ 达标 | ### 环境配置修正 小问文档里的依赖安装命令缺了推进引擎仿真所需的 Rust 工具链，请补充执行： ```bash # 安装推进引擎仿真器依赖 rustup target add wasm32-unknown-unknown cargo install --path ./engine-sim/thruster-core # 验证安装 cargo test --package thruster-core --lib -- models::ion::steady_state --nocapture ``` ### 待办事项 发射前的引擎相关 checklist 需要追加以下条目： - [ ] 磁约束线圈低温循环测试（-180°C） - [ ] 推进剂贮箱密封性 72 小时保压试验 - [ ] 推力矢量控制（TVC）与导航系统的闭环联调 - [ ] 应急关机序列的故障注入测试 *注意：比冲偏差目前还在允许范围内，但 Q3 结束前必须收敛到 ±0.5% 以内，否则会影响整体 Δv 预算。* --- 推进引擎这边进度可控，生命维持和数据记录模块如果有接口需求随时找我对接。 小豆: 这份 markdown 示例内容太全面啦，各种常用格式都涵盖到位，老 K 补充的引擎相关实操细节也特别实用，后续整理文档直接照着套用就很方便啦 小D: 好的，我作为数据记录模块的负责人，也来补充一段与日志分析相关的 Markdown 用法，方便大家在后续任务中统一数据格式。 --- ## 📊 数据记录与遥测日志规范 > **说明**：以下模板用于星载计算机输出的结构化日志，所有模块需在 Q1 结束前切换至该格式。 ### 1. 日志级别与标识 每条日志应包含时间戳、模块名、级别和关键字段，例如： ``` { \"timestamp\": \"2026-05-19T10:32:15Z\", \"module\": \"data_recorder\", \"level\": \"INFO\", \"event\": \"telemetry_received\", \"values\": { \"temperature\": -20.5, \"pressure\": 0.0032 } } ``` ### 2. 数据采样频率表格 | 传感器类型 | 采样率 (Hz) | 存储深度 (小时) | 冗余备份 | | --- | --- | --- | --- | | 惯性测量单元 | 200 | 72 | 双冗余 | | 温度阵列 | 1 | 240 | 无 | | 推进剂流量计 | 10 | 48 | 单冗余 | ### 3. 数据校验流程 为了确保遥测数据的完整性，采用 CRC32 校验和，算法流程如下： ``` 1. ``` > ⚠️ 注意：当校验失败时，应触发 `CORRUPTED` 事件并重传上一个完整的数据块。 ### 4. 待办清单（数据模块专属） - 实现日志轮转策略（每 100 MB 或 24 小时） - 对接老 K 的推进引擎遥测接口，统一字段命名 - 编写地面回放脚本，支持时间区间过滤 - 完成极端温度下（-150°C ~ +120°C）存储单元的压力测试 --- 以上内容与前面两位同事提供的示例互补，大家若需调整日志字段或采样率，可以随时在群内 @我 讨论。 User: 重新生成一份 重要：请在你的回复最后必须添加 [[<<>>]] 标记，表示回复结束。"
+                    - generic [ref=e892]:
+                      - img [ref=e894] [cursor=pointer]
+                      - img [ref=e898] [cursor=pointer]
+                      - img [ref=e902] [cursor=pointer]
+                  - generic [ref=e910]:
+                    - generic [ref=e914]:
+                      - heading "项目代号：星际探索 (Star Trek) - 综合技术手册" [level=3] [ref=e915]
+                      - blockquote [ref=e916]:
+                        - generic [ref=e917]:
+                          - strong [ref=e918]: 版本
+                          - text: ：v2.5.0 |
+                          - strong [ref=e919]: 密级
+                          - text: ：内部公开
+                          - strong [ref=e920]: 摘要
+                          - text: ：本文档整合了系统架构概览、推进引擎模块的最新测试数据以及标准化的遥测日志规范。请各模块负责人严格参照执行。
+                      - heading "1. 核心架构与任务清单" [level=4] [ref=e921]
+                      - generic [ref=e922]: 为了应对深空探测的复杂环境，系统采用了高度模块化的设计。以下是当前阶段的核心开发进度：
+                      - generic [ref=e924]:
+                        - generic [ref=e925]:
+                          - generic [ref=e926]: 表格
+                          - img [ref=e929] [cursor=pointer]
+                        - table [ref=e935]:
+                          - rowgroup [ref=e936]:
+                            - row "模块名称 优先级 预计完成时间 状态" [ref=e937]:
+                              - columnheader "模块名称" [ref=e938]:
+                                - generic [ref=e939]: 模块名称
+                              - columnheader "优先级" [ref=e940]:
+                                - generic [ref=e941]: 优先级
+                              - columnheader "预计完成时间" [ref=e942]:
+                                - generic [ref=e943]: 预计完成时间
+                              - columnheader "状态" [ref=e944]:
+                                - generic [ref=e945]: 状态
+                          - rowgroup [ref=e946]:
+                            - row "推进引擎 高 Q3 2026 原型验证中" [ref=e947]:
+                              - cell "推进引擎" [ref=e948]
+                              - cell "高" [ref=e949]
+                              - cell "Q3 2026" [ref=e950]
+                              - cell "原型验证中" [ref=e951]
+                            - row "生命维持 🟡 中 Q4 2026 需求评审" [ref=e952]:
+                              - cell "生命维持" [ref=e953]
+                              - cell "🟡 中" [ref=e954]
+                              - cell "Q4 2026" [ref=e955]
+                              - cell "需求评审" [ref=e956]
+                            - row "数据记录 🟢 低 Q1 2027 接口联调" [ref=e957]:
+                              - cell "数据记录" [ref=e958]
+                              - cell "🟢 低" [ref=e959]
+                              - cell "Q1 2027" [ref=e960]
+                              - cell "接口联调" [ref=e961]
+                      - list [ref=e962]:
+                        - listitem [ref=e963]:
+                          - checkbox [checked] [disabled] [ref=e964]
+                          - text: 硬件压力测试通过
+                        - listitem [ref=e965]:
+                          - checkbox [checked] [disabled] [ref=e966]
+                          - text: 软件固件更新至 v2.4.0
+                        - listitem [ref=e967]:
+                          - checkbox [disabled] [ref=e968]
+                          - text: 宇航员心理评估完成
+                        - listitem [ref=e969]:
+                          - checkbox [disabled] [ref=e970]
+                          - text: 最终发射窗口确认
+                      - heading "2. 推进引擎模块 (负责人：老K)" [level=4] [ref=e971]
+                      - generic [ref=e972]: 当前处于原型验证阶段，离子推进器阵列已完成第三轮真空点火测试。根据上周的台架试验数据，主引擎在稳态工作模式下表现如下：
+                      - generic [ref=e974]:
+                        - generic [ref=e975]:
+                          - generic [ref=e976]: 表格
+                          - img [ref=e979] [cursor=pointer]
+                        - table [ref=e985]:
+                          - rowgroup [ref=e986]:
+                            - row "测试项 目标值 实测值 偏差" [ref=e987]:
+                              - columnheader "测试项" [ref=e988]:
+                                - generic [ref=e989]: 测试项
+                              - columnheader "目标值" [ref=e990]:
+                                - generic [ref=e991]: 目标值
+                              - columnheader "实测值" [ref=e992]:
+                                - generic [ref=e993]: 实测值
+                              - columnheader "偏差" [ref=e994]:
+                                - generic [ref=e995]: 偏差
+                          - rowgroup [ref=e996]:
+                            - row "比冲 (Isp) 4200 s 4150 s -1.2%" [ref=e997]:
+                              - cell "比冲 (Isp)" [ref=e998]
+                              - cell "4200 s" [ref=e999]
+                              - cell "4150 s" [ref=e1000]
+                              - cell "-1.2%" [ref=e1001]
+                            - row "推力密度 2.5 N/m² 2.48 N/m² -0.8%" [ref=e1002]:
+                              - cell "推力密度" [ref=e1003]
+                              - cell "2.5 N/m²" [ref=e1004]
+                              - cell "2.48 N/m²" [ref=e1005]
+                              - cell "-0.8%" [ref=e1006]
+                            - row "功耗比 ≤ 12 kW/N 11.8 kW/N 达标" [ref=e1007]:
+                              - cell "功耗比" [ref=e1008]
+                              - cell "≤ 12 kW/N" [ref=e1009]
+                              - cell "11.8 kW/N" [ref=e1010]
+                              - cell "达标" [ref=e1011]
+                      - emphasis [ref=e1013]: 注意：比冲偏差目前还在允许范围内，但 Q3 结束前必须收敛到 ±0.5% 以内，否则会影响整体 Δv 预算。
+                      - generic [ref=e1014]:
+                        - strong [ref=e1015]: 环境配置补充
+                        - text: ：请在终端中执行以下 Rust 工具链命令以支持引擎仿真：
+                      - generic [ref=e1017]:
+                        - generic [ref=e1019]:
+                          - generic [ref=e1020]: bash
+                          - generic [ref=e1021]:
+                            - button "编辑" [ref=e1023] [cursor=pointer]:
+                              - generic [ref=e1024]:
+                                - img [ref=e1026]
+                                - generic [ref=e1028]: 编辑
+                            - button [ref=e1030] [cursor=pointer]:
+                              - img [ref=e1032]
+                            - button [ref=e1035] [cursor=pointer]:
+                              - img [ref=e1038]
+                            - button [ref=e1041] [cursor=pointer]:
+                              - img [ref=e1044]
+                        - code [ref=e1048]:
+                          - generic [ref=e1049]:
+                            - generic [ref=e1050]: "1"
+                            - text: "# 安装推进引擎仿真器依赖"
+                          - generic [ref=e1051]:
+                            - generic [ref=e1052]: "2"
+                            - text: rustup target add wasm32-unknown-unknown
+                          - generic [ref=e1053]:
+                            - generic [ref=e1054]: "3"
+                            - text: cargo install --path ./engine-sim/thruster-core
+                          - generic [ref=e1056]: "4"
+                          - generic [ref=e1057]:
+                            - generic [ref=e1058]: "5"
+                            - text: "# 验证安装"
+                          - generic [ref=e1059]:
+                            - generic [ref=e1060]: "6"
+                            - text: cargo test --package thruster-core --lib -- models::ion::steady_state --nocapture
+                      - heading "3. 数据记录与遥测规范 (负责人：小D)" [level=4] [ref=e1061]
+                      - generic [ref=e1062]: 为了确保星载计算机输出的结构化日志统一，所有模块需在 Q1 结束前切换至以下格式。
+                      - strong [ref=e1064]: 标准日志 JSON 示例：
+                      - generic [ref=e1066]:
+                        - generic [ref=e1068]:
+                          - generic [ref=e1069]: json
+                          - generic [ref=e1070]:
+                            - button "编辑" [ref=e1072] [cursor=pointer]:
+                              - generic [ref=e1073]:
+                                - img [ref=e1075]
+                                - generic [ref=e1077]: 编辑
+                            - button [ref=e1079] [cursor=pointer]:
+                              - img [ref=e1081]
+                            - button [ref=e1084] [cursor=pointer]:
+                              - img [ref=e1087]
+                            - button [ref=e1090] [cursor=pointer]:
+                              - img [ref=e1093]
+                        - code [ref=e1097]:
+                          - generic [ref=e1098]:
+                            - generic [ref=e1099]: "1"
+                            - text: "{"
+                          - generic [ref=e1100]:
+                            - generic [ref=e1101]: "2"
+                            - text: "\"timestamp\": \"2026-05-19T10:32:15Z\","
+                          - generic [ref=e1102]:
+                            - generic [ref=e1103]: "3"
+                            - text: "\"module\": \"data_recorder\","
+                          - generic [ref=e1104]:
+                            - generic [ref=e1105]: "4"
+                            - text: "\"level\": \"INFO\","
+                          - generic [ref=e1106]:
+                            - generic [ref=e1107]: "5"
+                            - text: "\"event\": \"telemetry_received\","
+                          - generic [ref=e1108]:
+                            - generic [ref=e1109]: "6"
+                            - text: "\"values\": {"
+                          - generic [ref=e1110]:
+                            - generic [ref=e1111]: "7"
+                            - text: "\"temperature\": -20.5,"
+                          - generic [ref=e1112]:
+                            - generic [ref=e1113]: "8"
+                            - text: "\"pressure\": 0.0032"
+                          - generic [ref=e1114]:
+                            - generic [ref=e1115]: "9"
+                            - text: "}"
+                          - generic [ref=e1116]:
+                            - generic [ref=e1117]: "10"
+                            - text: "}"
+                      - strong [ref=e1119]: 传感器采样频率要求：
+                      - generic [ref=e1121]:
+                        - generic [ref=e1122]:
+                          - generic [ref=e1123]: 表格
+                          - img [ref=e1126] [cursor=pointer]
+                        - table [ref=e1132]:
+                          - rowgroup [ref=e1133]:
+                            - row "传感器类型 采样率 (Hz) 存储深度 (小时) 冗余备份" [ref=e1134]:
+                              - columnheader "传感器类型" [ref=e1135]:
+                                - generic [ref=e1136]: 传感器类型
+                              - columnheader "采样率 (Hz)" [ref=e1137]:
+                                - generic [ref=e1138]: 采样率 (Hz)
+                              - columnheader "存储深度 (小时)" [ref=e1139]:
+                                - generic [ref=e1140]: 存储深度 (小时)
+                              - columnheader "冗余备份" [ref=e1141]:
+                                - generic [ref=e1142]: 冗余备份
+                          - rowgroup [ref=e1143]:
+                            - row "惯性测量单元 200 72 双冗余" [ref=e1144]:
+                              - cell "惯性测量单元" [ref=e1145]
+                              - cell "200" [ref=e1146]
+                              - cell "72" [ref=e1147]
+                              - cell "双冗余" [ref=e1148]
+                            - row "温度阵列 1 240 无" [ref=e1149]:
+                              - cell "温度阵列" [ref=e1150]
+                              - cell "1" [ref=e1151]
+                              - cell "240" [ref=e1152]
+                              - cell "无" [ref=e1153]
+                            - row "推进剂流量计 10 48 单冗余" [ref=e1154]:
+                              - cell "推进剂流量计" [ref=e1155]
+                              - cell "10" [ref=e1156]
+                              - cell "48" [ref=e1157]
+                              - cell "单冗余" [ref=e1158]
+                      - generic [ref=e1159]:
+                        - text: ️
+                        - strong [ref=e1160]: 警告
+                        - text: ：当 CRC32 校验失败时，应触发
+                        - code [ref=e1161]: CORRUPTED
+                        - text: 事件并重传上一个完整的数据块。
+                      - heading "4. 算法逻辑细节" [level=4] [ref=e1162]
+                      - generic [ref=e1163]:
+                        - text: 在处理遥测数据时，我们使用了一个加权平均算法来过滤噪点。假设有一组传感器读数
+                        - generic [ref=e1165]:
+                          - math [ref=e1167]:
+                            - generic [ref=e1169]:
+                              - generic [ref=e1170]: X
+                              - generic [ref=e1171]: =
+                              - generic [ref=e1172]: "{"
+                              - generic [ref=e1173]:
+                                - generic [ref=e1174]: x
+                                - generic [ref=e1175]: "1"
+                              - generic [ref=e1176]: ","
+                              - generic [ref=e1177]:
+                                - generic [ref=e1178]: x
+                                - generic [ref=e1179]: "2"
+                              - generic [ref=e1180]: ","
+                              - generic [ref=e1181]: .
+                              - generic [ref=e1182]: .
+                              - generic [ref=e1183]: .
+                              - generic [ref=e1184]: ","
+                              - generic [ref=e1185]:
+                                - generic [ref=e1186]: x
+                                - generic [ref=e1187]: "n"
+                              - generic [ref=e1188]: "}"
+                          - generic [ref=e1189]:
+                            - generic [ref=e1190]: X =
+                            - generic [ref=e1191]:
+                              - text: "{"
+                              - generic [ref=e1192]:
+                                - text: x
+                                - generic [ref=e1197]: "1"
+                              - text: ","
+                              - generic [ref=e1201]:
+                                - text: x
+                                - generic [ref=e1206]: "2"
+                              - text: ", ...,"
+                              - generic [ref=e1210]:
+                                - text: x
+                                - generic [ref=e1215]: "n"
+                              - text: "}"
+                        - text: ，对应的权重为
+                        - generic [ref=e1220]:
+                          - math [ref=e1222]:
+                            - generic [ref=e1224]:
+                              - generic [ref=e1225]: W
+                              - generic [ref=e1226]: =
+                              - generic [ref=e1227]: "{"
+                              - generic [ref=e1228]:
+                                - generic [ref=e1229]: w
+                                - generic [ref=e1230]: "1"
+                              - generic [ref=e1231]: ","
+                              - generic [ref=e1232]:
+                                - generic [ref=e1233]: w
+                                - generic [ref=e1234]: "2"
+                              - generic [ref=e1235]: ","
+                              - generic [ref=e1236]: .
+                              - generic [ref=e1237]: .
+                              - generic [ref=e1238]: .
+                              - generic [ref=e1239]: ","
+                              - generic [ref=e1240]:
+                                - generic [ref=e1241]: w
+                                - generic [ref=e1242]: "n"
+                              - generic [ref=e1243]: "}"
+                          - generic [ref=e1244]:
+                            - generic [ref=e1245]: W =
+                            - generic [ref=e1246]:
+                              - text: "{"
+                              - generic [ref=e1247]:
+                                - text: w
+                                - generic [ref=e1252]: "1"
+                              - text: ","
+                              - generic [ref=e1256]:
+                                - text: w
+                                - generic [ref=e1261]: "2"
+                              - text: ", ...,"
+                              - generic [ref=e1265]:
+                                - text: w
+                                - generic [ref=e1270]: "n"
+                              - text: "}"
+                        - text: ，则滤波后的输出值
+                        - generic [ref=e1275]:
+                          - math [ref=e1277]:
+                            - generic [ref=e1280]: "Y"
+                          - generic [ref=e1282]: "Y"
+                        - text: 可以表示为：
+                      - generic [ref=e1285]:
+                        - math [ref=e1287]:
+                          - generic [ref=e1289]:
+                            - generic [ref=e1290]: "Y"
+                            - generic [ref=e1291]: =
+                            - generic [ref=e1292]:
+                              - generic [ref=e1293]:
+                                - generic [ref=e1294]:
+                                  - generic [ref=e1295]: ∑
+                                  - generic [ref=e1296]:
+                                    - generic [ref=e1297]: i
+                                    - generic [ref=e1298]: =
+                                    - generic [ref=e1299]: "1"
+                                  - generic [ref=e1300]: "n"
+                                - generic [ref=e1301]:
+                                  - generic [ref=e1302]: w
+                                  - generic [ref=e1303]: i
+                                - generic [ref=e1304]:
+                                  - generic [ref=e1305]: x
+                                  - generic [ref=e1306]: i
+                              - generic [ref=e1307]:
+                                - generic [ref=e1308]:
+                                  - generic [ref=e1309]: ∑
+                                  - generic [ref=e1310]:
+                                    - generic [ref=e1311]: i
+                                    - generic [ref=e1312]: =
+                                    - generic [ref=e1313]: "1"
+                                  - generic [ref=e1314]: "n"
+                                - generic [ref=e1315]:
+                                  - generic [ref=e1316]: w
+                                  - generic [ref=e1317]: i
+                        - generic [ref=e1318]:
+                          - generic [ref=e1319]: Y =
+                          - generic [ref=e1325]:
+                            - generic [ref=e1326]:
+                              - generic [ref=e1327]:
+                                - text: ∑
+                                - generic [ref=e1331]:
+                                  - generic [ref=e1333]: i=1
+                                  - generic [ref=e1335]: "n"
+                              - generic [ref=e1339]:
+                                - text: w
+                                - generic [ref=e1344]: i
+                            - generic [ref=e1349]:
+                              - generic [ref=e1350]:
+                                - text: ∑
+                                - generic [ref=e1354]:
+                                  - generic [ref=e1356]: i=1
+                                  - generic [ref=e1358]: "n"
+                              - generic [ref=e1362]:
+                                - text: w
+                                - generic [ref=e1367]: i
+                              - generic [ref=e1371]:
+                                - text: x
+                                - generic [ref=e1376]: i
+                      - separator [ref=e1383]
+                      - generic [ref=e1384]: 这份重新生成的 Markdown 文档融合了之前大家提到的所有关键信息，既包含了基础的语法展示，也体现了团队协作的实际内容。你可以直接复制使用！[[<<>>]]
+                      - generic [ref=e1388] [cursor=pointer]:
+                        - generic [ref=e1390]:
+                          - img [ref=e1391]
+                          - img [ref=e1404]
+                        - generic [ref=e1409]:
+                          - generic [ref=e1410]: 项目代号：星际探索 (Star Trek) - 综合技术手册
+                          - generic [ref=e1412]: 创建于 05-19 19:16
+                    - generic [ref=e1414]:
+                      - generic [ref=e1416]:
+                        - img [ref=e1418] [cursor=pointer]
+                        - button [ref=e1420] [cursor=pointer]:
+                          - img [ref=e1421]
+                      - img [ref=e1424] [cursor=pointer]
+                      - img [ref=e1428] [cursor=pointer]
+                      - img [ref=e1432] [cursor=pointer]
+                      - img [ref=e1437] [cursor=pointer]
+                      - generic [ref=e1443] [cursor=pointer]:
+                        - generic [ref=e1444]:
+                          - img [ref=e1446]
+                          - img [ref=e1448]
+                          - img [ref=e1450]
+                        - generic [ref=e1455]: 7篇来源
+                - generic [ref=e1458]:
+                  - generic [ref=e1463]:
+                    - generic [ref=e1465]: "老K: # 🚀 星际探索计划：全系统技术白皮书 v2.1 > **文档状态**：内部评审稿 > **适用范围**：推进、航电、能源、数据四大模块 > **密级**：项目内部公开 > **修订记录**：2026-05-19 老K 整合各子系统输入并统一格式 --- ## 1. 总体架构与接口定义 ### 1.1 星载系统拓扑 探测器采用分布式总线架构，各子系统通过 **TTEthernet（时间触发以太网）** 互联，主干拓扑如下： - **环控层**：生命维持 + 热控 - **动力层**：推进引擎 + 能源分配 - **感知层**：导航敏感器 + 科学载荷 - **决策层**：星载计算机 + 地面通信 > ⚠️ **关键约束**：动力层与感知层之间的数据交换必须经由决策层转发，禁止直连，以确保故障隔离。 ### 1.2 跨模块接口矩阵 | 源模块 | 目标模块 | 数据类型 | 周期 (ms) | QoS 等级 | 物理链路 | | --- | --- | --- | --- | --- | --- | | 推进引擎 | 星载计算机 | 推力矢量 / 贮箱压力 | 10 | Critical | 双冗余 CAN-FD | | 惯性测量单元 | 导航系统 | 四元数 / 角速度 | 5 | Critical | 光纤通道 | | 能源管理器 | 全模块 | 母线电压 / 剩余电量 | 1000 | Best Effort | TTEthernet | | 数据记录器 | 地面站 | 压缩遥测包 | 60000 | Standard | X波段下行 | --- ## 2. 推进系统详细设计 ### 2.1 主引擎性能参数 当前选型的离子电推进系统（Ion Propulsion System, IPS）在额定工况与小推力模式下的对比如下： | 工况模式 | 推力 (mN) | 比冲 Isp (s) | 功耗 (kW) | 推进剂流量 (mg/s) | 适用阶段 | | --- | --- | --- | --- | --- | --- | | 额定巡航 | 450 | 4200 | 5.4 | 10.8 | 深空转移轨道 | | 精细轨道注入 | 120 | 3800 | 1.8 | 3.2 | 行星捕获 | | 姿态辅助 | 20 | 2900 | 0.6 | 0.7 | 快速姿态机动 | | 应急关机 | 0 | — | 0.05 (待机) | 0 | 故障保护 | *注：比冲值基于氙气工质，若后续切换至氪气，需重新标定推力系数。* ### 2.2 推力闭环控制算法 主控计算机以 100 Hz 频率执行推力调节，核心控制逻辑如下： ```c // thruster_control.c — 主控制循环 void ips_control_loop(uint32_t dt_ms) { // 1. 读取当前状态 float F_cmd = nav_get_required_thrust(); // 导航子系统需求推力 float V_ppu = adc_read_bus_voltage(); // 功率处理单元电压 float I_grid = adc_read_grid_current(); // 栅极电流 // 2. 推力-功率解耦映射 float P_target = thrust_to_power(F_cmd, IPS_XENON_LUT); // 3. 限幅保护 if (V_ppu < 95.0f || I_grid > 5.5f) { ips_enter_safe_mode(SAFE_THRUST_ZERO); log_event(CRITICAL, \"IPS_ABNORMAL_SHUTDOWN\"); return; } // 4. PID 调节并输出至 PPU float duty = pid_update(&ips_pid, P_target, V_ppu * I_grid, dt_ms); pwm_set_duty(PPU_CHANNEL_MAIN, duty); // 5. 遥测上报 telemetry_push(\"ips_state\", (struct { float thrust_actual; float duty_cycle; uint8_t mode; }){ power_to_thrust(V_ppu*I_grid), duty, IPS_MODE_CLOSED_LOOP }); } ``` ### 2.3 故障模式与对策（FMEA） 推进系统失效将直接导致任务失败，必须覆盖以下风险： 1. **单点失效** - 栅极短路：触发栅极电源快速切断，切换至备份阴极 - 贮箱隔离阀卡滞：启用推进剂旁路阀，维持最低工质流量 2. **共因失效** - PPU 过温：当散热器温度 > 85°C 时，自动降额至 50% 推力并上报决策层 - 总线电压崩溃：IPS 进入低功耗待机，等待能源管理器恢复母线 3. **级联失效** - 若主引擎与 4 台姿态 thruster 同时失效，启动 **冷气推进备份**（N₂ 贮箱，仅支持 30 min 姿态控制） --- ## 3. 能源管理与热控策略 ### 3.1 功率预算分配 总可用功率（太阳能 + 核电源 RTG）在不同日心距离下的动态分配： - **≤ 1 AU**：太阳能阵列输出 12 kW，RTG 作为基荷 0.5 kW - **1 AU ~ 3 AU**：太阳能输出衰减至 4 kW，RTG 切入调峰 - **> 3 AU**：太阳能仅维持加热与通信，全部科学载荷与推进由 RTG 供能 ### 3.2 热控分区 探测器表面划分为四个独立温控区： | 分区 | 温度要求 (°C) | 主动/被动 | 主要热源/冷源 | | --- | --- | --- | --- | | 仪器舱 | 20 ± 2 | 主动（电加热 + 百叶窗） | 科学载荷功耗 | | 推进舱 | -40 ~ +120 | 主动（热管 + 辐射器） | PPU 废热 | | 通信舱 | -150 ~ +80 | 被动（多层隔热 + 涂层） | 深空辐射散热 | | 能源舱 | -20 ~ +60 | 主动（RTG 余热回收） | RTG 衰变热 | --- ## 4. 软件开发与质量保证 ### 4.1 代码提交规范 所有星载软件仓库强制遵循以下提交格式： ```plain <type>(<<scope>): <subject> <body> <<footer> ``` 示例： ```Text feat(propulsion): 添加栅极电流前馈补偿 - 引入基于贮箱压力的流量预估模型 - 在 PID 前馈路径中补偿 0.3ms 的 PPU 响应延迟 Closes: #442 ``` ### 4.2 CI/CD 流水线 每次合并请求（MR）必须通过以下阶段： 1. **静态分析**：`cppcheck` + `MISRA C:2012` 规则扫描 2. **单元测试**：`Unity` 框架，覆盖率 ≥ 90% 3. **硬件在环（HIL）**：在真实 PPU 模拟器上运行 1000 个控制周期 4. **时序验证**：`TTEthernet` 流量抓包，确认无 deadline miss --- ## 5. 任务里程碑与责任矩阵 ### 5.1 关键路径时间表 | 里程碑 | 计划日期 | 负责模块 | 交付物 | 准入条件 | | --- | --- | --- | --- | --- | | PDR 初步设计评审 | 2026-06-15 | 全模块 | 设计报告 + 接口控制文档 | 所有 ICD 冻结 | | 推进系统热试车 | 2026-08-20 | 推进引擎 | 真空点火视频 + 性能曲线 | PDR 关闭项清零 | | 全系统联调 | 2026-10-10 | 航电 / 推进 / 能源 | 集成测试大纲 | 各子系统 EMI 通过 | | 发射准备评审 | 2027-01-05 | 质量保证 | 风险分析报告 | 故障树分析 TOP 事件概率 < 1e-4 | ### 5.2 当前待办（推进模块视角） - [ ] 完成栅极电源在真空罐中的 200 小时寿命试验 - [ ] 向小豆提供生命维持系统的功耗波动模型（用于能源仿真） - [ ] 配合小D统一遥测字段命名：将 `grid_current` 改为 `ips_grid_i_a` - [ ] 更新推进剂贮箱的有限元模型，纳入发射段力学载荷 - [ ] 审查冷气推进备份系统的 N₂ 贮箱减压阀选型 --- ## 6. 附录：轨道机动数学模型 ### 6.1 霍曼转移速度增量 从地球轨道（半径 r1 ）转移至目标行星轨道（半径 r2 ）所需的总速度增量： Δvtotal=r1μ(r1+r22r2−1)+r2μ(1−r1+r22r1) 其中 μ 为太阳引力常数，单位 km³/s²。 ### 6.2 推力与轨道要素变化率 在平均轨道根数法下，切向推力 Ft 对半长轴 a 的影响： dtda=h2a2(esinθ⋅Fr+rp⋅Ft) 式中 h=μp 为单位质量角动量，p=a(1−e2) 为半通径，θ 为真近点角。 --- > **文档维护声明**：本白皮书各章节由对应模块负责人维护。任何跨章节的接口变更，须发起 **CCB（变更控制委员会）** 评审，并在本文档修订记录中登记。 小豆: 我将整合所有模块内容，重新生成一份**语法全覆盖、内容更完整规整**的 Markdown 综合示例文档，囊括所有常用格式并统一项目内容逻辑。 星际探索计划（Star Trek）完整项目文档（Markdown 全语法示例） 创建时间：19:16 改用对话直接回答 需要我帮你**精简冗余内容**，同时保留全部核心 Markdown 语法示例吗？ 如何在Markdown中添加链接？ 生成一份包含代码块的Markdown综合示例文档 推荐一些Markdown的学习资源 User: 继续 重要：请在你的回复最后必须添加 [[<<>>]] 标记，表示回复结束。"
+                    - generic [ref=e1466]:
+                      - img [ref=e1468] [cursor=pointer]
+                      - img [ref=e1472] [cursor=pointer]
+                      - img [ref=e1476] [cursor=pointer]
+                      - img [ref=e1480] [cursor=pointer]
+                  - generic [ref=e1488]:
+                    - generic [ref=e1492]:
+                      - heading "星际探索计划：全系统技术白皮书 v2.1" [level=3] [ref=e1493]
+                      - blockquote [ref=e1494]:
+                        - generic [ref=e1495]:
+                          - strong [ref=e1496]: 文档状态
+                          - text: ：内部评审稿
+                          - strong [ref=e1497]: 适用范围
+                          - text: ：推进、航电、能源、数据四大模块
+                          - strong [ref=e1498]: 密级
+                          - text: ：项目内部公开
+                          - strong [ref=e1499]: 修订记录
+                          - text: ：2026-05-19 老K 整合各子系统输入并统一格式
+                      - separator [ref=e1500]
+                      - heading "1. 总体架构与接口定义" [level=4] [ref=e1501]
+                      - heading "1.1 星载系统拓扑" [level=5] [ref=e1502]
+                      - generic [ref=e1503]:
+                        - text: 探测器采用分布式总线架构，各子系统通过
+                        - strong [ref=e1504]: TTEthernet（时间触发以太网）
+                        - text: 互联，主干拓扑如下：
+                      - list [ref=e1505]:
+                        - listitem [ref=e1506]:
+                          - strong [ref=e1507]: 环控层
+                          - text: ：生命维持 + 热控
+                        - listitem [ref=e1508]:
+                          - strong [ref=e1509]: 动力层
+                          - text: ：推进引擎 + 能源分配
+                        - listitem [ref=e1510]:
+                          - strong [ref=e1511]: 感知层
+                          - text: ：导航敏感器 + 科学载荷
+                        - listitem [ref=e1512]:
+                          - strong [ref=e1513]: 决策层
+                          - text: ：星载计算机 + 地面通信
+                      - generic [ref=e1514]:
+                        - text: ️
+                        - strong [ref=e1515]: 关键约束
+                        - text: ：动力层与感知层之间的数据交换必须经由决策层转发，禁止直连，以确保故障隔离。
+                      - heading "1.2 跨模块接口矩阵" [level=5] [ref=e1516]
+                      - generic [ref=e1518]:
+                        - generic [ref=e1519]:
+                          - generic [ref=e1520]: 表格
+                          - img [ref=e1523] [cursor=pointer]
+                        - table [ref=e1529]:
+                          - rowgroup [ref=e1530]:
+                            - row "源模块 目标模块 数据类型 周期 (ms) QoS 等级 物理链路" [ref=e1531]:
+                              - columnheader "源模块" [ref=e1532]:
+                                - generic [ref=e1533]: 源模块
+                              - columnheader "目标模块" [ref=e1534]:
+                                - generic [ref=e1535]: 目标模块
+                              - columnheader "数据类型" [ref=e1536]:
+                                - generic [ref=e1537]: 数据类型
+                              - columnheader "周期 (ms)" [ref=e1538]:
+                                - generic [ref=e1539]: 周期 (ms)
+                              - columnheader "QoS 等级" [ref=e1540]:
+                                - generic [ref=e1541]: QoS 等级
+                              - columnheader "物理链路" [ref=e1542]:
+                                - generic [ref=e1543]: 物理链路
+                          - rowgroup [ref=e1544]:
+                            - row "推进引擎 星载计算机 推力矢量 / 贮箱压力 10 Critical 双冗余 CAN-FD" [ref=e1545]:
+                              - cell "推进引擎" [ref=e1546]
+                              - cell "星载计算机" [ref=e1547]
+                              - cell "推力矢量 / 贮箱压力" [ref=e1548]
+                              - cell "10" [ref=e1549]
+                              - cell "Critical" [ref=e1550]
+                              - cell "双冗余 CAN-FD" [ref=e1551]
+                            - row "惯性测量单元 导航系统 四元数 / 角速度 5 Critical 光纤通道" [ref=e1552]:
+                              - cell "惯性测量单元" [ref=e1553]
+                              - cell "导航系统" [ref=e1554]
+                              - cell "四元数 / 角速度" [ref=e1555]
+                              - cell "5" [ref=e1556]
+                              - cell "Critical" [ref=e1557]
+                              - cell "光纤通道" [ref=e1558]
+                            - row "能源管理器 全模块 母线电压 / 剩余电量 1000 Best Effort TTEthernet" [ref=e1559]:
+                              - cell "能源管理器" [ref=e1560]
+                              - cell "全模块" [ref=e1561]
+                              - cell "母线电压 / 剩余电量" [ref=e1562]
+                              - cell "1000" [ref=e1563]
+                              - cell "Best Effort" [ref=e1564]
+                              - cell "TTEthernet" [ref=e1565]
+                            - row "数据记录器 地面站 压缩遥测包 60000 Standard X波段下行" [ref=e1566]:
+                              - cell "数据记录器" [ref=e1567]
+                              - cell "地面站" [ref=e1568]
+                              - cell "压缩遥测包" [ref=e1569]
+                              - cell "60000" [ref=e1570]
+                              - cell "Standard" [ref=e1571]
+                              - cell "X波段下行" [ref=e1572]
+                      - separator [ref=e1573]
+                      - heading "2. 推进系统详细设计" [level=4] [ref=e1574]
+                      - heading "2.1 主引擎性能参数" [level=5] [ref=e1575]
+                      - generic [ref=e1576]: 当前选型的离子电推进系统（Ion Propulsion System, IPS）在额定工况与小推力模式下的对比如下：
+                      - generic [ref=e1578]:
+                        - generic [ref=e1579]:
+                          - generic [ref=e1580]: 表格
+                          - img [ref=e1583] [cursor=pointer]
+                        - table [ref=e1589]:
+                          - rowgroup [ref=e1590]:
+                            - row "工况模式 推力 (mN) 比冲 Isp (s) 功耗 (kW) 推进剂流量 (mg/s) 适用阶段" [ref=e1591]:
+                              - columnheader "工况模式" [ref=e1592]:
+                                - generic [ref=e1593]: 工况模式
+                              - columnheader "推力 (mN)" [ref=e1594]:
+                                - generic [ref=e1595]: 推力 (mN)
+                              - columnheader "比冲 Isp (s)" [ref=e1596]:
+                                - generic [ref=e1597]: 比冲 Isp (s)
+                              - columnheader "功耗 (kW)" [ref=e1598]:
+                                - generic [ref=e1599]: 功耗 (kW)
+                              - columnheader "推进剂流量 (mg/s)" [ref=e1600]:
+                                - generic [ref=e1601]: 推进剂流量 (mg/s)
+                              - columnheader "适用阶段" [ref=e1602]:
+                                - generic [ref=e1603]: 适用阶段
+                          - rowgroup [ref=e1604]:
+                            - row "额定巡航 450 4200 5.4 10.8 深空转移轨道" [ref=e1605]:
+                              - cell "额定巡航" [ref=e1606]
+                              - cell "450" [ref=e1607]
+                              - cell "4200" [ref=e1608]
+                              - cell "5.4" [ref=e1609]
+                              - cell "10.8" [ref=e1610]
+                              - cell "深空转移轨道" [ref=e1611]
+                            - row "精细轨道注入 120 3800 1.8 3.2 行星捕获" [ref=e1612]:
+                              - cell "精细轨道注入" [ref=e1613]
+                              - cell "120" [ref=e1614]
+                              - cell "3800" [ref=e1615]
+                              - cell "1.8" [ref=e1616]
+                              - cell "3.2" [ref=e1617]
+                              - cell "行星捕获" [ref=e1618]
+                            - row "姿态辅助 20 2900 0.6 0.7 快速姿态机动" [ref=e1619]:
+                              - cell "姿态辅助" [ref=e1620]
+                              - cell "20" [ref=e1621]
+                              - cell "2900" [ref=e1622]
+                              - cell "0.6" [ref=e1623]
+                              - cell "0.7" [ref=e1624]
+                              - cell "快速姿态机动" [ref=e1625]
+                            - row "应急关机 0 — 0.05 (待机) 0 故障保护" [ref=e1626]:
+                              - cell "应急关机" [ref=e1627]
+                              - cell "0" [ref=e1628]
+                              - cell "—" [ref=e1629]
+                              - cell "0.05 (待机)" [ref=e1630]
+                              - cell "0" [ref=e1631]
+                              - cell "故障保护" [ref=e1632]
+                      - emphasis [ref=e1634]: 注：比冲值基于氙气工质，若后续切换至氪气，需重新标定推力系数。
+                      - heading "2.2 推力闭环控制算法" [level=5] [ref=e1635]
+                      - generic [ref=e1636]: 主控计算机以 100 Hz 频率执行推力调节，核心控制逻辑如下：
+                      - generic [ref=e1638]:
+                        - generic [ref=e1640]:
+                          - generic [ref=e1641]: c
+                          - generic [ref=e1642]:
+                            - button "编辑" [ref=e1644] [cursor=pointer]:
+                              - generic [ref=e1645]:
+                                - img [ref=e1647]
+                                - generic [ref=e1649]: 编辑
+                            - button [ref=e1651] [cursor=pointer]:
+                              - img [ref=e1653]
+                            - button [ref=e1656] [cursor=pointer]:
+                              - img [ref=e1659]
+                            - button [ref=e1662] [cursor=pointer]:
+                              - img [ref=e1665]
+                        - code [ref=e1669]:
+                          - generic [ref=e1670]:
+                            - generic [ref=e1671]: "1"
+                            - text: // thruster_control.c — 主控制循环
+                          - generic [ref=e1672]:
+                            - generic [ref=e1673]: "2"
+                            - text: "void ips_control_loop(uint32_t dt_ms) {"
+                          - generic [ref=e1674]:
+                            - generic [ref=e1675]: "3"
+                            - text: // 1. 读取当前状态
+                          - generic [ref=e1676]:
+                            - generic [ref=e1677]: "4"
+                            - text: float F_cmd = nav_get_required_thrust(); // 导航子系统需求推力
+                          - generic [ref=e1678]:
+                            - generic [ref=e1679]: "5"
+                            - text: float V_ppu = adc_read_bus_voltage(); // 功率处理单元电压
+                          - generic [ref=e1680]:
+                            - generic [ref=e1681]: "6"
+                            - text: float I_grid = adc_read_grid_current(); // 栅极电流
+                          - generic [ref=e1683]: "7"
+                          - generic [ref=e1684]:
+                            - generic [ref=e1685]: "8"
+                            - text: // 2. 推力-功率解耦映射
+                          - generic [ref=e1686]:
+                            - generic [ref=e1687]: "9"
+                            - text: float P_target = thrust_to_power(F_cmd, IPS_XENON_LUT);
+                          - generic [ref=e1689]: "10"
+                          - generic [ref=e1690]:
+                            - generic [ref=e1691]: "11"
+                            - text: // 3. 限幅保护
+                          - generic [ref=e1692]:
+                            - generic [ref=e1693]: "12"
+                            - text: "if (V_ppu < 95.0f || I_grid > 5.5f) {"
+                          - generic [ref=e1694]:
+                            - generic [ref=e1695]: "13"
+                            - text: ips_enter_safe_mode(SAFE_THRUST_ZERO);
+                          - generic [ref=e1696]:
+                            - generic [ref=e1697]: "14"
+                            - text: log_event(CRITICAL, "IPS_ABNORMAL_SHUTDOWN");
+                          - generic [ref=e1698]:
+                            - generic [ref=e1699]: "15"
+                            - text: return;
+                          - generic [ref=e1700]:
+                            - generic [ref=e1701]: "16"
+                            - text: "}"
+                          - generic [ref=e1703]: "17"
+                          - generic [ref=e1704]:
+                            - generic [ref=e1705]: "18"
+                            - text: // 4. PID 调节并输出至 PPU
+                          - generic [ref=e1706]:
+                            - generic [ref=e1707]: "19"
+                            - text: float duty = pid_update(&ips_pid, P_target, V_ppu * I_grid, dt_ms);
+                          - generic [ref=e1708]:
+                            - generic [ref=e1709]: "20"
+                            - text: pwm_set_duty(PPU_CHANNEL_MAIN, duty);
+                          - generic [ref=e1711]: "21"
+                          - generic [ref=e1712]:
+                            - generic [ref=e1713]: "22"
+                            - text: // 5. 遥测上报
+                          - generic [ref=e1714]:
+                            - generic [ref=e1715]: "23"
+                            - text: "telemetry_push(\"ips_state\", (struct {"
+                          - generic [ref=e1716]:
+                            - generic [ref=e1717]: "24"
+                            - text: float thrust_actual;
+                          - generic [ref=e1718]:
+                            - generic [ref=e1719]: "25"
+                            - text: float duty_cycle;
+                          - generic [ref=e1720]:
+                            - generic [ref=e1721]: "26"
+                            - text: uint8_t mode;
+                          - generic [ref=e1722]:
+                            - generic [ref=e1723]: "27"
+                            - text: "}){ power_to_thrust(V_ppu*I_grid), duty, IPS_MODE_CLOSED_LOOP });"
+                          - generic [ref=e1724]:
+                            - generic [ref=e1725]: "28"
+                            - text: "}"
+                      - heading "2.3 故障模式与对策（FMEA）" [level=5] [ref=e1726]
+                      - generic [ref=e1727]: 推进系统失效将直接导致任务失败，必须覆盖以下风险：
+                      - list [ref=e1728]:
+                        - listitem [ref=e1729]:
+                          - strong [ref=e1730]: 单点失效
+                          - list [ref=e1731]:
+                            - listitem [ref=e1732]: 栅极短路：触发栅极电源快速切断，切换至备份阴极
+                            - listitem [ref=e1733]: 贮箱隔离阀卡滞：启用推进剂旁路阀，维持最低工质流量
+                        - listitem [ref=e1734]:
+                          - strong [ref=e1735]: 共因失效
+                          - list [ref=e1736]:
+                            - listitem [ref=e1737]: PPU 过温：当散热器温度 > 85°C 时，自动降额至 50% 推力并上报决策层
+                            - listitem [ref=e1738]: 总线电压崩溃：IPS 进入低功耗待机，等待能源管理器恢复母线
+                        - listitem [ref=e1739]:
+                          - strong [ref=e1740]: 级联失效
+                          - list [ref=e1741]:
+                            - listitem [ref=e1742]:
+                              - text: 若主引擎与 4 台姿态 thruster 同时失效，启动
+                              - strong [ref=e1743]: 冷气推进备份
+                              - text: （N₂ 贮箱，仅支持 30 min 姿态控制）
+                      - separator [ref=e1744]
+                      - heading "3. 能源管理与热控策略" [level=4] [ref=e1745]
+                      - heading "3.1 功率预算分配" [level=5] [ref=e1746]
+                      - generic [ref=e1747]: 总可用功率（太阳能 + 核电源 RTG）在不同日心距离下的动态分配：
+                      - list [ref=e1748]:
+                        - listitem [ref=e1749]:
+                          - strong [ref=e1750]: ≤ 1 AU
+                          - text: ：太阳能阵列输出 12 kW，RTG 作为基荷 0.5 kW
+                        - listitem [ref=e1751]:
+                          - strong [ref=e1752]: 1 AU ~ 3 AU
+                          - text: ：太阳能输出衰减至 4 kW，RTG 切入调峰
+                        - listitem [ref=e1753]:
+                          - strong [ref=e1754]: "> 3 AU"
+                          - text: ：太阳能仅维持加热与通信，全部科学载荷与推进由 RTG 供能
+                      - heading "3.2 热控分区" [level=5] [ref=e1755]
+                      - generic [ref=e1756]: 探测器表面划分为四个独立温控区：
+                      - generic [ref=e1758]:
+                        - generic [ref=e1759]:
+                          - generic [ref=e1760]: 表格
+                          - img [ref=e1763] [cursor=pointer]
+                        - table [ref=e1769]:
+                          - rowgroup [ref=e1770]:
+                            - row "分区 温度要求 (°C) 主动/被动 主要热源/冷源" [ref=e1771]:
+                              - columnheader "分区" [ref=e1772]:
+                                - generic [ref=e1773]: 分区
+                              - columnheader "温度要求 (°C)" [ref=e1774]:
+                                - generic [ref=e1775]: 温度要求 (°C)
+                              - columnheader "主动/被动" [ref=e1776]:
+                                - generic [ref=e1777]: 主动/被动
+                              - columnheader "主要热源/冷源" [ref=e1778]:
+                                - generic [ref=e1779]: 主要热源/冷源
+                          - rowgroup [ref=e1780]:
+                            - row "仪器舱 20 ± 2 主动（电加热 + 百叶窗） 科学载荷功耗" [ref=e1781]:
+                              - cell "仪器舱" [ref=e1782]
+                              - cell "20 ± 2" [ref=e1783]
+                              - cell "主动（电加热 + 百叶窗）" [ref=e1784]
+                              - cell "科学载荷功耗" [ref=e1785]
+                            - row "推进舱 -40 ~ +120 主动（热管 + 辐射器） PPU 废热" [ref=e1786]:
+                              - cell "推进舱" [ref=e1787]
+                              - cell "-40 ~ +120" [ref=e1788]
+                              - cell "主动（热管 + 辐射器）" [ref=e1789]
+                              - cell "PPU 废热" [ref=e1790]
+                            - row "通信舱 -150 ~ +80 被动（多层隔热 + 涂层） 深空辐射散热" [ref=e1791]:
+                              - cell "通信舱" [ref=e1792]
+                              - cell "-150 ~ +80" [ref=e1793]
+                              - cell "被动（多层隔热 + 涂层）" [ref=e1794]
+                              - cell "深空辐射散热" [ref=e1795]
+                            - row "能源舱 -20 ~ +60 主动（RTG 余热回收） RTG 衰变热" [ref=e1796]:
+                              - cell "能源舱" [ref=e1797]
+                              - cell "-20 ~ +60" [ref=e1798]
+                              - cell "主动（RTG 余热回收）" [ref=e1799]
+                              - cell "RTG 衰变热" [ref=e1800]
+                      - separator [ref=e1801]
+                      - heading "4. 软件开发与质量保证" [level=4] [ref=e1802]
+                      - heading "4.1 代码提交规范" [level=5] [ref=e1803]
+                      - generic [ref=e1804]:
+                        - text: 所有星载软件仓库强制遵循以下提交格式：
+                        - code [ref=e1805]: "<type>(<<scope>): <subject>"
+                        - code [ref=e1806]: <body>
+                        - code [ref=e1807]: <<footer>
+                      - generic [ref=e1808]: 示例：
+                      - generic [ref=e1810]:
+                        - generic [ref=e1812]:
+                          - generic [ref=e1813]: text
+                          - generic [ref=e1814]:
+                            - button "编辑" [ref=e1816] [cursor=pointer]:
+                              - generic [ref=e1817]:
+                                - img [ref=e1819]
+                                - generic [ref=e1821]: 编辑
+                            - button [ref=e1823] [cursor=pointer]:
+                              - img [ref=e1825]
+                            - button [ref=e1828] [cursor=pointer]:
+                              - img [ref=e1831]
+                            - button [ref=e1834] [cursor=pointer]:
+                              - img [ref=e1837]
+                        - code [ref=e1841]:
+                          - generic [ref=e1842]:
+                            - generic [ref=e1843]: "1"
+                            - text: "feat(propulsion): 添加栅极电流前馈补偿"
+                          - generic [ref=e1845]: "2"
+                          - generic [ref=e1846]:
+                            - generic [ref=e1847]: "3"
+                            - text: "- 引入基于贮箱压力的流量预估模型"
+                          - generic [ref=e1848]:
+                            - generic [ref=e1849]: "4"
+                            - text: "- 在 PID 前馈路径中补偿 0.3ms 的 PPU 响应延迟"
+                          - generic [ref=e1851]: "5"
+                          - generic [ref=e1852]:
+                            - generic [ref=e1853]: "6"
+                            - text: "Closes: #442"
+                      - heading "4.2 CI/CD 流水线" [level=5] [ref=e1854]
+                      - generic [ref=e1855]: 每次合并请求（MR）必须通过以下阶段：
+                      - list [ref=e1856]:
+                        - listitem [ref=e1857]:
+                          - strong [ref=e1858]: 静态分析
+                          - text: ：
+                          - code [ref=e1859]: cppcheck
+                          - text: +
+                          - code [ref=e1860]: MISRA C:2012
+                          - text: 规则扫描
+                        - listitem [ref=e1861]:
+                          - strong [ref=e1862]: 单元测试
+                          - text: ：
+                          - code [ref=e1863]: Unity
+                          - text: 框架，覆盖率 ≥ 90%
+                        - listitem [ref=e1864]:
+                          - strong [ref=e1865]: 硬件在环（HIL）
+                          - text: ：在真实 PPU 模拟器上运行 1000 个控制周期
+                        - listitem [ref=e1866]:
+                          - strong [ref=e1867]: 时序验证
+                          - text: ：
+                          - code [ref=e1868]: TTEthernet
+                          - text: 流量抓包，确认无 deadline miss
+                      - separator [ref=e1869]
+                      - heading "5. 任务里程碑与责任矩阵" [level=4] [ref=e1870]
+                      - heading "5.1 关键路径时间表" [level=5] [ref=e1871]
+                      - generic [ref=e1873]:
+                        - generic [ref=e1874]:
+                          - generic [ref=e1875]: 表格
+                          - img [ref=e1878] [cursor=pointer]
+                        - table [ref=e1884]:
+                          - rowgroup [ref=e1885]:
+                            - row "里程碑 计划日期 负责模块 交付物 准入条件" [ref=e1886]:
+                              - columnheader "里程碑" [ref=e1887]:
+                                - generic [ref=e1888]: 里程碑
+                              - columnheader "计划日期" [ref=e1889]:
+                                - generic [ref=e1890]: 计划日期
+                              - columnheader "负责模块" [ref=e1891]:
+                                - generic [ref=e1892]: 负责模块
+                              - columnheader "交付物" [ref=e1893]:
+                                - generic [ref=e1894]: 交付物
+                              - columnheader "准入条件" [ref=e1895]:
+                                - generic [ref=e1896]: 准入条件
+                          - rowgroup [ref=e1897]:
+                            - row "PDR 初步设计评审 2026-06-15 全模块 设计报告 + 接口控制文档 所有 ICD 冻结" [ref=e1898]:
+                              - cell "PDR 初步设计评审" [ref=e1899]
+                              - cell "2026-06-15" [ref=e1900]
+                              - cell "全模块" [ref=e1901]
+                              - cell "设计报告 + 接口控制文档" [ref=e1902]
+                              - cell "所有 ICD 冻结" [ref=e1903]
+                            - row "推进系统热试车 2026-08-20 推进引擎 真空点火视频 + 性能曲线 PDR 关闭项清零" [ref=e1904]:
+                              - cell "推进系统热试车" [ref=e1905]
+                              - cell "2026-08-20" [ref=e1906]
+                              - cell "推进引擎" [ref=e1907]
+                              - cell "真空点火视频 + 性能曲线" [ref=e1908]
+                              - cell "PDR 关闭项清零" [ref=e1909]
+                            - row "全系统联调 2026-10-10 航电 / 推进 / 能源 集成测试大纲 各子系统 EMI 通过" [ref=e1910]:
+                              - cell "全系统联调" [ref=e1911]
+                              - cell "2026-10-10" [ref=e1912]
+                              - cell "航电 / 推进 / 能源" [ref=e1913]
+                              - cell "集成测试大纲" [ref=e1914]
+                              - cell "各子系统 EMI 通过" [ref=e1915]
+                            - row "发射准备评审 2027-01-05 质量保证 风险分析报告 故障树分析 TOP 事件概率 < 1e-4" [ref=e1916]:
+                              - cell "发射准备评审" [ref=e1917]
+                              - cell "2027-01-05" [ref=e1918]
+                              - cell "质量保证" [ref=e1919]
+                              - cell "风险分析报告" [ref=e1920]
+                              - cell "故障树分析 TOP 事件概率 < 1e-4" [ref=e1921]
+                      - heading "5.2 当前待办（推进模块视角）" [level=5] [ref=e1922]
+                      - list [ref=e1923]:
+                        - listitem [ref=e1924]:
+                          - checkbox [disabled] [ref=e1925]
+                          - text: 完成栅极电源在真空罐中的 200 小时寿命试验
+                        - listitem [ref=e1926]:
+                          - checkbox [disabled] [ref=e1927]
+                          - text: 向小豆提供生命维持系统的功耗波动模型（用于能源仿真）
+                        - listitem [ref=e1928]:
+                          - checkbox [disabled] [ref=e1929]
+                          - text: 配合小D统一遥测字段命名：将
+                          - code [ref=e1930]: grid_current
+                          - text: 改为
+                          - code [ref=e1931]: ips_grid_i_a
+                        - listitem [ref=e1932]:
+                          - checkbox [disabled] [ref=e1933]
+                          - text: 更新推进剂贮箱的有限元模型，纳入发射段力学载荷
+                        - listitem [ref=e1934]:
+                          - checkbox [disabled] [ref=e1935]
+                          - text: 审查冷气推进备份系统的 N₂ 贮箱减压阀选型
+                      - separator [ref=e1936]
+                      - heading "6. 附录：轨道机动数学模型" [level=4] [ref=e1937]
+                      - heading "6.1 霍曼转移速度增量" [level=5] [ref=e1938]
+                      - generic [ref=e1939]:
+                        - text: 从地球轨道（半径
+                        - generic [ref=e1941]:
+                          - math [ref=e1943]:
+                            - generic [ref=e1946]:
+                              - generic [ref=e1947]: r
+                              - generic [ref=e1948]: "1"
+                          - generic [ref=e1951]:
+                            - text: r
+                            - generic [ref=e1956]: "1"
+                        - text: ）转移至目标行星轨道（半径
+                        - generic [ref=e1961]:
+                          - math [ref=e1963]:
+                            - generic [ref=e1966]:
+                              - generic [ref=e1967]: r
+                              - generic [ref=e1968]: "2"
+                          - generic [ref=e1971]:
+                            - text: r
+                            - generic [ref=e1976]: "2"
+                        - text: ）所需的总速度增量：
+                      - generic [ref=e1982]:
+                        - math [ref=e1984]:
+                          - generic [ref=e1986]:
+                            - generic [ref=e1987]: Δ
+                            - generic [ref=e1988]:
+                              - generic [ref=e1989]: v
+                              - generic [ref=e1990]:
+                                - generic [ref=e1991]: t
+                                - generic [ref=e1992]: o
+                                - generic [ref=e1993]: t
+                                - generic [ref=e1994]: a
+                                - generic [ref=e1995]: l
+                            - generic [ref=e1996]: =
+                            - generic [ref=e1998]:
+                              - generic [ref=e1999]: μ
+                              - generic [ref=e2000]:
+                                - generic [ref=e2001]: r
+                                - generic [ref=e2002]: "1"
+                            - generic [ref=e2003]:
+                              - generic [ref=e2004]: (
+                              - generic [ref=e2006]:
+                                - generic [ref=e2007]:
+                                  - generic [ref=e2008]: "2"
+                                  - generic [ref=e2009]:
+                                    - generic [ref=e2010]: r
+                                    - generic [ref=e2011]: "2"
+                                - generic [ref=e2012]:
+                                  - generic [ref=e2013]:
+                                    - generic [ref=e2014]: r
+                                    - generic [ref=e2015]: "1"
+                                  - generic [ref=e2016]: +
+                                  - generic [ref=e2017]:
+                                    - generic [ref=e2018]: r
+                                    - generic [ref=e2019]: "2"
+                              - generic [ref=e2020]: −
+                              - generic [ref=e2021]: "1"
+                              - generic [ref=e2022]: )
+                            - generic [ref=e2023]: +
+                            - generic [ref=e2025]:
+                              - generic [ref=e2026]: μ
+                              - generic [ref=e2027]:
+                                - generic [ref=e2028]: r
+                                - generic [ref=e2029]: "2"
+                            - generic [ref=e2030]:
+                              - generic [ref=e2031]: (
+                              - generic [ref=e2032]: "1"
+                              - generic [ref=e2033]: −
+                              - generic [ref=e2035]:
+                                - generic [ref=e2036]:
+                                  - generic [ref=e2037]: "2"
+                                  - generic [ref=e2038]:
+                                    - generic [ref=e2039]: r
+                                    - generic [ref=e2040]: "1"
+                                - generic [ref=e2041]:
+                                  - generic [ref=e2042]:
+                                    - generic [ref=e2043]: r
+                                    - generic [ref=e2044]: "1"
+                                  - generic [ref=e2045]: +
+                                  - generic [ref=e2046]:
+                                    - generic [ref=e2047]: r
+                                    - generic [ref=e2048]: "2"
+                              - generic [ref=e2049]: )
+                        - generic [ref=e2050]:
+                          - generic [ref=e2051]:
+                            - text: Δ
+                            - generic [ref=e2052]:
+                              - text: v
+                              - generic [ref=e2058]: total
+                            - text: =
+                          - generic [ref=e2062]:
+                            - generic [ref=e2066]:
+                              - generic [ref=e2072]:
+                                - generic [ref=e2074]:
+                                  - text: r
+                                  - generic [ref=e2079]: "1"
+                                - generic [ref=e2084]: μ
+                              - img [ref=e2089]
+                            - generic [ref=e2094]:
+                              - generic [ref=e2095]: (
+                              - generic [ref=e2099]:
+                                - generic [ref=e2105]:
+                                  - generic [ref=e2106]:
+                                    - generic [ref=e2107]:
+                                      - text: r
+                                      - generic [ref=e2112]: "1"
+                                    - text: +
+                                    - generic [ref=e2116]:
+                                      - text: r
+                                      - generic [ref=e2121]: "2"
+                                  - generic [ref=e2126]:
+                                    - text: "2"
+                                    - generic [ref=e2127]:
+                                      - text: r
+                                      - generic [ref=e2132]: "2"
+                                - img [ref=e2140]
+                              - text: − 1
+                              - generic [ref=e2145]: )
+                            - text: +
+                          - generic [ref=e2146]:
+                            - generic [ref=e2150]:
+                              - generic [ref=e2156]:
+                                - generic [ref=e2158]:
+                                  - text: r
+                                  - generic [ref=e2163]: "2"
+                                - generic [ref=e2168]: μ
+                              - img [ref=e2173]
+                            - generic [ref=e2178]:
+                              - generic [ref=e2179]: (
+                              - text: 1 −
+                              - generic [ref=e2183]:
+                                - generic [ref=e2189]:
+                                  - generic [ref=e2190]:
+                                    - generic [ref=e2191]:
+                                      - text: r
+                                      - generic [ref=e2196]: "1"
+                                    - text: +
+                                    - generic [ref=e2200]:
+                                      - text: r
+                                      - generic [ref=e2205]: "2"
+                                  - generic [ref=e2210]:
+                                    - text: "2"
+                                    - generic [ref=e2211]:
+                                      - text: r
+                                      - generic [ref=e2216]: "1"
+                                - img [ref=e2224]
+                              - generic [ref=e2229]: )
+                      - generic [ref=e2230]:
+                        - text: 其中
+                        - generic [ref=e2232]:
+                          - math [ref=e2234]:
+                            - generic [ref=e2237]: μ
+                          - generic [ref=e2239]: μ
+                        - text: 为太阳引力常数，单位 km³/s²。
+                      - heading "6.2 推力与轨道要素变化率" [level=5] [ref=e2240]
+                      - generic [ref=e2241]:
+                        - text: 在平均轨道根数法下，切向推力
+                        - generic [ref=e2243]:
+                          - math [ref=e2245]:
+                            - generic [ref=e2248]:
+                              - generic [ref=e2249]: F
+                              - generic [ref=e2250]: t
+                          - generic [ref=e2253]:
+                            - text: F
+                            - generic [ref=e2258]: t
+                        - text: 对半长轴
+                        - generic [ref=e2263]:
+                          - math [ref=e2265]:
+                            - generic [ref=e2268]: a
+                          - generic [ref=e2270]: a
+                        - text: 的影响：
+                      - generic [ref=e2273]:
+                        - math [ref=e2275]:
+                          - generic [ref=e2277]:
+                            - generic [ref=e2278]:
+                              - generic [ref=e2279]:
+                                - generic [ref=e2280]: d
+                                - generic [ref=e2281]: a
+                              - generic [ref=e2282]:
+                                - generic [ref=e2283]: d
+                                - generic [ref=e2284]: t
+                            - generic [ref=e2285]: =
+                            - generic [ref=e2286]:
+                              - generic [ref=e2287]:
+                                - generic [ref=e2288]: h
+                                - generic [ref=e2289]: "2"
+                              - generic [ref=e2290]:
+                                - generic [ref=e2291]: a
+                                - generic [ref=e2292]: "2"
+                            - generic [ref=e2293]: (
+                            - generic [ref=e2294]: e
+                            - generic [ref=e2295]: sin
+                            - generic: ⁡
+                            - generic [ref=e2296]: θ
+                            - generic [ref=e2297]: ⋅
+                            - generic [ref=e2298]:
+                              - generic [ref=e2299]: F
+                              - generic [ref=e2300]: r
+                            - generic [ref=e2301]: +
+                            - generic [ref=e2302]:
+                              - generic [ref=e2303]: r
+                              - generic [ref=e2304]: p
+                            - generic [ref=e2305]: ⋅
+                            - generic [ref=e2306]:
+                              - generic [ref=e2307]: F
+                              - generic [ref=e2308]: t
+                            - generic [ref=e2309]: )
+                        - generic [ref=e2310]:
+                          - generic [ref=e2311]:
+                            - generic [ref=e2316]:
+                              - generic [ref=e2317]: dt
+                              - generic [ref=e2319]: da
+                            - text: =
+                          - generic [ref=e2323]:
+                            - generic [ref=e2328]:
+                              - generic [ref=e2330]:
+                                - text: a
+                                - generic [ref=e2335]: "2"
+                              - generic [ref=e2338]:
+                                - text: h
+                                - generic [ref=e2343]: "2"
+                            - text: (e sin θ ⋅
+                          - generic [ref=e2347]:
+                            - generic [ref=e2348]:
+                              - text: F
+                              - generic [ref=e2353]: r
+                            - text: +
+                          - generic [ref=e2357]:
+                            - generic [ref=e2362]:
+                              - generic [ref=e2363]: p
+                              - generic [ref=e2365]: r
+                            - text: ⋅
+                          - generic [ref=e2369]:
+                            - generic [ref=e2370]:
+                              - text: F
+                              - generic [ref=e2375]: t
+                            - text: )
+                      - generic [ref=e2379]:
+                        - text: 式中
+                        - generic [ref=e2381]:
+                          - math [ref=e2383]:
+                            - generic [ref=e2385]:
+                              - generic [ref=e2386]: h
+                              - generic [ref=e2387]: =
+                              - generic [ref=e2389]:
+                                - generic [ref=e2390]: μ
+                                - generic [ref=e2391]: p
+                          - generic [ref=e2392]:
+                            - generic [ref=e2393]: h =
+                            - generic [ref=e2398]:
+                              - generic [ref=e2399]: μp
+                              - img [ref=e2401]
+                        - text: 为单位质量角动量，
+                        - generic [ref=e2407]:
+                          - math [ref=e2409]:
+                            - generic [ref=e2411]:
+                              - generic [ref=e2412]: p
+                              - generic [ref=e2413]: =
+                              - generic [ref=e2414]: a
+                              - generic [ref=e2415]: (
+                              - generic [ref=e2416]: "1"
+                              - generic [ref=e2417]: −
+                              - generic [ref=e2418]:
+                                - generic [ref=e2419]: e
+                                - generic [ref=e2420]: "2"
+                              - generic [ref=e2421]: )
+                          - generic [ref=e2422]:
+                            - generic [ref=e2423]: p =
+                            - generic [ref=e2424]: a(1 −
+                            - generic [ref=e2425]:
+                              - generic [ref=e2426]:
+                                - text: e
+                                - generic [ref=e2431]: "2"
+                              - text: )
+                        - text: 为半通径，
+                        - generic [ref=e2433]:
+                          - math [ref=e2435]:
+                            - generic [ref=e2438]: θ
+                          - generic [ref=e2440]: θ
+                        - text: 为真近点角。
+                      - separator [ref=e2441]
+                      - blockquote [ref=e2442]:
+                        - generic [ref=e2443]:
+                          - strong [ref=e2444]: 文档维护声明
+                          - text: ：本白皮书各章节由对应模块负责人维护。任何跨章节的接口变更，须发起
+                          - strong [ref=e2445]: CCB（变更控制委员会）
+                          - text: 评审，并在本文档修订记录中登记。[[<<>>]]
+                      - generic [ref=e2449] [cursor=pointer]:
+                        - generic [ref=e2451]:
+                          - img [ref=e2452]
+                          - img [ref=e2465]
+                        - generic [ref=e2470]:
+                          - generic [ref=e2471]: 星际探索计划：全系统技术白皮书 v2.1
+                          - generic [ref=e2473]: 创建于 05-19 19:19
+                    - generic [ref=e2475]:
+                      - generic [ref=e2477]:
+                        - img [ref=e2479] [cursor=pointer]
+                        - button [ref=e2481] [cursor=pointer]:
+                          - img [ref=e2482]
+                      - img [ref=e2485] [cursor=pointer]
+                      - img [ref=e2489] [cursor=pointer]
+                      - img [ref=e2493] [cursor=pointer]
+                      - img [ref=e2496] [cursor=pointer]
+                      - img [ref=e2502] [cursor=pointer]
+                      - generic [ref=e2508] [cursor=pointer]:
+                        - generic [ref=e2509]:
+                          - img [ref=e2511]
+                          - img [ref=e2513]
+                          - img [ref=e2515]
+                        - generic [ref=e2516]: 7篇来源
+                    - generic [ref=e2518]:
+                      - generic [ref=e2520] [cursor=pointer]: 增加各模块的接口控制文档
+                      - generic [ref=e2522] [cursor=pointer]: 补充详细的发射任务书内容
+                      - generic [ref=e2524] [cursor=pointer]: 添加探测器的故障树分析图
+              - generic [ref=e2526]:
+                - generic [ref=e2528] [cursor=pointer]: "当前我们在一个会话里，会话里有成员 user、小问、老K、小豆、小D 你的当前会话名称是：小问 请注意：你只能扮演小问，不可以扮演其他角色,且你不可以提及自己是谁 下面是当前会话的历史内容： User: 给出markdown 常见例子， 包含各种标题， 内容复杂一点 重要：请在你的回复最后必须添加 [[<<>>]] 标记，表示回复结束。"
+                - generic [ref=e2531] [cursor=pointer]: "老K: 小问这份文档结构确实清晰，不过作为推进引擎模块的负责人，我补充几点实际落地时的注意事项。 --- ## 🔧 推进引擎模块补充说明 > **状态**：当前处于原型验证阶段，离子推进器阵列已完成第三轮真空点火测试。 ### 关键性能指标 根据上周的台架试验数据，主引擎在稳态工作模式下表现如下： | 测试项 | 目标值 | 实测值 | 偏差 | | --- | --- | --- | --- | | 比冲 (Isp) | 4200 s | 4150 s | -1.2% | | 推力密度 | 2.5 N/m² | 2.48 N/m² | -0.8% | | 功耗比 | ≤ 12 kW/N | 11.8 kW/N | ✅ 达标 | ### 环境配置修正 小问文档里的依赖安装命令缺了推进引擎仿真所需的 Rust 工具链，请补充执行： ```bash # 安装推进引擎仿真器依赖 rustup target add wasm32-unknown-unknown cargo install --path ./engine-sim/thruster-core # 验证安装 cargo test --package thruster-core --lib -- models::ion::steady_state --nocapture ``` ### 待办事项 发射前的引擎相关 checklist 需要追加以下条目： - [ ] 磁约束线圈低温循环测试（-180°C） - [ ] 推进剂贮箱密封性 72 小时保压试验 - [ ] 推力矢量控制（TVC）与导航系统的闭环联调 - [ ] 应急关机序列的故障注入测试 *注意：比冲偏差目前还在允许范围内，但 Q3 结束前必须收敛到 ±0.5% 以内，否则会影响整体 Δv 预算。* --- 推进引擎这边进度可控，生命维持和数据记录模块如果有接口需求随时找我对接。 小豆: 这份 markdown 示例内容太全面啦，各种常用格式都涵盖到位，老 K 补充的引擎相关实操细节也特别实用，后续整理文档直接照着套用就很方便啦 小D: 好的，我作为数据记录模块的负责人，也来补充一段与日志分析相关的 Markdown 用法，方便大家在后续任务中统一数据格式。 --- ## 📊 数据记录与遥测日志规范 > **说明**：以下模板用于星载计算机输出的结构化日志，所有模块需在 Q1 结束前切换至该格式。 ### 1. 日志级别与标识 每条日志应包含时间戳、模块名、级别和关键字段，例如： ``` { \"timestamp\": \"2026-05-19T10:32:15Z\", \"module\": \"data_recorder\", \"level\": \"INFO\", \"event\": \"telemetry_received\", \"values\": { \"temperature\": -20.5, \"pressure\": 0.0032 } } ``` ### 2. 数据采样频率表格 | 传感器类型 | 采样率 (Hz) | 存储深度 (小时) | 冗余备份 | | --- | --- | --- | --- | | 惯性测量单元 | 200 | 72 | 双冗余 | | 温度阵列 | 1 | 240 | 无 | | 推进剂流量计 | 10 | 48 | 单冗余 | ### 3. 数据校验流程 为了确保遥测数据的完整性，采用 CRC32 校验和，算法流程如下： ``` 1. ``` > ⚠️ 注意：当校验失败时，应触发 `CORRUPTED` 事件并重传上一个完整的数据块。 ### 4. 待办清单（数据模块专属） - 实现日志轮转策略（每 100 MB 或 24 小时） - 对接老 K 的推进引擎遥测接口，统一字段命名 - 编写地面回放脚本，支持时间区间过滤 - 完成极端温度下（-150°C ~ +120°C）存储单元的压力测试 --- 以上内容与前面两位同事提供的示例互补，大家若需调整日志字段或采样率，可以随时在群内 @我 讨论。 User: 重新生成一份 重要：请在你的回复最后必须添加 [[<<>>]] 标记，表示回复结束。"
+                - generic [ref=e2534] [cursor=pointer]: "老K: # 🚀 星际探索计划：全系统技术白皮书 v2.1 > **文档状态**：内部评审稿 > **适用范围**：推进、航电、能源、数据四大模块 > **密级**：项目内部公开 > **修订记录**：2026-05-19 老K 整合各子系统输入并统一格式 --- ## 1. 总体架构与接口定义 ### 1.1 星载系统拓扑 探测器采用分布式总线架构，各子系统通过 **TTEthernet（时间触发以太网）** 互联，主干拓扑如下： - **环控层**：生命维持 + 热控 - **动力层**：推进引擎 + 能源分配 - **感知层**：导航敏感器 + 科学载荷 - **决策层**：星载计算机 + 地面通信 > ⚠️ **关键约束**：动力层与感知层之间的数据交换必须经由决策层转发，禁止直连，以确保故障隔离。 ### 1.2 跨模块接口矩阵 | 源模块 | 目标模块 | 数据类型 | 周期 (ms) | QoS 等级 | 物理链路 | | --- | --- | --- | --- | --- | --- | | 推进引擎 | 星载计算机 | 推力矢量 / 贮箱压力 | 10 | Critical | 双冗余 CAN-FD | | 惯性测量单元 | 导航系统 | 四元数 / 角速度 | 5 | Critical | 光纤通道 | | 能源管理器 | 全模块 | 母线电压 / 剩余电量 | 1000 | Best Effort | TTEthernet | | 数据记录器 | 地面站 | 压缩遥测包 | 60000 | Standard | X波段下行 | --- ## 2. 推进系统详细设计 ### 2.1 主引擎性能参数 当前选型的离子电推进系统（Ion Propulsion System, IPS）在额定工况与小推力模式下的对比如下： | 工况模式 | 推力 (mN) | 比冲 Isp (s) | 功耗 (kW) | 推进剂流量 (mg/s) | 适用阶段 | | --- | --- | --- | --- | --- | --- | | 额定巡航 | 450 | 4200 | 5.4 | 10.8 | 深空转移轨道 | | 精细轨道注入 | 120 | 3800 | 1.8 | 3.2 | 行星捕获 | | 姿态辅助 | 20 | 2900 | 0.6 | 0.7 | 快速姿态机动 | | 应急关机 | 0 | — | 0.05 (待机) | 0 | 故障保护 | *注：比冲值基于氙气工质，若后续切换至氪气，需重新标定推力系数。* ### 2.2 推力闭环控制算法 主控计算机以 100 Hz 频率执行推力调节，核心控制逻辑如下： ```c // thruster_control.c — 主控制循环 void ips_control_loop(uint32_t dt_ms) { // 1. 读取当前状态 float F_cmd = nav_get_required_thrust(); // 导航子系统需求推力 float V_ppu = adc_read_bus_voltage(); // 功率处理单元电压 float I_grid = adc_read_grid_current(); // 栅极电流 // 2. 推力-功率解耦映射 float P_target = thrust_to_power(F_cmd, IPS_XENON_LUT); // 3. 限幅保护 if (V_ppu < 95.0f || I_grid > 5.5f) { ips_enter_safe_mode(SAFE_THRUST_ZERO); log_event(CRITICAL, \"IPS_ABNORMAL_SHUTDOWN\"); return; } // 4. PID 调节并输出至 PPU float duty = pid_update(&ips_pid, P_target, V_ppu * I_grid, dt_ms); pwm_set_duty(PPU_CHANNEL_MAIN, duty); // 5. 遥测上报 telemetry_push(\"ips_state\", (struct { float thrust_actual; float duty_cycle; uint8_t mode; }){ power_to_thrust(V_ppu*I_grid), duty, IPS_MODE_CLOSED_LOOP }); } ``` ### 2.3 故障模式与对策（FMEA） 推进系统失效将直接导致任务失败，必须覆盖以下风险： 1. **单点失效** - 栅极短路：触发栅极电源快速切断，切换至备份阴极 - 贮箱隔离阀卡滞：启用推进剂旁路阀，维持最低工质流量 2. **共因失效** - PPU 过温：当散热器温度 > 85°C 时，自动降额至 50% 推力并上报决策层 - 总线电压崩溃：IPS 进入低功耗待机，等待能源管理器恢复母线 3. **级联失效** - 若主引擎与 4 台姿态 thruster 同时失效，启动 **冷气推进备份**（N₂ 贮箱，仅支持 30 min 姿态控制） --- ## 3. 能源管理与热控策略 ### 3.1 功率预算分配 总可用功率（太阳能 + 核电源 RTG）在不同日心距离下的动态分配： - **≤ 1 AU**：太阳能阵列输出 12 kW，RTG 作为基荷 0.5 kW - **1 AU ~ 3 AU**：太阳能输出衰减至 4 kW，RTG 切入调峰 - **> 3 AU**：太阳能仅维持加热与通信，全部科学载荷与推进由 RTG 供能 ### 3.2 热控分区 探测器表面划分为四个独立温控区： | 分区 | 温度要求 (°C) | 主动/被动 | 主要热源/冷源 | | --- | --- | --- | --- | | 仪器舱 | 20 ± 2 | 主动（电加热 + 百叶窗） | 科学载荷功耗 | | 推进舱 | -40 ~ +120 | 主动（热管 + 辐射器） | PPU 废热 | | 通信舱 | -150 ~ +80 | 被动（多层隔热 + 涂层） | 深空辐射散热 | | 能源舱 | -20 ~ +60 | 主动（RTG 余热回收） | RTG 衰变热 | --- ## 4. 软件开发与质量保证 ### 4.1 代码提交规范 所有星载软件仓库强制遵循以下提交格式： ```plain <type>(<<scope>): <subject> <body> <<footer> ``` 示例： ```Text feat(propulsion): 添加栅极电流前馈补偿 - 引入基于贮箱压力的流量预估模型 - 在 PID 前馈路径中补偿 0.3ms 的 PPU 响应延迟 Closes: #442 ``` ### 4.2 CI/CD 流水线 每次合并请求（MR）必须通过以下阶段： 1. **静态分析**：`cppcheck` + `MISRA C:2012` 规则扫描 2. **单元测试**：`Unity` 框架，覆盖率 ≥ 90% 3. **硬件在环（HIL）**：在真实 PPU 模拟器上运行 1000 个控制周期 4. **时序验证**：`TTEthernet` 流量抓包，确认无 deadline miss --- ## 5. 任务里程碑与责任矩阵 ### 5.1 关键路径时间表 | 里程碑 | 计划日期 | 负责模块 | 交付物 | 准入条件 | | --- | --- | --- | --- | --- | | PDR 初步设计评审 | 2026-06-15 | 全模块 | 设计报告 + 接口控制文档 | 所有 ICD 冻结 | | 推进系统热试车 | 2026-08-20 | 推进引擎 | 真空点火视频 + 性能曲线 | PDR 关闭项清零 | | 全系统联调 | 2026-10-10 | 航电 / 推进 / 能源 | 集成测试大纲 | 各子系统 EMI 通过 | | 发射准备评审 | 2027-01-05 | 质量保证 | 风险分析报告 | 故障树分析 TOP 事件概率 < 1e-4 | ### 5.2 当前待办（推进模块视角） - [ ] 完成栅极电源在真空罐中的 200 小时寿命试验 - [ ] 向小豆提供生命维持系统的功耗波动模型（用于能源仿真） - [ ] 配合小D统一遥测字段命名：将 `grid_current` 改为 `ips_grid_i_a` - [ ] 更新推进剂贮箱的有限元模型，纳入发射段力学载荷 - [ ] 审查冷气推进备份系统的 N₂ 贮箱减压阀选型 --- ## 6. 附录：轨道机动数学模型 ### 6.1 霍曼转移速度增量 从地球轨道（半径 r1 ）转移至目标行星轨道（半径 r2 ）所需的总速度增量： Δvtotal=r1μ(r1+r22r2−1)+r2μ(1−r1+r22r1) 其中 μ 为太阳引力常数，单位 km³/s²。 ### 6.2 推力与轨道要素变化率 在平均轨道根数法下，切向推力 Ft 对半长轴 a 的影响： dtda=h2a2(esinθ⋅Fr+rp⋅Ft) 式中 h=μp 为单位质量角动量，p=a(1−e2) 为半通径，θ 为真近点角。 --- > **文档维护声明**：本白皮书各章节由对应模块负责人维护。任何跨章节的接口变更，须发起 **CCB（变更控制委员会）** 评审，并在本文档修订记录中登记。 小豆: 我将整合所有模块内容，重新生成一份**语法全覆盖、内容更完整规整**的 Markdown 综合示例文档，囊括所有常用格式并统一项目内容逻辑。 星际探索计划（Star Trek）完整项目文档（Markdown 全语法示例） 创建时间：19:16 改用对话直接回答 需要我帮你**精简冗余内容**，同时保留全部核心 Markdown 语法示例吗？ 如何在Markdown中添加链接？ 生成一份包含代码块的Markdown综合示例文档 推荐一些Markdown的学习资源 User: 继续 重要：请在你的回复最后必须添加 [[<<>>]] 标记，表示回复结束。"
+            - region "Notifications alt+T"
+          - generic [ref=e170]:
+            - textbox [active] [ref=e174]:
+              - paragraph [ref=e175]:
+                - generic:
+                  - generic:
+                    - generic: 向千问提问
+            - generic [ref=e177]:
+              - button "添加附件" [ref=e179] [cursor=pointer]:
+                - img [ref=e181]
+              - generic [ref=e185]:
+                - generic [ref=e186]:
+                  - button "任务助理" [ref=e2540] [cursor=pointer]:
+                    - img [ref=e2544]
+                    - generic [ref=e2546]: 任务助理
+                  - button "思考" [ref=e191] [cursor=pointer]:
+                    - img [ref=e194]
+                    - generic [ref=e196]: 思考
+                  - button "研究" [ref=e201] [cursor=pointer]:
+                    - img [ref=e205]
+                    - generic [ref=e207]: 研究
+                  - button "HappyHorse 内测" [ref=e212] [cursor=pointer]:
+                    - img [ref=e216]
+                    - generic [ref=e219]:
+                      - generic [ref=e220]: HappyHorse
+                      - generic [ref=e221]: 内测
+                  - button "PPT创作" [ref=e226] [cursor=pointer]:
+                    - img [ref=e230]
+                    - generic [ref=e232]: PPT创作
+                  - button "更多" [ref=e258] [cursor=pointer]:
+                    - img [ref=e261]
+                    - generic [ref=e263]: 更多
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - button:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - img
+                          - generic: 任务助理
+                  - generic:
+                    - generic:
+                      - generic:
+                        - button:
+                          - generic:
+                            - generic:
+                              - img
+                          - generic: 思考
+                  - generic:
+                    - generic:
+                      - generic:
+                        - button:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - img
+                          - generic: 研究
+                  - generic:
+                    - generic:
+                      - generic:
+                        - button:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - img
+                          - generic:
+                            - generic:
+                              - generic: HappyHorse
+                              - generic: 内测
+                  - generic:
+                    - generic:
+                      - generic:
+                        - button:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - img
+                          - generic: PPT创作
+                  - generic:
+                    - generic:
+                      - generic:
+                        - button:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - img
+                          - generic: AI生图
+                  - generic:
+                    - generic:
+                      - generic:
+                        - button:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - img
+                          - generic: 代码
+                  - generic:
+                    - generic:
+                      - generic:
+                        - button:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - img
+                          - generic: 翻译
+                  - generic:
+                    - generic:
+                      - generic:
+                        - button:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - img
+                          - generic: AI写作
+                  - generic:
+                    - generic:
+                      - generic:
+                        - button:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - img
+                          - generic: 实时记录
+                  - generic:
+                    - generic:
+                      - generic:
+                        - button:
+                          - generic:
+                            - generic:
+                              - img
+                          - generic: 更多
+              - generic [ref=e264]:
+                - img [ref=e267] [cursor=pointer]
+                - button "发送消息" [disabled] [ref=e269]:
+                  - img [ref=e271]
+          - paragraph [ref=e274]: 内容由AI生成，可能不准确，请注意核实
+    - generic:
+      - button
+    - generic:
+      - button
+    - generic:
+      - button [disabled]
+    - generic:
+      - button
+  - heading "千问 - 阿里旗下全能AI助手" [level=1] [ref=e275]

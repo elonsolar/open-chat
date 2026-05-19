@@ -77,7 +77,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["libs/marked.min.js"],
+      "resources": ["libs/marked.min.js", "libs/katex.min.js", "libs/auto-render.min.js", "libs/katex.min.css"],
       "matches": ["<all_urls>"]
     },
     {

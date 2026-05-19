@@ -252,6 +252,26 @@ class QianwenAdapter extends BasePlatformAdapter {
         clone.querySelectorAll('.qk-md-table-action').forEach(el => el.remove());
         clone.querySelectorAll('svg').forEach(el => el.remove());
 
+        // 移除表格前的重复列表内容（千问会将同一内容渲染为列表和表格两种形式）
+        clone.querySelectorAll('.qk-md-table-section').forEach(tableSection => {
+          const table = tableSection.querySelector('table');
+          if (table) {
+            // 查找表格前面的元素
+            let prevElement = tableSection.previousElementSibling;
+            while (prevElement) {
+              // 如果前面是UL列表，且内容较短（可能是重复内容），则移除
+              if (prevElement.tagName === 'UL' && prevElement.classList.contains('qk-md-ul')) {
+                const listItems = prevElement.querySelectorAll('li');
+                if (listItems.length <= 10) {  // 只移除较短的列表
+                  prevElement.remove();
+                  break;
+                }
+              }
+              prevElement = prevElement.previousElementSibling;
+            }
+          }
+        });
+
         const removeSelectors = [
           '[class*="video-note"]',
           '[class*="card_video"]',
@@ -328,11 +348,26 @@ class QianwenAdapter extends BasePlatformAdapter {
                 result += '`';
                 for (let child of node.childNodes) walk(child, inBlock, listInfo);
                 result += '`';
+              } else if (node.classList.contains('katex')) {
+                const latex = BasePlatformAdapter.extractMathLatex(node);
+                if (latex) {
+                  const mathEl = node.querySelector('math');
+                  const isDisplay = mathEl && mathEl.getAttribute('display') === 'block';
+                  result += isDisplay ? '$$' + latex + '$$' : '$' + latex + '$';
+                }
               } else if (isHeading) {
-                if (result.length > 0 && !result.endsWith('\n')) result += '\n';
+                // 确保标题前有空行（双换行符），符合markdown标准
+                if (result.length > 0 && !result.endsWith('\n')) {
+                  result += '\n';
+                }
+                if (result.length > 0 && !result.endsWith('\n\n')) {
+                  result += '\n';
+                }
                 result += isHeading;
                 for (let child of node.childNodes) walk(child, true, listInfo);
                 if (!result.endsWith('\n')) result += '\n';
+                // 确保标题后有空行（双换行符）
+                result += '\n';
               } else if (tag === 'UL' || tag === 'OL') {
                 var newDepth = (listInfo ? listInfo.depth : 0) + 1;
                 var newListInfo = {

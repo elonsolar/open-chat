@@ -722,18 +722,6 @@ class ConversationManager {
     const conversation = conversations.find(c => c.id === conversationId);
 
     if (conversation) {
-      // 关闭所有相关的标签页
-      if (conversation.roleTabIds) {
-        for (const [roleId, tabId] of Object.entries(conversation.roleTabIds)) {
-          try {
-            await this.tabManager.closeTab(tabId);
-            console.log(`[ConversationManager] 已关闭角色 ${roleId} 的标签页 ${tabId}`);
-          } catch (error) {
-            console.warn(`[ConversationManager] 关闭标签页 ${tabId} 失败:`, error.message);
-          }
-        }
-      }
-
       conversation.messages = [];
       conversation.roleUrls = {};
       conversation.roleTabIds = {};

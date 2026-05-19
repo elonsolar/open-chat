@@ -981,7 +981,23 @@ function formatMessage(content) {
       });
       const result = marked.parse(content);
       if (result && result.trim()) {
-        return result;
+        const tempContainer = document.createElement('div');
+        tempContainer.innerHTML = result;
+
+        if (typeof renderMathInElement !== 'undefined') {
+          renderMathInElement(tempContainer, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false},
+              {left: '\\(', right: '\\)', display: false},
+              {left: '\\[', right: '\\]', display: true}
+            ],
+            throwOnError: false,
+            errorColor: '#cc0000'
+          });
+        }
+
+        return tempContainer.innerHTML;
       }
     } catch (e) {
       console.error('[formatMessage] Markdown parse error:', e);
@@ -1249,7 +1265,27 @@ function renderMessageContent(content) {
         console.warn('[renderMessageContent] Markdown渲染结果为空，使用纯文本');
         return escapeHtml(content);
       }
-      return result;
+
+      // 渲染数学公式（通过添加特殊属性让KaTeX识别）
+      // 创建一个临时容器来应用renderMathInElement
+      const tempContainer = document.createElement('div');
+      tempContainer.innerHTML = result;
+
+      // 使用KaTeX的auto-render扩展渲染数学公式
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(tempContainer, {
+          delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$', right: '$', display: false},
+            {left: '\\(', right: '\\)', display: false},
+            {left: '\\[', right: '\\]', display: true}
+          ],
+          throwOnError: false,
+          errorColor: '#cc0000'
+        });
+      }
+
+      return tempContainer.innerHTML;
     } catch (e) {
       console.error('[renderMessageContent] Markdown parse error:', e);
       return escapeHtml(content);

@@ -235,11 +235,28 @@ class KimiAdapter extends BasePlatformAdapter {
               result += '`';
               for (let child of node.childNodes) walk(child, inBlock, listInfo);
               result += '`';
+            } else if (node.classList.contains('katex')) {
+              const latex = BasePlatformAdapter.extractMathLatex(node);
+              if (latex) {
+                const mathEl = node.querySelector('math');
+                const isDisplay = mathEl && mathEl.getAttribute('display') === 'block';
+                result += isDisplay ? '$$' + latex + '$$' : '$' + latex + '$';
+              } else {
+                result += node.textContent.replace(/\u200B/g, '') + ' ';
+              }
             } else if (isHeading) {
-              if (result.length > 0 && !result.endsWith('\n')) result += '\n';
+              // 确保标题前有空行（双换行符），符合markdown标准
+              if (result.length > 0 && !result.endsWith('\n')) {
+                result += '\n';
+              }
+              if (result.length > 0 && !result.endsWith('\n\n')) {
+                result += '\n';
+              }
               result += isHeading;
               for (let child of node.childNodes) walk(child, true, listInfo);
               if (!result.endsWith('\n')) result += '\n';
+              // 确保标题后有空行（双换行符）
+              result += '\n';
             } else if (tag === 'UL' || tag === 'OL') {
               var newDepth = (listInfo ? listInfo.depth : 0) + 1;
               var newListInfo = {
