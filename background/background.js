@@ -626,6 +626,29 @@ class TabManager {
     return { success: true, tabId: tab.id };
   }
 
+  async closeTab(tabId) {
+    try {
+      await chrome.tabs.remove(tabId);
+      console.log(`[TabManager] 标签页 ${tabId} 已关闭`);
+    } catch (error) {
+      console.warn(`[TabManager] 关闭标签页 ${tabId} 失败:`, error.message);
+    }
+  }
+
+  async closePlatformTab(url) {
+    try {
+      const tab = await this.findTabByUrl(url);
+      if (tab) {
+        await this.closeTab(tab.id);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error(`[TabManager] 关闭平台标签页失败:`, error);
+      return false;
+    }
+  }
+
   sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
@@ -699,6 +722,18 @@ class ConversationManager {
     const conversation = conversations.find(c => c.id === conversationId);
 
     if (conversation) {
+      // 关闭所有相关的标签页
+      if (conversation.roleTabIds) {
+        for (const [roleId, tabId] of Object.entries(conversation.roleTabIds)) {
+          try {
+            await this.tabManager.closeTab(tabId);
+            console.log(`[ConversationManager] 已关闭角色 ${roleId} 的标签页 ${tabId}`);
+          } catch (error) {
+            console.warn(`[ConversationManager] 关闭标签页 ${tabId} 失败:`, error.message);
+          }
+        }
+      }
+
       conversation.messages = [];
       conversation.roleUrls = {};
       conversation.roleTabIds = {};
@@ -925,7 +960,7 @@ class AIMessageManager {
           if (fullPrompt) {
             messageToSend += `你的角色设定：${fullPrompt}\n`;
           }
-          messageToSend += `\n请注意：你只能扮演${nickname}，不可以扮演其他角色。\n\n`;
+          messageToSend += `\n请注意：你只能扮演${nickname}，不可以扮演其他角色,且你不可以提及自己是谁\n\n`;
           messageToSend += '下面是当前会话的历史内容：\n\n';
         }
 
@@ -1105,9 +1140,10 @@ class AIMessageManager {
   }
 
   async deletePlatformConversation(provider, conversationUrl) {
+    let tab = null;
     try {
-      const tab = await this.tabManager.openPlatformTab(conversationUrl);
-      
+      tab = await this.tabManager.openPlatformTab(conversationUrl);
+
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       let pingSuccess = false;
@@ -1138,9 +1174,25 @@ class AIMessageManager {
       }
 
       console.log(`[AIMessageManager] ${provider} 平台会话删除成功`);
+
+      // 删除成功后关闭标签页
+      await this.tabManager.closeTab(tab.id);
+      console.log(`[AIMessageManager] ${provider} 平台标签页已关闭`);
+
       return true;
     } catch (error) {
       console.error(`[AIMessageManager] 删除 ${provider} 平台会话失败:`, error);
+
+      // 如果出错，也尝试关闭标签页
+      if (tab) {
+        try {
+          await this.tabManager.closeTab(tab.id);
+          console.log(`[AIMessageManager] 删除失败后已关闭标签页`);
+        } catch (closeError) {
+          console.error(`[AIMessageManager] 关闭标签页失败:`, closeError);
+        }
+      }
+
       throw error;
     }
   }
@@ -1686,6 +1738,25 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
   } catch (error) {
     console.error('[Background] 清理 roleTabIds 失败:', error);
   }
+});
+
+async function seedDefaults() {
+  const roles = await StorageManager.getRoles();
+  if (roles.length > 0) return;
+
+  const rm = new RoleManager(null);
+
+  const deepseekRole = await rm.createRole('DeepSeek', 'deepseek', 'deepseek-chat', '');
+  await rm.createRole('豆包', 'doubao', 'doubao-pro', '');
+  const qianwenRole = await rm.createRole('千问', 'qianwen', 'qwen-plus', '');
+  await rm.createRole('Kimi', 'kimi', 'kimi-chat', '');
+
+  const cm = new ConversationManager(null);
+  await cm.createConversation('free', [qianwenRole.id], 'self');
+}
+
+chrome.runtime.onInstalled.addListener(() => {
+  seedDefaults();
 });
 
 init();

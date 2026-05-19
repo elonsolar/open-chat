@@ -8,7 +8,6 @@
 </head>
 <body>
   <div class="container">
-    <!-- 侧边栏头部 -->
     <div class="header">
       <h1>Free AI</h1>
       <div class="tabs">
@@ -18,105 +17,121 @@
       </div>
     </div>
 
-    <!-- 会话列表 -->
     <div class="tab-content active" id="conversations-tab">
       <div class="actions">
         <button class="btn btn-primary" id="newConversationBtn">
           <span>+</span> 新建会话
         </button>
+        <button class="btn btn-outline" id="batchConvBtn">管理</button>
       </div>
       <div class="conversation-list" id="conversationList"></div>
+      <div class="batch-bar" id="batchConvBar">
+        <span class="batch-info" id="batchConvInfo">已选 0 项</span>
+        <div class="batch-actions">
+          <button class="btn btn-secondary" id="batchConvSelectAll" style="font-size:12px;padding:6px 10px;">全选</button>
+          <button class="btn btn-danger visible" id="batchConvDelete">删除</button>
+        </div>
+      </div>
     </div>
 
-    <!-- 角色列表 -->
     <div class="tab-content" id="roles-tab">
       <div class="actions">
         <button class="btn btn-primary" id="newRoleBtn">
           <span>+</span> 新建角色
         </button>
+        <button class="btn btn-outline" id="batchRoleBtn">管理</button>
       </div>
       <div class="role-list" id="roleList"></div>
+      <div class="batch-bar" id="batchRoleBar">
+        <span class="batch-info" id="batchRoleInfo">已选 0 项</span>
+        <div class="batch-actions">
+          <button class="btn btn-secondary" id="batchRoleSelectAll" style="font-size:12px;padding:6px 10px;">全选</button>
+          <button class="btn btn-danger visible" id="batchRoleDelete">删除</button>
+        </div>
+      </div>
     </div>
 
-    <!-- 设置 -->
     <div class="tab-content" id="settings-tab">
       <div class="settings-info">
-        <h3>消息设置</h3>
-
-        <div class="setting-item">
-          <div class="setting-toggle">
-            <input type="checkbox" id="floatWindowCheck" checked>
-            <label for="floatWindowCheck">使用浮动窗口显示回复</label>
-          </div>
-          <p class="setting-desc">
-            在当前页面显示AI回复，不切换标签页
-          </p>
-        </div>
-
-        <div class="warning-box">
-          ⚠️ <strong>重要提示：</strong>
-          <ul>
-            <li>使用前请先在浏览器中登录对应的AI网站</li>
-            <li>插件会在后台打开AI网站标签页进行操作</li>
-            <li>请勿关闭AI网站标签页，否则无法发送消息</li>
-            <li>插件仅限体验模型，更多功能请去官方网站体验</li>
-          </ul>
-
-        <div class="platform-list">
-          <div class="platform-item">
-            <strong>DeepSeek</strong>
-            <a href="https://chat.deepseek.com" target="_blank">访问网站 →</a>
-          </div>
-          <div class="platform-item">
-            <strong>豆包</strong>
-            <a href="https://www.doubao.com/chat/" target="_blank">访问网站 →</a>
-          </div>
-          <div class="platform-item">
-            <strong>千问</strong>
-            <a href="https://tongyi.aliyun.com" target="_blank">访问网站 →</a>
-          </div>
-          <div class="platform-item">
-            <strong>Kimi</strong>
-            <a href="https://kimi.moonshot.cn" target="_blank">访问网站 →</a>
+        <div class="settings-section">
+          <div class="settings-section-title">消息设置</div>
+          <div class="setting-item">
+            <div class="setting-toggle">
+              <input type="checkbox" id="floatWindowCheck" checked>
+              <label for="floatWindowCheck">使用浮动窗口显示回复</label>
+            </div>
+            <p class="setting-desc">在当前页面显示AI回复，不切换标签页</p>
           </div>
         </div>
+
+        <div class="settings-section">
+          <div class="settings-section-title">使用说明</div>
+          <div class="warning-box">
+            <ul>
+              <li>使用前请先在浏览器中登录对应的AI网站</li>
+              <li>插件会在后台打开AI网站标签页进行操作</li>
+              <li>请勿关闭AI网站标签页，否则无法发送消息</li>
+              <li>插件仅限体验模型，更多功能请去官方网站体验</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section-title">AI 平台</div>
+          <div class="platform-list">
+            <div class="platform-item">
+              <strong>DeepSeek</strong>
+              <a href="https://chat.deepseek.com" target="_blank">访问</a>
+            </div>
+            <div class="platform-item">
+              <strong>豆包</strong>
+              <a href="https://www.doubao.com/chat/" target="_blank">访问</a>
+            </div>
+            <div class="platform-item">
+              <strong>千问</strong>
+              <a href="https://tongyi.aliyun.com" target="_blank">访问</a>
+            </div>
+            <div class="platform-item">
+              <strong>Kimi</strong>
+              <a href="https://kimi.moonshot.cn" target="_blank">访问</a>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- 新建会话对话框 -->
   <div class="modal" id="newConversationModal">
     <div class="modal-content">
       <div class="modal-header">
         <h2 id="conversationModalTitle">新建会话</h2>
         <button class="close-btn">&times;</button>
       </div>
-       <div class="modal-body">
-         <div class="form-group">
-           <label for="conversationName">会话名称</label>
-           <input type="text" id="conversationName" placeholder="输入会话名称">
-         </div>
-         <div class="form-group">
-           <label>选择角色</label>
-           <div class="role-selector" id="roleSelector"></div>
-         </div>
-         <div class="form-group" id="roleSettingsGroup" style="display: none;">
-           <label>角色设置</label>
-           <div id="roleSettingsContainer"></div>
-         </div>
-         <div class="form-group">
-           <label for="contextMode">上下文模式</label>
-           <select id="contextMode">
-             <option value="self">独享</option>
-             <option value="full">共享</option>
-           </select>
-           <small style="color: #666; font-size: 11px; display: block; margin-top: 4px;">
-             独享：每个AI独立对话，互不干扰，使用各自的会话URL<br>
-             共享：所有对话历史都发送给每个AI，每次打开新会话
-           </small>
-         </div>
-       </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="conversationName">会话名称</label>
+          <input type="text" id="conversationName" placeholder="输入会话名称">
+        </div>
+        <div class="form-group">
+          <label>选择角色</label>
+          <div class="role-selector" id="roleSelector"></div>
+        </div>
+        <div class="form-group" id="roleSettingsGroup" style="display: none;">
+          <label>角色设置</label>
+          <div id="roleSettingsContainer"></div>
+        </div>
+        <div class="form-group">
+          <label for="contextMode">上下文模式</label>
+          <select id="contextMode">
+            <option value="self">独享</option>
+            <option value="full">共享</option>
+          </select>
+          <small style="color: var(--text-tertiary); font-size: 11px; display: block; margin-top: 4px;">
+            独享：每个AI独立对话，互不干扰<br>
+            共享：所有对话历史都发送给每个AI
+          </small>
+        </div>
+      </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" id="cancelConversationBtn">取消</button>
         <button class="btn btn-primary" id="confirmConversationBtn">创建</button>
@@ -124,11 +139,10 @@
     </div>
   </div>
 
-  <!-- 新建角色对话框 -->
   <div class="modal" id="newRoleModal">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>新建角色</h2>
+        <h2 id="roleModalTitle">新建角色</h2>
         <button class="close-btn">&times;</button>
       </div>
       <div class="modal-body">
@@ -138,22 +152,15 @@
         </div>
         <div class="form-group">
           <label for="provider">服务提供商</label>
-          <select id="provider">
-          </select>
-          <small style="color: #666; font-size: 11px; display: block; margin-top: 4px;">
-            选择提供商后，模型会自动填充
-          </small>
+          <select id="provider"></select>
         </div>
         <div class="form-group">
-          <label for="model">模型 <span style="color: #999; font-weight: normal;">(可选，会自动填充)</span></label>
+          <label for="model">模型</label>
           <input type="text" id="model" placeholder="自动填充或手动输入">
-          <small style="color: #666; font-size: 11px; display: block; margin-top: 4px;">
-            常用模型：DeepSeek(deepseek-chat) | 豆包(doubao-pro) | 千问(qwen-plus) | ChatGPT(gpt-4)
-          </small>
         </div>
         <div class="form-group">
-          <label for="systemPrompt">系统提示词 <span style="color: #999; font-weight: normal;">(可选)</span></label>
-          <textarea id="systemPrompt" rows="4" placeholder="例如：你是一个友好的助手，擅长回答问题"></textarea>
+          <label for="systemPrompt">系统提示词 <span style="color:var(--text-tertiary);font-weight:normal;">(可选)</span></label>
+          <textarea id="systemPrompt" rows="3" placeholder="例如：你是一个友好的助手"></textarea>
         </div>
       </div>
       <div class="modal-footer">

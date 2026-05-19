@@ -948,67 +948,24 @@ function escapeHtml(text) {
 function formatMessage(content) {
   if (!content) return '';
 
-  // 先处理代码块，避免内部被处理
-  const codeBlocks = [];
-  const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/g;
-  let contentWithoutCode = content.replace(codeBlockRegex, (match, lang, code) => {
-    codeBlocks.push({ lang, code });
-    return `__CODEBLOCK_${codeBlocks.length - 1}__`;
-  });
-
-  // 处理表格
-  const tableRegex = /\n(\|.+\|)\n(\|[\s\-:|]+\|)\n((?:\|.+\|\n?)*)/g;
-  contentWithoutCode = contentWithoutCode.replace(tableRegex, (match, headerRow, separatorRow, bodyRows) => {
-    const headers = headerRow.split('|').filter(cell => cell.trim()).map(cell => cell.trim());
-    const rows = bodyRows.trim().split('\n').map(row => 
-      row.split('|').filter(cell => cell.trim()).map(cell => cell.trim())
-    );
-    
-    let table = '<table><thead><tr>';
-    headers.forEach(header => {
-      table += `<th>${escapeHtml(header)}</th>`;
-    });
-    table += '</tr></thead><tbody>';
-    
-    rows.forEach(row => {
-      table += '<tr>';
-      row.forEach(cell => {
-        table += `<td>${escapeHtml(cell)}</td>`;
+  if (typeof marked !== 'undefined' && marked.parse) {
+    try {
+      marked.setOptions({
+        gfm: true,
+        breaks: false,
+        headerIds: false,
+        mangle: false
       });
-      table += '</tr>';
-    });
-    
-    table += '</tbody></table>';
-    return table;
-  });
+      const result = marked.parse(content);
+      if (result && result.trim()) {
+        return result;
+      }
+    } catch (e) {
+      console.error('[formatMessage] Markdown parse error:', e);
+    }
+  }
 
-  // 处理标题
-  contentWithoutCode = contentWithoutCode
-    .replace(/^#### (.*$)/gm, '<h4>$1</h4>')
-    .replace(/^### (.*$)/gm, '<h3>$1</h3>')
-    .replace(/^## (.*$)/gm, '<h2>$1</h2>')
-    .replace(/^# (.*$)/gm, '<h1>$1</h1>');
-
-  // 处理粗体、斜体
-  contentWithoutCode = contentWithoutCode
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>');
-
-  // 处理列表
-  contentWithoutCode = contentWithoutCode
-    .replace(/^\d+\.\s+(.*$)/gm, '<li class="ol-item">$1</li>')
-    .replace(/^[-\*]\s+(.*$)/gm, '<li class="ul-item">$1</li>');
-
-  // 处理换行（非代码块区域，且不在表格内）
-  contentWithoutCode = contentWithoutCode.replace(/\n(?![<|])/g, '<br>');
-
-  // 恢复代码块
-  contentWithoutCode = contentWithoutCode.replace(/__CODEBLOCK_(\d+)__/g, (match, index) => {
-    const { lang, code } = codeBlocks[parseInt(index)];
-    return `<pre data-lang="${escapeHtml(lang)}"><code class="language-${escapeHtml(lang)}">${escapeHtml(code)}</code></pre>`;
-  });
-
-  return contentWithoutCode;
+  return escapeHtml(content);
 }
 
 function formatTime(timestamp) {
@@ -1254,6 +1211,13 @@ function renderMessageContent(content) {
 
   if (typeof marked !== 'undefined' && marked.parse) {
     try {
+      // 配置 marked：breaks: false 不会把单个换行转成<br>
+      marked.setOptions({
+        gfm: true,
+        breaks: false, // 不自动转换单个换行符
+        headerIds: false,
+        mangle: false
+      });
       const result = marked.parse(content);
       console.log('[renderMessageContent] Markdown渲染成功，结果长度:', result.length);
       if (!result || result.trim() === '') {

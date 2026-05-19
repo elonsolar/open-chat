@@ -204,45 +204,109 @@ class KimiAdapter extends BasePlatformAdapter {
           return table + '\n';
         };
 
-        const walk = (node, inBlock) => {
+        const walk = (node, inBlock, listInfo) => {
           if (node.nodeType === Node.TEXT_NODE) {
             result += node.textContent;
           } else if (node.nodeType === Node.ELEMENT_NODE) {
-            const isBlock = blockTags.has(node.tagName);
-            const isHeading = headingTags[node.tagName];
+            const tag = node.tagName;
+            const isBlock = blockTags.has(tag);
+            const isHeading = headingTags[tag];
 
-            if (node.tagName === 'BR') {
+            if (tag === 'BR') {
               result += '\n';
-            } else if (node.tagName === 'TABLE') {
+            } else if (tag === 'HR') {
+              if (result.length > 0 && !result.endsWith('\n')) result += '\n';
+              result += '---\n';
+            } else if (tag === 'TABLE') {
               result += extractTable(node);
+            } else if (tag === 'STRONG' || tag === 'B') {
+              result += '**';
+              for (let child of node.childNodes) walk(child, inBlock, listInfo);
+              result += '**';
+            } else if (tag === 'EM' || tag === 'I') {
+              result += '*';
+              for (let child of node.childNodes) walk(child, inBlock, listInfo);
+              result += '*';
+            } else if (tag === 'DEL' || tag === 'S') {
+              result += '~~';
+              for (let child of node.childNodes) walk(child, inBlock, listInfo);
+              result += '~~';
+            } else if (tag === 'CODE') {
+              result += '`';
+              for (let child of node.childNodes) walk(child, inBlock, listInfo);
+              result += '`';
             } else if (isHeading) {
-              if (result.length > 0 && !result.endsWith('\n')) {
-                result += '\n';
-              }
+              if (result.length > 0 && !result.endsWith('\n')) result += '\n';
               result += isHeading;
-              for (let child of node.childNodes) {
-                walk(child, true);
+              for (let child of node.childNodes) walk(child, true, listInfo);
+              if (!result.endsWith('\n')) result += '\n';
+            } else if (tag === 'UL' || tag === 'OL') {
+              var newDepth = (listInfo ? listInfo.depth : 0) + 1;
+              var newListInfo = {
+                type: tag === 'UL' ? 'ul' : 'ol',
+                depth: newDepth,
+                counter: tag === 'OL' ? (parseInt(node.getAttribute('start')) || 1) - 1 : 0
+              };
+              for (let child of node.childNodes) walk(child, true, newListInfo);
+              if (newDepth === 1 && !result.endsWith('\n')) result += '\n';
+            } else if (tag === 'LI') {
+              var indent = listInfo ? '  '.repeat(listInfo.depth - 1) : '';
+              var prefix;
+              if (listInfo && listInfo.type === 'ol') {
+                listInfo.counter++;
+                prefix = indent + listInfo.counter + '. ';
+              } else {
+                prefix = indent + '- ';
               }
-              if (!result.endsWith('\n')) {
-                result += '\n';
+              if (result.length > 0 && !result.endsWith('\n')) result += '\n';
+              result += prefix;
+
+              var needsNewline = false;
+              for (let child of node.childNodes) {
+                if (child.nodeType === Node.ELEMENT_NODE && (child.tagName === 'UL' || child.tagName === 'OL')) {
+                  walk(child, true, listInfo);
+                  needsNewline = false;
+                } else if (child.nodeType === Node.ELEMENT_NODE && (child.tagName === 'P' || (child.tagName === 'DIV' && child.classList.contains('paragraph')))) {
+                  if (needsNewline) {
+                    if (!result.endsWith('\n')) result += '\n';
+                    result += indent + '  ';
+                  }
+                  for (let gc of child.childNodes) walk(gc, true, listInfo);
+                  needsNewline = true;
+                } else if (child.nodeType === Node.TEXT_NODE) {
+                  if (child.textContent.trim()) {
+                    if (needsNewline && !result.endsWith('\n')) result += '\n';
+                    result += child.textContent;
+                    needsNewline = true;
+                  }
+                } else if (child.nodeType === Node.ELEMENT_NODE) {
+                  if (needsNewline && !result.endsWith('\n')) result += '\n';
+                  walk(child, true, listInfo);
+                  needsNewline = true;
+                }
+              }
+
+              if (!result.endsWith('\n')) result += '\n';
+            } else if (tag === 'BLOCKQUOTE') {
+              var savedResult = result;
+              result = '';
+              for (let child of node.childNodes) walk(child, true, listInfo);
+              var quoteText = result.replace(/\n$/, '');
+              result = savedResult;
+              if (result.length > 0 && !result.endsWith('\n')) result += '\n';
+              var lines = quoteText.split('\n');
+              for (var li = 0; li < lines.length; li++) {
+                result += '> ' + lines[li] + '\n';
               }
             } else {
-              if (isBlock && inBlock && result.length > 0 && !result.endsWith('\n')) {
-                result += '\n';
-              }
-
-              for (let child of node.childNodes) {
-                walk(child, isBlock || inBlock);
-              }
-
-              if (isBlock && !result.endsWith('\n')) {
-                result += '\n';
-              }
+              if (isBlock && inBlock && result.length > 0 && !result.endsWith('\n')) result += '\n';
+              for (let child of node.childNodes) walk(child, isBlock || inBlock, listInfo);
+              if (isBlock && !result.endsWith('\n')) result += '\n';
             }
           }
         };
 
-        walk(node, false);
+        walk(node, false, null);
         return result;
       };
 
@@ -273,6 +337,9 @@ class KimiAdapter extends BasePlatformAdapter {
             block.remove();
           }
         });
+
+        clonedContent.querySelectorAll('.table-actions').forEach(el => el.remove());
+        clonedContent.querySelectorAll('svg').forEach(el => el.remove());
 
         let rawText = extractTextWithNewlines(clonedContent).trim();
 
