@@ -340,6 +340,8 @@ class KimiAdapter extends BasePlatformAdapter {
 
         clonedContent.querySelectorAll('.table-actions').forEach(el => el.remove());
         clonedContent.querySelectorAll('svg').forEach(el => el.remove());
+        clonedContent.querySelectorAll('.toolcall-container').forEach(el => el.remove());
+        clonedContent.querySelectorAll('.thinking-container').forEach(el => el.remove());
 
         let rawText = extractTextWithNewlines(clonedContent).trim();
 

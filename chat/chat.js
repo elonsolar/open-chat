@@ -292,6 +292,9 @@ function updatePlatformPanelMessages() {
     // 重新绑定事件监听器
     messageList.removeEventListener('click', handleMessageListClick);
     messageList.addEventListener('click', handleMessageListClick);
+
+    // 为代码块添加复制按钮
+    addCodeCopyButtons(messageList);
   });
 
   console.log('[Chat] 平台面板消息已更新');
@@ -334,6 +337,8 @@ function bindRoleClickEvents() {
       }
     });
   });
+
+  bindCopyButtonEvents();
 }
 
 function render() {
@@ -420,7 +425,7 @@ function renderMessages() {
     return;
   }
 
-  elements.messagesContainer.innerHTML = state.conversation.messages.map(msg => {
+  elements.messagesContainer.innerHTML = state.conversation.messages.map((msg, index) => {
     const role = state.roles.find(r => r.id === msg.roleId);
     const roleSetting = state.conversation.roleSettings?.[msg.roleId] || {};
     const displayName = roleSetting.nickname || role?.name || '未知角色';
@@ -434,6 +439,15 @@ function renderMessages() {
           <div class="message-content">
             <div class="message-text">${escapeHtml(msg.content)}</div>
             <div class="message-time">${formatTime(msg.timestamp)}</div>
+            <div class="message-actions">
+              <button class="copy-msg-btn" data-msg-index="${index}" title="复制消息">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span>复制</span>
+              </button>
+            </div>
           </div>
         </div>
       `;
@@ -453,6 +467,15 @@ function renderMessages() {
             </div>
             <div class="message-text">${formatMessage(msg.content)}</div>
             <div class="message-time">${formatTime(msg.timestamp)}</div>
+            <div class="message-actions">
+              <button class="copy-msg-btn" data-msg-index="${index}" title="复制消息">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span>复制</span>
+              </button>
+            </div>
           </div>
         </div>
       `;
@@ -460,8 +483,8 @@ function renderMessages() {
   }).join('');
 
   bindRoleClickEvents();
+  addCodeCopyButtons(elements.messagesContainer);
 
-  // 滚动到底部
   scrollToBottom();
 }
 
@@ -1160,6 +1183,8 @@ function createPlatformWindow(role) {
   const messageList = windowElement.querySelector('.platform-message-list');
   if (messageList) {
     messageList.addEventListener('click', handleMessageListClick);
+    // 为代码块添加复制按钮
+    addCodeCopyButtons(messageList);
   }
 
   return windowElement;
@@ -1533,6 +1558,111 @@ async function removeRoleFromConversation(roleId) {
     console.error('[Chat] 移除角色失败:', error);
     alert('移除失败: ' + error.message);
   }
+}
+
+function bindCopyButtonEvents() {
+  const copyBtns = elements.messagesContainer.querySelectorAll('.copy-msg-btn');
+  copyBtns.forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const msgIndex = parseInt(btn.dataset.msgIndex);
+      const msg = state.conversation.messages[msgIndex];
+      if (!msg) return;
+
+      const text = msg.content;
+      await copyToClipboard(text, btn);
+    });
+  });
+}
+
+function addCodeCopyButtons(container) {
+  const codeBlocks = container.querySelectorAll('pre code');
+  codeBlocks.forEach(codeBlock => {
+    const pre = codeBlock.parentElement;
+
+    if (pre.querySelector('.code-copy-btn')) return;
+
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'code-copy-btn';
+    copyBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+    </svg>`;
+    copyBtn.title = '复制代码';
+    copyBtn.onclick = async () => {
+      const codeText = codeBlock.textContent;
+      await copyToClipboard(codeText, copyBtn);
+    };
+
+    pre.appendChild(copyBtn);
+  });
+}
+
+async function copyToClipboard(text, button) {
+  try {
+    await navigator.clipboard.writeText(text);
+    showCopySuccess(button);
+    console.log('[复制] 成功复制到剪贴板');
+  } catch (err) {
+    console.error('[复制] 复制失败:', err);
+    fallbackCopy(text, button);
+  }
+}
+
+function fallbackCopy(text, button) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+
+  try {
+    document.execCommand('copy');
+    showCopySuccess(button);
+    console.log('[复制] 使用降级方案复制成功');
+  } catch (err) {
+    console.error('[复制] 降级方案也失败:', err);
+    if (button) {
+      const originalHTML = button.innerHTML;
+      button.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span>失败</span>`;
+      button.classList.add('error');
+      setTimeout(() => {
+        button.innerHTML = originalHTML;
+        button.classList.remove('error');
+      }, 2000);
+    }
+  }
+
+  document.body.removeChild(textarea);
+}
+
+function showCopySuccess(button) {
+  if (!button) return;
+
+  const originalHTML = button.innerHTML;
+  const originalClass = button.className;
+
+  if (button.classList.contains('code-copy-btn')) {
+    button.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="20 6 9 17 4 12"></polyline>
+    </svg>`;
+  } else {
+    button.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="20 6 9 17 4 12"></polyline>
+    </svg>
+    <span>已复制</span>`;
+  }
+  button.classList.add('copied');
+
+  setTimeout(() => {
+    button.innerHTML = originalHTML;
+    button.className = originalClass;
+  }, 2000);
 }
 
 // 启动
